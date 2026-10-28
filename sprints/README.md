@@ -14,7 +14,8 @@ Kaynak: `SPEC.md` (çelişkide **bölüm 19 Karar günlüğü** geçerli).
    - **Kontrol raporu:** "Şunlara baktım, tamam — sen de kontrol et" listesi (K20);
    - açık kalanlar.
 7. `TASKLIST.md`'de o sprintin kutularını işaretle.
-8. Tek commit at: `S0X: <özet>` + doğrulama notları, ardından `git push origin master` (Kaan onayladı, 2026-10-29).
+8. Sprint sonu mesajında **cihaz testi listesinin tamamını** numaralı "Dene → Beklenen" listesi olarak sohbete yaz (yalnız dosyaya yönlendirmek yetmez; Kaan'ın kuralı, 2026-10-29).
+9. Tek commit at: `S0X: <özet>` + doğrulama notları, ardından `git push origin master` (Kaan onayladı, 2026-10-29).
 
 ## Cihaz kuralları
 - Claude debug APK'yı Kaan'ın telefonuna ADB (kablosuz) ile kurabilir.
