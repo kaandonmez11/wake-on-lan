@@ -19,30 +19,49 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.kdgames.wake_on_lan.data.crypto.KeyVault
+import com.kdgames.wake_on_lan.data.prefs.SettingsStore
+import com.kdgames.wake_on_lan.data.repo.DeviceRepository
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * K19: yalnız debug build'de bulunan "WoL Debug" aracı.
  * Her sprint [DebugTab] listesine kendi sekmesini ekler.
  */
+@AndroidEntryPoint
 class DebugActivity : ComponentActivity() {
+    @Inject lateinit var deviceRepository: DeviceRepository
+    @Inject lateinit var settingsStore: SettingsStore
+    @Inject lateinit var keyVault: KeyVault
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        val deps = DebugDeps(deviceRepository, settingsStore, keyVault)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                DebugRoot()
+                DebugRoot(deps)
             }
         }
     }
 }
 
+/** Debug sekmelerinin ihtiyaç duyduğu uygulama bileşenleri. Sprintler buraya ekler. */
+class DebugDeps(
+    val devices: DeviceRepository,
+    val settings: SettingsStore,
+    val vault: KeyVault,
+)
+
 private enum class DebugTab(val title: String) {
     Vectors("Vektörler"),
     Design("Tasarım"),
+    Data("Veri"),
 }
 
 @Composable
-private fun DebugRoot() {
+private fun DebugRoot(deps: DebugDeps) {
     var selected by rememberSaveable { mutableIntStateOf(0) }
     Scaffold { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -54,6 +73,7 @@ private fun DebugRoot() {
             when (DebugTab.entries[selected]) {
                 DebugTab.Vectors -> VectorsTab()
                 DebugTab.Design -> DesignTab()
+                DebugTab.Data -> DataTab(deps.devices, deps.settings, deps.vault)
             }
         }
     }

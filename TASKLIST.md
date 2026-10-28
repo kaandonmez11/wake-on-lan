@@ -6,7 +6,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 |---|---|---|---|
 | S00 | 0 | Monorepo, protokol, vektörler, saf kripto | ✅ |
 | S01 | 1 | Android iskeleti + tasarım sistemi | ✅ |
-| S02 | 2 | Veri katmanı | ☐ |
+| S02 | 2 | Veri katmanı | 🧪 cihaz testi bekliyor |
 | S03 | 3 | Ağ çekirdeği | ☐ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ☐ |
 | S05 | 5 | StatusEngine + koordinatörler | ☐ |
@@ -48,14 +48,14 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)**
 
 ## S02 — Veri katmanı
-- [ ] Room entity'leri + `DeviceStateCache` + converters + FK cascade
-- [ ] DAO'lar (sıra, son 12, retention 100)
-- [ ] DeviceRepository / ScheduleRepository + doğrulamalar
-- [ ] SettingsStore (DataStore)
-- [ ] KeyVault (Keystore AES-GCM)
-- [ ] Hilt modülleri
-- [ ] Debug › Veri sekmesi
-- [ ] Testler yeşil · rapor · commit
+- [x] Room entity'leri + `DeviceStateCache` + converters + FK cascade
+- [x] DAO'lar (sıra, son 12, retention 100)
+- [x] DeviceRepository / ScheduleRepository + doğrulamalar
+- [x] SettingsStore (DataStore)
+- [x] KeyVault (Keystore AES-GCM)
+- [x] Hilt modülleri
+- [x] Debug › Veri sekmesi
+- [x] Testler yeşil · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S03 — Ağ çekirdeği

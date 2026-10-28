@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.android.junit5)
+    alias(libs.plugins.room)
 }
 
 // Ortak protokol klasörü (repo kökü/protocol). vectors.json hem testlere hem debug asset'ine gider.
@@ -55,6 +56,11 @@ kotlin {
     jvmToolchain(17)
 }
 
+room {
+    // Şema geçmişi git'te tutulur; ileride migration yazmak için gerekli.
+    schemaDirectory("$projectDir/schemas")
+}
+
 tasks.withType<Test>().configureEach {
     systemProperty("wol.vectors", protocolDir.file("vectors.json").asFile.absolutePath)
     // Robolectric'in SDK 36 sandbox'ı Java 21 ister; uygulama bytecode'u 17'de kalır.
@@ -80,6 +86,11 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    implementation(libs.datastore.preferences)
+
     implementation(libs.haze)
     implementation(libs.haze.blur)
 
@@ -92,6 +103,10 @@ dependencies {
     testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.room.testing)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
