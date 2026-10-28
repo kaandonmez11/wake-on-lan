@@ -38,6 +38,7 @@ class DebugActivity : ComponentActivity() {
 
 private enum class DebugTab(val title: String) {
     Vectors("Vektörler"),
+    Design("Tasarım"),
 }
 
 @Composable
@@ -52,6 +53,7 @@ private fun DebugRoot() {
             }
             when (DebugTab.entries[selected]) {
                 DebugTab.Vectors -> VectorsTab()
+                DebugTab.Design -> DesignTab()
             }
         }
     }

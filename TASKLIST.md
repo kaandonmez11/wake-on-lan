@@ -5,7 +5,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | Sprint | Spec fazı | Konu | Durum |
 |---|---|---|---|
 | S00 | 0 | Monorepo, protokol, vektörler, saf kripto | ✅ |
-| S01 | 1 | Android iskeleti + tasarım sistemi | ☐ |
+| S01 | 1 | Android iskeleti + tasarım sistemi | 🧪 cihaz testi bekliyor |
 | S02 | 2 | Veri katmanı | ☐ |
 | S03 | 3 | Ağ çekirdeği | ☐ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ☐ |
@@ -36,15 +36,15 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)**
 
 ## S01 — Tasarım sistemi
-- [ ] Fontlar (Onest, JetBrains Mono, Material Symbols) + lisanslar
-- [ ] theme: Color, Type, Motion, Haptics, Glass, Symbols, köşeler
-- [ ] Basma modifier'ı, RollingNumber, durum metni kalıbı
-- [ ] GlassSurface (normal/güçlü/dock)
-- [ ] LivingBackground (AGSL) + sahneler + morph + sürekli mod
-- [ ] FloatingNavBar + AppNav + iki boş sekme + sekme geçişi
-- [ ] Edge-to-edge, animasyonları kaldır davranışı
-- [ ] Debug › Tasarım sekmesi (vitrin, spring, haptik, sahne, FPS)
-- [ ] Testler yeşil · animasyon denetimi · rapor · commit
+- [x] Fontlar (Onest, JetBrains Mono, Material Symbols) + lisanslar
+- [x] theme: Color, Type, Motion, Haptics, Glass, Symbols, köşeler
+- [x] Basma modifier'ı, RollingNumber, durum metni kalıbı
+- [x] GlassSurface (normal/güçlü/dock)
+- [x] LivingBackground (AGSL) + sahneler + morph + sürekli mod
+- [x] FloatingNavBar + AppNav + iki boş sekme + sekme geçişi
+- [x] Edge-to-edge, animasyonları kaldır davranışı
+- [x] Debug › Tasarım sekmesi (vitrin, spring, haptik, sahne, FPS)
+- [x] Testler yeşil · animasyon denetimi · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S02 — Veri katmanı

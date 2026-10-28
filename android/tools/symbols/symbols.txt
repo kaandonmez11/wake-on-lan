@@ -1,0 +1,46 @@
+# Uygulamada kullanılan Material Symbols Outlined adları (spec 10.1, 10.9, 11.6).
+# Yeni ikon gerekince buraya ekleyip `python tools/symbols/subset_symbols.py` çalıştır.
+
+# Cihaz ikonları (11.6 tablo)
+desktop_windows
+laptop_mac
+dns
+tv
+sports_esports
+print
+speaker
+photo_camera
+memory
+lightbulb
+
+# Arayüz
+bolt
+settings
+power_settings_new
+edit
+add
+close
+arrow_back_ios_new
+wifi_off
+verified_user
+home
+warning
+check
+delete
+info
+schedule
+notifications
+location_on
+alarm
+battery_full
+lock
+vibration
+chevron_right
+refresh
+
+# Wi-Fi seviye ikonları (10.1)
+signal_wifi_0_bar
+network_wifi_1_bar
+network_wifi_2_bar
+network_wifi_3_bar
+signal_wifi_4_bar

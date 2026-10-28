@@ -42,6 +42,14 @@ Debug build telefona iki ikon kurar:
 - **WoL Denetim Merkezi**: uygulamanın kendisi.
 - **WoL Debug**: her sprintin cihazda test araçları (K19). Release build'de bulunmaz.
 
+Material Symbols yalnız kullanılan ikonlara indirgenmiş olarak gömülüdür. Yeni ikon gerekirse:
+
+```bash
+pip install fonttools
+# android/tools/symbols/symbols.txt dosyasına adı ekle, sonra:
+python tools/symbols/subset_symbols.py   # font + ui/theme/Sym.kt yeniden üretilir
+```
+
 Notlar:
 - Robolectric 4.17 en fazla SDK 36 destekliyor. JVM UI testleri SDK 36 + Java 21 ile koşar (`app/src/test/resources/robolectric.properties`). Gerçek cihaz testleri Android 17'de yapılır.
 - `vectors.json` Gradle tarafından `../protocol`'dan okunur; testlere `wol.vectors` sistem özelliğiyle, debug APK'ya asset olarak girer.
