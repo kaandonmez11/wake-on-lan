@@ -114,7 +114,7 @@ _2026-10-29 · Claude_
 - [x] Spring stiffness değerleri spec tablosuyla aynı → #3 ve Tasarım › Spring demosunda bak.
 - [x] Shader cihazda derleniyor → #1, #4, #5'te arka planı gör.
 - [x] Hareket azaltma kodda tüm döngüleri durduruyor → #9.
-- [ ] #1–#10 cihaz testleri sende.
+- [x] **Kaan: "S01 cihaz testi geçti"** (2026-10-29), 3 düzeltme turundan sonra.
 
 ### Cihaz testi düzeltmeleri (Kaan'ın notları)
 | Test | Sorun | Sebep | Düzeltme |

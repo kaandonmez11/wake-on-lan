@@ -5,7 +5,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | Sprint | Spec fazı | Konu | Durum |
 |---|---|---|---|
 | S00 | 0 | Monorepo, protokol, vektörler, saf kripto | ✅ |
-| S01 | 1 | Android iskeleti + tasarım sistemi | 🧪 cihaz testi bekliyor |
+| S01 | 1 | Android iskeleti + tasarım sistemi | ✅ |
 | S02 | 2 | Veri katmanı | ☐ |
 | S03 | 3 | Ağ çekirdeği | ☐ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ☐ |
@@ -45,7 +45,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Edge-to-edge, animasyonları kaldır davranışı
 - [x] Debug › Tasarım sekmesi (vitrin, spring, haptik, sahne, FPS)
 - [x] Testler yeşil · animasyon denetimi · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)**
 
 ## S02 — Veri katmanı
 - [ ] Room entity'leri + `DeviceStateCache` + converters + FK cascade
