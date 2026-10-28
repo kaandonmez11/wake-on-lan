@@ -124,6 +124,15 @@ _2026-10-29 · Claude_
 
 Testler: **88/88** yeşil.
 
+### Cihaz testi düzeltmeleri — 2. tur
+| Test | Kaan'ın notu | Sebep | Düzeltme |
+|---|---|---|---|
+| #2, #6 | Sekme titreşimi çok hafif; TICK, LOW_TICK 0.2, iptal ve hata hissedilmiyor | S24'te düşük ölçekli TICK/LOW_TICK primitifleri neredeyse hissedilmiyor | TICK 0.5→**1.0**; LOW_TICK, spec'teki 0.2–0.8 girdisi korunarak **0.55–1.0** ölçeğine eşlendi; iptal 0.3→**0.7**; hata 2× TICK **1.0**, 110 ms ara. Primitifler spec'teki gibi. |
+| #2, #5 | Arka plan önce sekiyor, sonra yavaşça kayıyor | (1) Bazı odaklar sahneler arasında sol kenar ↔ sağ kenar bağlantısı değiştiriyordu; bağlantı anlık değişince odak önce sıçrıyor, sonra `gentle` ile kayıyordu. (2) Tam ekrana geçişte salınım bir anda tam genlikle başlıyor, çıkışta bir anda kesiliyordu. | (1) Bağlantı noktası da 0↔1 arası `gentle` spring ile akıyor. (2) Salınım genliği 0↔1 `gentle` spring ile açılıp kapanıyor; çıkışta odaklar yerlerine akarak dönüyor. |
+| #7 | Güçlü camın köşe parlaması nefes alabilir | — | Strong vurgu parlaması 3 sn'lik döngüyle ±%35 nefes alıyor (hareket azaltılmışsa sabit). |
+| #9 | Animasyonlar kapalıyken tam ekran hâlâ hareket ediyor (Kaan: önemsiz) | One UI'daki "Animasyonları kaldır" anahtarı geliştirici ölçeğine değil `Settings.System.remove_animations` ayarına yazıyor (telefonda görüldü) | Hareket azaltma artık iki ayarı da dinliyor. |
+| #9 | Cam yüzeyler arası geçişlerde animasyon yok | `GlassSurface` varyant değerlerini (parlaklık, blur, vurgu) anlık uyguluyordu | Varyant değerleri `snappy` spring ile akıyor; çip yazı rengi de akıyor. Bu artık uygulamadaki tüm cam yüzeyler için geçerli. |
+
 ### Açık kalanlar
 - Wi-Fi pill + ayarlar balonu S06'da (başlığın üstüne).
 - "+" butonu S07'de panele bağlanacak.

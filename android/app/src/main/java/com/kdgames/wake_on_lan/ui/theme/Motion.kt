@@ -65,20 +65,28 @@ fun <T> motionSpec(token: SpringToken, reduceMotion: Boolean): FiniteAnimationSp
 @Composable
 fun rememberReduceMotion(): Boolean {
     val resolver = LocalContext.current.contentResolver
-    var reduce by remember { mutableStateOf(readAnimatorScale(resolver) == 0f) }
+    var reduce by remember { mutableStateOf(readReduceMotion(resolver)) }
     DisposableEffect(resolver) {
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
-                reduce = readAnimatorScale(resolver) == 0f
+                reduce = readReduceMotion(resolver)
             }
         }
         resolver.registerContentObserver(
             Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer,
         )
+        resolver.registerContentObserver(Settings.System.getUriFor(SAMSUNG_REMOVE_ANIMATIONS), false, observer)
         onDispose { resolver.unregisterContentObserver(observer) }
     }
     return reduce
 }
 
-private fun readAnimatorScale(resolver: android.content.ContentResolver): Float =
-    Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+/**
+ * One UI'daki Erişilebilirlik › "Animasyonları kaldır" anahtarı ölçeği değiştirmeden bu sistem
+ * ayarını yazabiliyor (S01 cihaz testinde görüldü); ikisi de hareket azaltma sayılır.
+ */
+private const val SAMSUNG_REMOVE_ANIMATIONS = "remove_animations"
+
+private fun readReduceMotion(resolver: android.content.ContentResolver): Boolean =
+    Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f ||
+        Settings.System.getInt(resolver, SAMSUNG_REMOVE_ANIMATIONS, 0) == 1

@@ -91,8 +91,16 @@ fun LivingBackground(
 
     var time by remember { mutableFloatStateOf(0f) }
     val animate = continuous && !reduceMotion
-    LaunchedEffect(animate) {
-        if (!animate) return@LaunchedEffect
+    // Salınım genliği 0↔1 arasında gentle spring ile açılıp kapanır: tam ekrana geçişte
+    // hareket sıfırdan büyür, çıkışta odaklar yerlerine akarak döner (sıçrama yok).
+    val drift by animateFloatAsState(
+        targetValue = if (animate) 1f else 0f,
+        animationSpec = SpringToken.Gentle.spec(),
+        label = "drift",
+    )
+    val driftActive = animate || drift > 0.001f
+    LaunchedEffect(driftActive) {
+        if (!driftActive) return@LaunchedEffect
         val start = withFrameNanos { it } - (time * 1e9f).toLong()
         while (true) {
             withFrameNanos { now -> time = (now - start) / 1e9f }
@@ -108,7 +116,7 @@ fun LivingBackground(
                     .getOrNull()
                 val brush = shader?.let(::ShaderBrush)
                 onDrawBehind {
-                    val positions = foci.mapIndexed { i, f -> f.resolve(this, if (animate) time else 0f, i) }
+                    val positions = foci.mapIndexed { i, f -> f.resolve(this, time, drift, i) }
                     if (shader != null && brush != null) {
                         shader.setFloatUniform("resolution", size.width, size.height)
                         shader.setFloatUniform("time", time)
@@ -143,6 +151,8 @@ private class AnimatedFocus(
     val radius: State<Dp>,
     val color: State<Color>,
     val opacity: State<Float>,
+    /** 0 = sol kenara göre, 1 = sağ kenara göre konum; geçişte bağlantı noktası da akar. */
+    val anchor: State<Float>,
 )
 
 private class ResolvedFocus(val center: Offset, val radius: Float, val color: Color, val opacity: Float)
@@ -159,23 +169,27 @@ private fun animateFocus(focus: Focus, color: Color, index: Int): AnimatedFocus 
         radius = animateDpAsState(focus.radius, token.spec(), label = "focusR$index"),
         color = animateColorAsState(color, token.spec(), label = "focusC$index"),
         opacity = animateFloatAsState(focus.opacity, token.spec(), label = "focusO$index"),
+        anchor = animateFloatAsState(if (focus.fromRight) 1f else 0f, token.spec(), label = "focusA$index"),
     )
 }
 
-private fun AnimatedFocus.resolve(scope: DrawScope, time: Float, index: Int): ResolvedFocus = with(scope) {
+private fun AnimatedFocus.resolve(scope: DrawScope, time: Float, drift: Float, index: Int): ResolvedFocus = with(scope) {
     val r = radius.value.toPx()
-    val left = x.value.toPx()
-    val cx = if (focus.fromRight) size.width - left - r else left + r
+    val inset = x.value.toPx()
+    val fromLeft = inset + r
+    val fromRight = size.width - inset - r
+    val cx = fromLeft + (fromRight - fromLeft) * anchor.value
     val cy = y.value.toPx() + r
     var center = Offset(cx, cy)
     var scale = 1f
-    if (time > 0f) {
+    if (drift > 0f) {
         val w = (2 * PI / DRIFT_PERIODS[index]).toFloat()
         val phase = DRIFT_PHASES[index]
-        val amp = DRIFT_AMPLITUDE_DP * density
+        val amp = DRIFT_AMPLITUDE_DP * density * drift
         center += Offset(amp * sin(w * time + phase), amp * sin(w * 0.8f * time + phase * 1.3f))
         val s = (sin(w * 1.1f * time + phase * 0.7f) + 1f) / 2f
-        scale = SCALE_MIN + (SCALE_MAX - SCALE_MIN) * s
+        val target = SCALE_MIN + (SCALE_MAX - SCALE_MIN) * s
+        scale = 1f + (target - 1f) * drift
     }
     ResolvedFocus(center, r * scale, color.value, opacity.value)
 }

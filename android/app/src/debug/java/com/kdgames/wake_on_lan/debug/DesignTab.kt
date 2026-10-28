@@ -1,5 +1,6 @@
 package com.kdgames.wake_on_lan.debug
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -120,6 +121,11 @@ private fun GlassButton(label: String, onClick: () -> Unit) {
 private fun <T> ChipRow(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { (value, label) ->
+            val textColor by animateColorAsState(
+                if (value == selected) WolColors.TextPrimary else WolColors.TextSecondary,
+                SpringToken.Snappy.spec(),
+                label = "chipText",
+            )
             GlassSurface(
                 shape = CircleShape,
                 variant = if (value == selected) GlassVariant.Strong else GlassVariant.Normal,
@@ -129,7 +135,7 @@ private fun <T> ChipRow(options: List<Pair<T, String>>, selected: T, onSelect: (
                 Text(
                     label,
                     style = WolType.Chip,
-                    color = if (value == selected) WolColors.TextPrimary else WolColors.TextSecondary,
+                    color = textColor,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
             }
