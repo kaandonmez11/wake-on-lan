@@ -32,10 +32,6 @@ object GlassTokens {
     val ShadowOffsetY = 12.dp
     val ShadowRadius = 32.dp
     const val ACCENT_ALPHA = 0.30f
-
-    /** Strong köşe parlamasının nefes genliği (±%) ve tam döngü süresi (spec 12.5 nefes: 3 sn). */
-    const val ACCENT_BREATH = 0.35f
-    const val ACCENT_BREATH_MS = 3000
 }
 
 /**

@@ -133,6 +133,15 @@ Testler: **88/88** yeşil.
 | #9 | Animasyonlar kapalıyken tam ekran hâlâ hareket ediyor (Kaan: önemsiz) | One UI'daki "Animasyonları kaldır" anahtarı geliştirici ölçeğine değil `Settings.System.remove_animations` ayarına yazıyor (telefonda görüldü) | Hareket azaltma artık iki ayarı da dinliyor. |
 | #9 | Cam yüzeyler arası geçişlerde animasyon yok | `GlassSurface` varyant değerlerini (parlaklık, blur, vurgu) anlık uyguluyordu | Varyant değerleri `snappy` spring ile akıyor; çip yazı rengi de akıyor. Bu artık uygulamadaki tüm cam yüzeyler için geçerli. |
 
+### Cihaz testi düzeltmeleri — 3. tur
+| Test | Kaan'ın notu | Sebep | Düzeltme |
+|---|---|---|---|
+| #1 | Geçişte başlık önce aşağı sekiyor / sonunda yukarı sekiyor | Giren sekmenin 0.98→1 ölçeği ekran merkezini eksen alıyordu; üstteki başlık bu yüzden dikeyde kayıyordu | Ölçek ekseni üst kenar (`TransformOrigin(0.5, 0)`). Regresyon testi `gecisSirasindaBaslikDikeydeOynamaz` geçiş boyunca 12 karede başlığın dikey konumunu kontrol ediyor (düzeltme geri alınınca testin düştüğü doğrulandı). |
+| #4 | İptal ve hata hâlâ çok zayıf | S24'te TICK, tam şiddette çift olarak bile zayıf | **Spec'ten bilinçli sapma:** iptal = LOW_TICK 0.9, hata = 2× CLICK 0.8 (120 ms ara). |
+| #5 | Güçlü camın yanıp sönmesi istenmiyor | — | Nefes alma kaldırıldı. Parlama akarak beliriyor ve sabit kalıyor. |
+
+Testler: **89/89** yeşil.
+
 ### Açık kalanlar
 - Wi-Fi pill + ayarlar balonu S06'da (başlığın üstüne).
 - "+" butonu S07'de panele bağlanacak.

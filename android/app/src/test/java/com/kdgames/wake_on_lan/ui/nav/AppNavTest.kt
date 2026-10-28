@@ -5,6 +5,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performClick
@@ -42,6 +44,23 @@ class AppNavTest {
         compose.waitForIdle()
         tab("Cihazlar").assertIsSelected()
         compose.onNode(hasText("Zamanlayıcılar telefondan çalışır, Wi-Fi şart")).assertDoesNotExist()
+    }
+
+    /** S01 cihaz testi: geçiş sırasında başlık dikeyde kayıyordu (ölçek ekseni ekran ortasıydı). */
+    @Test
+    fun gecisSirasindaBaslikDikeydeOynamaz() {
+        compose.setContent { WolTheme { AppNav() } }
+        val finalTop = compose.onNode(isHeading() and hasText("Cihazlar")).getBoundsInRoot().top
+
+        compose.mainClock.autoAdvance = false
+        tab("Otomasyon").performClick()
+        repeat(12) {
+            compose.mainClock.advanceTimeBy(32)
+            compose.onAllNodes(isHeading()).fetchSemanticsNodes().forEach { node ->
+                assertEquals(finalTop.value, node.boundsInRoot.top / node.layoutInfo.density.density, 0.5f)
+            }
+        }
+        compose.mainClock.autoAdvance = true
     }
 
     @Test

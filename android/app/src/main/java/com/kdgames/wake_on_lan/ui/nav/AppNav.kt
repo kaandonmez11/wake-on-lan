@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -34,6 +35,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
 private val TabShift = 12.dp
+private val TopCenter = TransformOrigin(0.5f, 0f)
 private const val TAB_ENTER_SCALE = 0.98f
 
 /** Uygulama kökü: canlı arka plan + sekmeler + yüzen nav (spec 10, 12.2). */
@@ -61,7 +63,9 @@ fun AppNav(onAddDevice: () -> Unit = {}) {
                         val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
                         val offsetSpec = SpringToken.Smooth.spec(IntOffset.VisibilityThreshold)
                         (fadeIn(SpringToken.Smooth.spec()) +
-                            scaleIn(SpringToken.Smooth.spec(), initialScale = TAB_ENTER_SCALE) +
+                            // Ölçek ekseni üst kenar: başlık dikeyde oynamaz (merkez eksen onu 0.98→1
+                            // boyunca aşağıdan yukarı kaydırıyordu — S01 cihaz testi).
+                            scaleIn(SpringToken.Smooth.spec(), initialScale = TAB_ENTER_SCALE, transformOrigin = TopCenter) +
                             slideInHorizontally(offsetSpec) { shiftPx * dir }) togetherWith
                             (fadeOut(SpringToken.Smooth.spec()) + slideOutHorizontally(offsetSpec) { -shiftPx * dir })
                     }

@@ -42,12 +42,19 @@ class Haptics(context: Context) {
         else compose { addPrimitive(Composition.PRIMITIVE_CLICK, 0.8f).addPrimitive(Composition.PRIMITIVE_CLICK, 0.8f, 80) }
     }
 
-    /** Hold iptali: tick'ten belirgin biçimde hafif ama hissedilir. */
-    fun cancel() = play(Composition.PRIMITIVE_TICK, CANCEL_SCALE)
+    /**
+     * Hold iptali. Spec TICK diyor; S24'te TICK düşük ölçekte hissedilmediği için (Kaan'ın testi)
+     * daha tok LOW_TICK kullanılır.
+     */
+    fun cancel() = play(Composition.PRIMITIVE_LOW_TICK, CANCEL_SCALE)
 
-    /** Hata / "Uyanmadı": iki kısa, tam şiddet tick. */
+    /**
+     * Hata / "Uyanmadı": iki kısa darbe. Spec iki TICK diyor; S24'te çift TICK tam şiddette bile
+     * zayıf kaldığı için (Kaan'ın testi) iki CLICK kullanılır.
+     */
     fun error() = compose {
-        addPrimitive(Composition.PRIMITIVE_TICK, 1f).addPrimitive(Composition.PRIMITIVE_TICK, 1f, ERROR_GAP_MS)
+        addPrimitive(Composition.PRIMITIVE_CLICK, ERROR_SCALE)
+            .addPrimitive(Composition.PRIMITIVE_CLICK, ERROR_SCALE, ERROR_GAP_MS)
     }
 
     private fun play(primitive: Int, scale: Float) = compose { addPrimitive(primitive, scale) }
@@ -67,7 +74,8 @@ private const val TAG = "Haptics"
 // Kaan'ın S01 cihaz testi: 0.5 TICK, 0.2 LOW_TICK ve 0.3 iptal hissedilmiyordu.
 private const val TICK_SCALE = 1f
 private const val LOW_TICK_MIN = 0.55f
-private const val CANCEL_SCALE = 0.7f
-private const val ERROR_GAP_MS = 110
+private const val CANCEL_SCALE = 0.9f
+private const val ERROR_SCALE = 0.8f
+private const val ERROR_GAP_MS = 120
 
 val LocalHaptics = staticCompositionLocalOf<Haptics> { error("Haptics sağlanmadı") }

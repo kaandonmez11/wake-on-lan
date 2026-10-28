@@ -3,16 +3,9 @@ package com.kdgames.wake_on_lan.ui.components
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -56,7 +49,7 @@ private val SaturationFilter = ColorFilter.colorMatrix(ColorMatrix().apply { set
  * %18→%5 (145°) gradient, 1dp beyaz %14 çerçeve + üst kenarda %35 vurgu, gölge 0/12/32 siyah %28.
  *
  * Varyant değişimi (ör. Normal → Strong) parlaklık, blur ve vurgu dahil `snappy` spring ile akar.
- * Strong'daki köşe parlaması 3 sn'lik döngüyle yavaşça nefes alır (hareket azaltılmışsa sabit).
+ * Strong'daki köşe parlaması belirirken akarak gelir, sonra sabit kalır (Kaan: nefes alma yok).
  *
  * @param accent [GlassVariant.Strong] için sağ üstten gelen cihaz rengi (%30 radial).
  */
@@ -82,7 +75,6 @@ fun GlassSurface(
     // Renk değişmesin diye vurgu kaybolurken son belirtilen renk korunur.
     val lastAccent = remember { AccentHolder() }
     if (accent.isSpecified) lastAccent.color = accent
-    val breath = accentBreath(enabled = accentStrength > 0f && !reduceMotion)
     Box(
         modifier = modifier
             .dropShadow(
@@ -120,10 +112,10 @@ fun GlassSurface(
                     ),
                 )
                 if (accentStrength > 0f) {
-                    val alpha = GlassTokens.ACCENT_ALPHA * accentStrength * (1f + GlassTokens.ACCENT_BREATH * breath.value)
+                    val alpha = GlassTokens.ACCENT_ALPHA * accentStrength
                     drawRect(
                         Brush.radialGradient(
-                            colors = listOf(lastAccent.color.copy(alpha = alpha.coerceIn(0f, 1f)), Color.Transparent),
+                            colors = listOf(lastAccent.color.copy(alpha = alpha), Color.Transparent),
                             center = Offset(size.width, 0f),
                             radius = size.maxDimension * 0.75f,
                         ),
@@ -141,30 +133,6 @@ fun GlassSurface(
             ),
         content = content,
     )
-}
-
-/** -1..1 arası, 3 sn'lik sinüs benzeri nefes; kapalıyken 0'a akar. Okuma çizim aşamasında yapılır. */
-@Composable
-private fun accentBreath(enabled: Boolean): State<Float> {
-    val value = remember { Animatable(0f) }
-    LaunchedEffect(enabled) {
-        if (enabled) {
-            value.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(GlassTokens.ACCENT_BREATH_MS / 4, easing = FastOutSlowInEasing),
-            )
-            value.animateTo(
-                targetValue = -1f,
-                animationSpec = infiniteRepeatable(
-                    tween(GlassTokens.ACCENT_BREATH_MS / 2, easing = FastOutSlowInEasing),
-                    RepeatMode.Reverse,
-                ),
-            )
-        } else {
-            value.animateTo(0f, SpringToken.Gentle.spec())
-        }
-    }
-    return value.asState()
 }
 
 /** Kompozisyonda state yazmadan son vurgu rengini tutar (yalnız çizimde okunur). */
