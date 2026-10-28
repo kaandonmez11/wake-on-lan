@@ -1,0 +1,463 @@
+{
+  "_comment": "Bu dosya agent/tools/VectorGen ile üretilir; elle düzenlemeyin. Base64 = standart, padding'li.",
+  "version": 1,
+  "x25519": [
+    {
+      "name": "rfc7748-6.1",
+      "alicePriv": "dwdtCnMYpX08FsFyUbJmRd9ML4frwJkqsXf7pR25LCo=",
+      "alicePub": "hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo=",
+      "bobPriv": "XasIfmJKikt54X+Lg4AO5m87sSkmGLb9HC+LJ/+I4Os=",
+      "bobPub": "3p7bfXt9wbTTW2HC7OQ1Nz+DQ8hbeGdNrfx+FG+IK08=",
+      "shared": "Sl2dW6TOLeFyjjv0gDUPJeB+IclH0Z4zdvCbPB4WF0I="
+    }
+  ],
+  "hkdf": [
+    {
+      "name": "rfc5869-a1",
+      "ikm": "CwsLCwsLCwsLCwsLCwsLCwsLCwsLCw==",
+      "salt": "AAECAwQFBgcICQoLDA==",
+      "info": "8PHy8/T19vf4+Q==",
+      "length": 42,
+      "okm": "PLJfJfqs1XqQQ09k0DYvKi0tCpDPGlpMXbAtVuzExb80AHII1biHGFhl"
+    },
+    {
+      "name": "rfc5869-a3-empty-salt",
+      "ikm": "CwsLCwsLCwsLCwsLCwsLCwsLCwsLCw==",
+      "salt": "",
+      "info": "",
+      "length": 42,
+      "okm": "jaTndaVjwY9xX4AqBjxaMbihH1xe4Yeew0VOXzxzjS2dIBOV+qS2GpbI"
+    }
+  ],
+  "pairing": {
+    "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34",
+    "agentId": "3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478",
+    "phonePriv": "dwdtCnMYpX08FsFyUbJmRd9ML4frwJkqsXf7pR25LCo=",
+    "phonePub": "hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo=",
+    "agentPriv": "XasIfmJKikt54X+Lg4AO5m87sSkmGLb9HC+LJ/+I4Os=",
+    "agentPub": "3p7bfXt9wbTTW2HC7OQ1Nz+DQ8hbeGdNrfx+FG+IK08=",
+    "sharedSecret": "Sl2dW6TOLeFyjjv0gDUPJeB+IclH0Z4zdvCbPB4WF0I=",
+    "salt": "3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f4786f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34",
+    "info": "wol-pair-v1",
+    "sessionKey": "sGz7pilCvtzWftXok8YW8ni8kVOnTXIndWkVebA3Pg4="
+  },
+  "signatures": [
+    {
+      "name": "PAIR_OK.proof",
+      "canonical": "pair-ok|6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478",
+      "sig": "Dae6ltDcwtcFiOHGhiK6cAQjyd06ByEj1Wb/+MGzG/8="
+    },
+    {
+      "name": "STATUS.sig",
+      "canonical": "status|AAECAwQFBgcICQoLDA0ODw==",
+      "sig": "s+ALffmf9eyGpJ7eKQouN3uTr+o119aiSZkrxGio1M0="
+    },
+    {
+      "name": "STATUS_OK.sig",
+      "canonical": "status-ok|AAECAwQFBgcICQoLDA0ODw==|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478|86461",
+      "sig": "3YXQvC2cDXf8apY6bGso/Py5NbhzdD3hri+vGqBsjVE="
+    },
+    {
+      "name": "CMD.sig/LOCK/graceful",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|LOCK|false",
+      "sig": "vHaj7l3kROGXDzWxbHxWZpykY84+8v31in292BppuvQ="
+    },
+    {
+      "name": "CMD.sig/LOCK/force",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|LOCK|true",
+      "sig": "ssfFzyldxdpHK2W27JP/TtiwAFpdA2+NMdNWQTSOtxM="
+    },
+    {
+      "name": "CMD.sig/SLEEP/graceful",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SLEEP|false",
+      "sig": "/n15H+ZHdSPcBn90y6GDr4z8QsTHrxLeQuLpa3i2ra8="
+    },
+    {
+      "name": "CMD.sig/SLEEP/force",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SLEEP|true",
+      "sig": "/M+oxks2IbmCe98nYl5BDLILfgGWz0xxtkcnzzSlfBw="
+    },
+    {
+      "name": "CMD.sig/HIBERNATE/graceful",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|HIBERNATE|false",
+      "sig": "oFIp2vyxaDAxmk0dIw36Nv20ezE8RDGOvUV47yYnQls="
+    },
+    {
+      "name": "CMD.sig/HIBERNATE/force",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|HIBERNATE|true",
+      "sig": "Qxs45dzihdZirbnO51jyw9vFDS2eWPNCjh7TjqKIk98="
+    },
+    {
+      "name": "CMD.sig/SHUTDOWN/graceful",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SHUTDOWN|false",
+      "sig": "ccqTsjtoPYthl7yFF9PlWdoOsMjaRrrMP7PE7CgzwSY="
+    },
+    {
+      "name": "CMD.sig/SHUTDOWN/force",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SHUTDOWN|true",
+      "sig": "PxaWOI6CRRfEt93wa7Kz8wHsKRJrLhlssTC0vRmtWw0="
+    },
+    {
+      "name": "CMD.sig/RESTART/graceful",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|RESTART|false",
+      "sig": "hdFG3UFvwVCUSkMfFV6cFCsFfBmAUSMj9BDk2eFhDf8="
+    },
+    {
+      "name": "CMD.sig/RESTART/force",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|RESTART|true",
+      "sig": "8nHf4pe55izz4m/OF4tfjIMEWEgEYQ6MelwlIH0yXCU="
+    },
+    {
+      "name": "ACK.sig/LOCK",
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|LOCK",
+      "sig": "pV2XXojcWCNbSm5FFrYf3vE4OF+10YjHY9AA/m6aRQU="
+    },
+    {
+      "name": "ACK.sig/SLEEP",
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|SLEEP",
+      "sig": "JDdiYcvP55c3FKDitVCTpLEajhYyCBsdSkys2TjtmUc="
+    },
+    {
+      "name": "ACK.sig/HIBERNATE",
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|HIBERNATE",
+      "sig": "5Po+dAmQXk+Iex5oXAcLacf5H7uSNGaDvL9Z5pYll0c="
+    },
+    {
+      "name": "ACK.sig/SHUTDOWN",
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|SHUTDOWN",
+      "sig": "Mdz81DUNnp3iNuj86rbdu2DG/YUgI5i0IMznxt/sZ0U="
+    },
+    {
+      "name": "ACK.sig/RESTART",
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|RESTART",
+      "sig": "/6EDCEtwXNE0+cUk+ef21OUPvKidKzdxViLAuWuhni8="
+    }
+  ],
+  "messages": [
+    {
+      "name": "DISCOVER",
+      "json": {
+        "v": 1,
+        "t": "DISCOVER",
+        "rid": "a1b2c3d4e5f60718"
+      }
+    },
+    {
+      "name": "DISCOVER_REPLY",
+      "json": {
+        "v": 1,
+        "t": "DISCOVER_REPLY",
+        "rid": "a1b2c3d4e5f60718",
+        "agentId": "3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478",
+        "hostname": "OFIS-PC",
+        "agentVersion": "1.0.0",
+        "paired": false,
+        "hibernate": true,
+        "nics": [
+          {
+            "mac": "D8:BB:C1:0A:2F:91",
+            "name": "Ethernet",
+            "wired": true,
+            "ip": "192.168.1.24"
+          },
+          {
+            "mac": "4C:03:4F:77:1E:05",
+            "name": "Wi-Fi",
+            "wired": false,
+            "ip": "192.168.1.57"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PAIR_HELLO",
+      "json": {
+        "v": 1,
+        "t": "PAIR_HELLO",
+        "rid": "0f1e2d3c4b5a6978",
+        "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34",
+        "phoneName": "Galaxy S24",
+        "phonePub": "hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo="
+      }
+    },
+    {
+      "name": "PAIR_OK",
+      "json": {
+        "v": 1,
+        "t": "PAIR_OK",
+        "rid": "0f1e2d3c4b5a6978",
+        "agentId": "3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478",
+        "agentPub": "3p7bfXt9wbTTW2HC7OQ1Nz+DQ8hbeGdNrfx+FG+IK08=",
+        "proof": "Dae6ltDcwtcFiOHGhiK6cAQjyd06ByEj1Wb/+MGzG/8="
+      },
+      "canonical": "pair-ok|6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478",
+      "sig": "Dae6ltDcwtcFiOHGhiK6cAQjyd06ByEj1Wb/+MGzG/8=",
+      "context": {
+        "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34"
+      }
+    },
+    {
+      "name": "PAIR_DENIED",
+      "json": {
+        "v": 1,
+        "t": "PAIR_DENIED",
+        "rid": "0f1e2d3c4b5a6978"
+      }
+    },
+    {
+      "name": "CHALLENGE",
+      "json": {
+        "v": 1,
+        "t": "CHALLENGE",
+        "rid": "1122334455667788",
+        "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34"
+      }
+    },
+    {
+      "name": "NONCE",
+      "json": {
+        "v": 1,
+        "t": "NONCE",
+        "rid": "1122334455667788",
+        "nonce": "AAECAwQFBgcICQoLDA0ODw=="
+      }
+    },
+    {
+      "name": "STATUS",
+      "json": {
+        "v": 1,
+        "t": "STATUS",
+        "rid": "99aabbccddeeff00",
+        "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34",
+        "nonce": "AAECAwQFBgcICQoLDA0ODw==",
+        "sig": "s+ALffmf9eyGpJ7eKQouN3uTr+o119aiSZkrxGio1M0="
+      },
+      "canonical": "status|AAECAwQFBgcICQoLDA0ODw==",
+      "sig": "s+ALffmf9eyGpJ7eKQouN3uTr+o119aiSZkrxGio1M0="
+    },
+    {
+      "name": "STATUS_OK",
+      "json": {
+        "v": 1,
+        "t": "STATUS_OK",
+        "rid": "99aabbccddeeff00",
+        "agentId": "3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478",
+        "hostname": "OFIS-PC",
+        "uptimeSec": 86461,
+        "hibernate": true,
+        "nics": [
+          {
+            "mac": "D8:BB:C1:0A:2F:91",
+            "name": "Ethernet",
+            "wired": true,
+            "ip": "192.168.1.24"
+          },
+          {
+            "mac": "4C:03:4F:77:1E:05",
+            "name": "Wi-Fi",
+            "wired": false,
+            "ip": "192.168.1.57"
+          }
+        ],
+        "sig": "3YXQvC2cDXf8apY6bGso/Py5NbhzdD3hri+vGqBsjVE="
+      },
+      "canonical": "status-ok|AAECAwQFBgcICQoLDA0ODw==|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478|86461",
+      "sig": "3YXQvC2cDXf8apY6bGso/Py5NbhzdD3hri+vGqBsjVE=",
+      "context": {
+        "nonce": "AAECAwQFBgcICQoLDA0ODw=="
+      }
+    },
+    {
+      "name": "CMD",
+      "json": {
+        "v": 1,
+        "t": "CMD",
+        "rid": "0102030405060708",
+        "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34",
+        "nonce": "8Oni29TNxr+4saqjnJWOhw==",
+        "cmd": "SHUTDOWN",
+        "force": true,
+        "sig": "PxaWOI6CRRfEt93wa7Kz8wHsKRJrLhlssTC0vRmtWw0="
+      },
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SHUTDOWN|true",
+      "sig": "PxaWOI6CRRfEt93wa7Kz8wHsKRJrLhlssTC0vRmtWw0="
+    },
+    {
+      "name": "ACK",
+      "json": {
+        "v": 1,
+        "t": "ACK",
+        "rid": "0102030405060708",
+        "cmd": "SHUTDOWN",
+        "sig": "Mdz81DUNnp3iNuj86rbdu2DG/YUgI5i0IMznxt/sZ0U="
+      },
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|SHUTDOWN",
+      "sig": "Mdz81DUNnp3iNuj86rbdu2DG/YUgI5i0IMznxt/sZ0U=",
+      "context": {
+        "nonce": "8Oni29TNxr+4saqjnJWOhw=="
+      }
+    },
+    {
+      "name": "ERR",
+      "json": {
+        "v": 1,
+        "t": "ERR",
+        "rid": "1122334455667788",
+        "code": "UNKNOWN_PHONE"
+      }
+    },
+    {
+      "name": "ERR",
+      "json": {
+        "v": 1,
+        "t": "ERR",
+        "rid": "0102030405060708",
+        "code": "BAD_SIG"
+      }
+    },
+    {
+      "name": "ERR",
+      "json": {
+        "v": 1,
+        "t": "ERR",
+        "rid": "0102030405060708",
+        "code": "NONCE_EXPIRED"
+      }
+    },
+    {
+      "name": "ERR",
+      "json": {
+        "v": 1,
+        "t": "ERR",
+        "rid": "0102030405060708",
+        "code": "UNSUPPORTED"
+      }
+    },
+    {
+      "name": "ERR",
+      "json": {
+        "v": 1,
+        "t": "ERR",
+        "rid": "0102030405060708",
+        "code": "BUSY"
+      }
+    }
+  ],
+  "magicPackets": [
+    {
+      "mac": "D8:BB:C1:0A:2F:91",
+      "packetHex": "ffffffffffffd8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91d8bbc10a2f91"
+    },
+    {
+      "mac": "00:11:22:33:44:55",
+      "packetHex": "ffffffffffff001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455001122334455"
+    },
+    {
+      "mac": "FF:FF:FF:FF:FF:FF",
+      "packetHex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ],
+  "broadcast": [
+    {
+      "ip": "192.168.1.24",
+      "prefix": 24,
+      "broadcast": "192.168.1.255"
+    },
+    {
+      "ip": "10.0.5.17",
+      "prefix": 22,
+      "broadcast": "10.0.7.255"
+    },
+    {
+      "ip": "172.16.5.4",
+      "prefix": 16,
+      "broadcast": "172.16.255.255"
+    },
+    {
+      "ip": "10.1.2.3",
+      "prefix": 8,
+      "broadcast": "10.255.255.255"
+    },
+    {
+      "ip": "192.168.1.130",
+      "prefix": 25,
+      "broadcast": "192.168.1.255"
+    },
+    {
+      "ip": "192.168.1.24",
+      "prefix": 30,
+      "broadcast": "192.168.1.27"
+    },
+    {
+      "ip": "192.168.1.24",
+      "prefix": 31,
+      "error": true
+    },
+    {
+      "ip": "192.168.1.24",
+      "prefix": 32,
+      "error": true
+    },
+    {
+      "ip": "192.168.1.24",
+      "prefix": 33,
+      "error": true
+    },
+    {
+      "ip": "192.168.1.300",
+      "prefix": 24,
+      "error": true
+    },
+    {
+      "ip": "192.168.1",
+      "prefix": 24,
+      "error": true
+    }
+  ],
+  "macAddresses": [
+    {
+      "input": "aa:bb:cc:dd:ee:ff",
+      "valid": true,
+      "normalized": "AA:BB:CC:DD:EE:FF"
+    },
+    {
+      "input": "AA-BB-CC-DD-EE-FF",
+      "valid": true,
+      "normalized": "AA:BB:CC:DD:EE:FF"
+    },
+    {
+      "input": "00:1a:2B:3c:4D:5e",
+      "valid": true,
+      "normalized": "00:1A:2B:3C:4D:5E"
+    },
+    {
+      "input": " d8-bb-c1-0a-2f-91 ",
+      "valid": true,
+      "normalized": "D8:BB:C1:0A:2F:91"
+    },
+    {
+      "input": "",
+      "valid": false
+    },
+    {
+      "input": "AA:BB:CC:DD:EE",
+      "valid": false
+    },
+    {
+      "input": "AA:BB:CC:DD:EE:FG",
+      "valid": false
+    },
+    {
+      "input": "AABBCCDDEEFF",
+      "valid": false
+    },
+    {
+      "input": "AA:BB:CC:DD:EE:FF:00",
+      "valid": false
+    },
+    {
+      "input": "AA:BB:CC:DD:EE:F",
+      "valid": false
+    }
+  ]
+}

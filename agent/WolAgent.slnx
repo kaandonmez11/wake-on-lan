@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/tools/">
+    <Project Path="tools/VectorGen/VectorGen.csproj" />
+  </Folder>
+  <Project Path="WolAgent.Tests/WolAgent.Tests.csproj" />
+  <Project Path="WolAgent/WolAgent.csproj" />
+</Solution>

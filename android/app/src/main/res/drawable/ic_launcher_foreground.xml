@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android_App_Icon/APP_Icon.svg (700x700) → adaptive icon ön planı.
+     Glif, maskeli görünür alanın ~%64'ü kadar (Logo_All.png ile aynı oran) ve 66dp güvenli alanın içinde. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.07023"
+        android:scaleY="0.07023"
+        android:translateX="29.42"
+        android:translateY="28.72">
+        <path
+            android:pathData="M60,179.445L149.781,524.758H262.193V403.898H437.943V524.758H550.344L640.125,179.445"
+            android:strokeWidth="75"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M261.062,238V378 M306.062,176V378 M350.062,176V378 M394.062,176V378 M439.062,238V378"
+            android:strokeWidth="36"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

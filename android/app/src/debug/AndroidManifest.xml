@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- K19: yalnız debug build'de bulunan geliştirici aracı, ayrı launcher ikonu. -->
+        <activity
+            android:name=".debug.DebugActivity"
+            android:exported="true"
+            android:label="@string/debug_app_name"
+            android:taskAffinity="com.kdgames.wake_on_lan.debug">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
