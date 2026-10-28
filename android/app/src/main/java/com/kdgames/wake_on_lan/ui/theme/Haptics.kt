@@ -5,6 +5,7 @@ import android.os.VibrationEffect
 import android.os.VibrationEffect.Composition
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
@@ -48,10 +49,13 @@ class Haptics(context: Context) {
     private inline fun compose(build: Composition.() -> Composition) {
         if (!enabled || !vibrator.hasVibrator()) return
         val effect = VibrationEffect.startComposition().build().compose()
-        vibrator.vibrate(effect)
+        // Haptik hiçbir zaman uygulamayı düşürmemeli (ör. izin/servis hatası).
+        runCatching { vibrator.vibrate(effect) }.onFailure { Log.w(TAG, "Titreşim çalınamadı", it) }
     }
 
     private fun supports(primitive: Int) = vibrator.areAllPrimitivesSupported(primitive)
 }
+
+private const val TAG = "Haptics"
 
 val LocalHaptics = staticCompositionLocalOf<Haptics> { error("Haptics sağlanmadı") }

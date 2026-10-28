@@ -3,6 +3,7 @@ package com.kdgames.wake_on_lan.ui.theme
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -13,6 +14,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -58,14 +60,17 @@ fun SymbolIcon(
             ),
         contentAlignment = Alignment.Center,
     ) {
+        // Glif, fontun doğal satır kutusunda (ascent 1056 / descent 96, em 960) tam ortadadır.
+        // Satır yüksekliğini kırpmak glifi kaydırır; metin sınırsız ölçülüp kutuda ortalanır.
         Text(
             text = name,
+            modifier = Modifier.wrapContentSize(unbounded = true),
             style = TextStyle(
                 fontFamily = family,
                 fontSize = fontSize,
-                lineHeight = fontSize,
                 color = tint,
                 textAlign = TextAlign.Center,
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
             ),
         )
     }

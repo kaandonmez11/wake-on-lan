@@ -116,6 +116,14 @@ _2026-10-29 · Claude_
 - [x] Hareket azaltma kodda tüm döngüleri durduruyor → #9.
 - [ ] #1–#10 cihaz testleri sende.
 
+### Cihaz testi düzeltmeleri (Kaan'ın notları)
+| Test | Sorun | Sebep | Düzeltme |
+|---|---|---|---|
+| #1 | "+" ikonu ortada değil, aşağıda | `SymbolIcon` satır yüksekliğini font boyutuna kırpıyordu. Material Symbols glifi fontun doğal satır kutusunda (ascent 1056 / descent 96, em 960) ortada olduğu için kırpma glifi kaydırıyordu. Tüm ikonları etkiliyordu. | Satır yüksekliği kırpması kaldırıldı; metin sınırsız ölçülüp kutuda ortalanıyor, `includeFontPadding=false`. Regresyon testi: `SymbolIconTest` (merkez + kırpılmamış satır yüksekliği). |
+| #2 | Otomasyon'a dokununca çökme | `SecurityException: VIBRATE` — manifest'te izin yoktu (izinler S03'e bırakılmıştı, haptik S01'de geldi). Robolectric izinleri zorlamadığı için testler yakalamadı. | `VIBRATE` izni eklendi. `Haptics` artık titreşim hatasında uygulamayı düşürmüyor, logcat'e yazıyor. Regresyon testi: `ManifestPermissionsTest`. |
+
+Testler: **88/88** yeşil.
+
 ### Açık kalanlar
 - Wi-Fi pill + ayarlar balonu S06'da (başlığın üstüne).
 - "+" butonu S07'de panele bağlanacak.
