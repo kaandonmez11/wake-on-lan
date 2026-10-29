@@ -6,7 +6,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 |---|---|---|---|
 | S00 | 0 | Monorepo, protokol, vektörler, saf kripto | ✅ |
 | S01 | 1 | Android iskeleti + tasarım sistemi | ✅ |
-| S02 | 2 | Veri katmanı | 🧪 cihaz testi bekliyor |
+| S02 | 2 | Veri katmanı | ✅ |
 | S03 | 3 | Ağ çekirdeği | ☐ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ☐ |
 | S05 | 5 | StatusEngine + koordinatörler | ☐ |
@@ -56,7 +56,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Hilt modülleri
 - [x] Debug › Veri sekmesi
 - [x] Testler yeşil · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)**
 
 ## S03 — Ağ çekirdeği
 - [ ] Manifest izinleri

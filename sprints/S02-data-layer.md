@@ -100,7 +100,7 @@ _2026-10-29 · Claude_
 - [x] Cascade silme (deneme, zamanlayıcı, çalışma, önbellek, Keystore anahtarı) testte doğrulandı → #4.
 - [x] Son 12 / k/n hesabı testte doğrulandı → #2.
 - [x] Aynı MAC ve geçersiz retry testte reddediliyor → #5, #7.
-- [ ] Gerçek Keystore ve kalıcılık sende → #3, #6, #8, #9.
+- [x] **Kaan: #1–#9 geçti** (2026-10-29).
 
 ### Açık kalanlar
 - Titreşim ayarı DataStore'da duruyor; `Haptics.enabled`'a bağlanması S10'da (Ayarlar).
