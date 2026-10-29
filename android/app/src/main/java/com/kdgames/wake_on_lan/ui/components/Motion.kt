@@ -80,6 +80,7 @@ fun AnimatedText(
     style: TextStyle,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     val reduceMotion = LocalReduceMotion.current
     AnimatedContent(
@@ -97,7 +98,10 @@ fun AnimatedText(
         },
         label = "animatedText",
     ) { value ->
-        Text(value, style = style, color = color)
+        Text(
+            value, style = style, color = color, maxLines = maxLines, softWrap = maxLines != 1,
+            overflow = if (maxLines == 1) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip,
+        )
     }
 }
 

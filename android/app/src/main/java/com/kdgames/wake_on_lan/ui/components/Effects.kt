@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -119,6 +120,18 @@ private fun RotatedSweep(base: Brush, angle: Float, center: Offset): Brush {
         }
     }
 }
+
+/**
+ * Spec 12.5 nefes alan parlama. Gölge yarıçapı sabit (bulanıklık bir kez hesaplanır), yalnız saydamlık
+ * ±%15 nefes alır; değerler gölge çizilirken okunur, her karede yeniden kompozisyon olmaz (S06 FPS düzeltmesi).
+ */
+fun Modifier.breathingShadow(shape: Shape, color: Color, maxAlpha: Float, strength: () -> Float, breath: State<Float>): Modifier =
+    dropShadow(shape) {
+        radius = 40.dp.toPx()
+        offset = Offset(0f, 10.dp.toPx())
+        this.color = color
+        alpha = (maxAlpha * strength() * breath.value).coerceIn(0f, 1f)
+    }
 
 /** Windows 11 güç ikonu (K17, Segoe Fluent Icons glifi). */
 @Composable

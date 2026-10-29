@@ -39,6 +39,7 @@ import com.kdgames.wake_on_lan.domain.model.PowerAction
 import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.breathing
+import com.kdgames.wake_on_lan.ui.components.breathingShadow
 import com.kdgames.wake_on_lan.ui.components.holdToConfirm
 import com.kdgames.wake_on_lan.ui.components.loopProgress
 import com.kdgames.wake_on_lan.ui.components.openCardEffects
@@ -73,12 +74,12 @@ fun DeviceCard(
     val shape = RoundedCornerShape(WolDimens.CornerCard)
     val palette = ui.palette
     val openness by animateFloatAsState(if (ui.isOn) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cardOpen")
-    val breath by breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "cardBreath")
+    val breath = breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "cardBreath")
     GlassSurface(
         shape = shape,
         modifier = modifier
             .height(150.dp)
-            .dropShadow(shape, Shadow(radius = 40.dp * breath, color = palette.end.copy(alpha = 0.40f * openness), offset = DpOffset(0.dp, 10.dp)))
+            .breathingShadow(shape, palette.end, maxAlpha = 0.40f, strength = { openness }, breath = breath)
             .openCardEffects(shape, palette.start, openness)
             .semantics { contentDescription = "${ui.device.name}, ${DeviceLabels.card(ui.state, ui.history)}" }
             .pressable(onClick = { haptics.tick(); onSelect() }, onClickLabel = "Seç"),

@@ -165,6 +165,22 @@ class StatusEngineTest {
             assertEquals(DeviceState.On(3, false, false, stale = true), h.state())
         }
 
+        /** S06 cihaz testi: Wi-Fi kapanırken soket bağlama hatası durum döngüsünü öldürüp uygulamayı düşürüyordu. */
+        @Test
+        fun `beklenmeyen hata tur sayilmaz, dongu olmez`() = runTest {
+            var fail = false
+            val h = EngineHarness(this, foreground = true) { _, _ ->
+                if (fail) throw IllegalStateException("Binding socket to network failed") else Sig.tcp()
+            }
+            fail = true
+            advanceTimeBy(9_100)
+            assertInstanceOf(DeviceState.On::class.java, h.state(), "hata negatif tur sayılmamalı")
+            fail = false
+            h.signals = { _, _ -> Sig.none() }
+            advanceTimeBy(6_100)
+            assertEquals(DeviceState.Off(false), h.state(), "döngü hatadan sonra da çalışmaya devam etmeli")
+        }
+
         @Test
         fun `kesin karar degisince onbellege yazilir`() = runTest {
             val h = EngineHarness(this, foreground = true) { _, now -> if (now < 6_000) Sig.agent() else Sig.none() }

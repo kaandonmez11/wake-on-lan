@@ -14,6 +14,7 @@ import com.kdgames.wake_on_lan.domain.model.Verdict
 import com.kdgames.wake_on_lan.net.AppScope
 import com.kdgames.wake_on_lan.net.Clock
 import com.kdgames.wake_on_lan.net.NoWifiException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -162,7 +163,13 @@ class StatusEngine @Inject constructor(
         val device = devices.value?.get(deviceId) ?: return null
         val signals = try {
             prober.probe(device)
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: NoWifiException) {
+            return null
+        } catch (e: Exception) {
+            // Wi-Fi geçişlerinde soket bağlama vb. hatalar: tur sayılmaz, döngü ölmez (S06 cihaz testi çökmesi).
+            warn(TAG, "Tur atılamadı: ${device.name}", e)
             return null
         }
         val now = clock.nowMs()

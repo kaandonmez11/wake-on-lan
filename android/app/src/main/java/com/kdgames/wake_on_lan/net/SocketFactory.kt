@@ -33,9 +33,10 @@ class WifiSocketFactory @Inject constructor(
         try {
             // bindSocket bağlanmamış soketi önce wildcard adrese bağlar, sonra ağa sabitler.
             network.bindSocket(socket)
-        } catch (e: IOException) {
+        } catch (_: IOException) {
+            // Ağ kaybolmuş ya da değişmiş (Wi-Fi kapandı): mobil veriye düşülmez.
             socket.close()
-            throw e
+            throw NoWifiException()
         }
         return socket
     }
@@ -45,9 +46,10 @@ class WifiSocketFactory @Inject constructor(
         val socket = Socket()
         try {
             network.bindSocket(socket)
-        } catch (e: IOException) {
+        } catch (_: IOException) {
+            // Ağ kaybolmuş ya da değişmiş (Wi-Fi kapandı): mobil veriye düşülmez.
             socket.close()
-            throw e
+            throw NoWifiException()
         }
         return socket
     }

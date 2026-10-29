@@ -1,6 +1,6 @@
 # S06 — Cihazlar ekranı
 
-**Spec:** 10.1, 10.2, 10.10, 11.3, 11.6 (Windows güç ikonları), 12.2 (kart → hero), 12.3, 12.5, 12.6, 12.7, 16 (Compose UI), 17 faz 6 · **Kararlar:** K9, K12, K15, K17
+**Spec:** 10.1, 10.2, 10.10, 11.3, 11.6 (Windows güç ikonları), 12.2 (kart → hero), 12.3, 12.5, 12.6, 12.7, 16 (Compose UI), 17 faz 6 · **Kararlar:** K9, K12, K15, K17, K24
 
 ## Amaç
 Asıl uygulamanın Cihazlar sekmesi tamamen çalışır ve animasyonludur: Wi-Fi pill, hero kart, orb, hold butonları, adım kartları, geçmiş çubukları, cihaz kartları, boş durum. Güç butonlarında **birebir Windows 11 ikonları**.
@@ -148,6 +148,23 @@ _2026-10-29 · Claude_
 - [x] Basılı tut 1.5 / 0.8 sn, dokun = uyandır, Off'ta güç satırı yok, TalkBack onayı testte → #6–#11, #17.
 - [x] Animasyon maddeleri yukarıdaki listede tek tek işaretlendi → #3, #4, #9, #11, #13, #19.
 - [ ] Gerçek cihazda görünüm, akıcılık ve haptikler sende → #1–#19.
+
+### Cihaz testi 1. tur düzeltmeleri (Kaan, 2026-10-29)
+- **Kapalı PC'de güç satırı görünmüyordu:** artık görünür ama pasif (yeni karar **K24**). Büyük kartın modu "uyanıyor / normal" olarak ikiye indi; PC açılıp kapanırken kartın boyutu değişmiyor.
+- **Pill'de IP düzgün görünmüyordu** (dar alanda alt satıra sarıyordu): SSID gerekirse "…" ile kısalıyor; Mbps ve IP tek satır ve hep tam. Pill, ayarlar balonuna kadar olan tüm genişliği kullanıyor.
+- **Çökme ve Wi-Fi aç/kapa sonrası "açık PC kapalı":**
+  - Wi-Fi kapanırken soketi eski ağa bağlama hatası "Wi-Fi yok" türünde değildi. StatusEngine onu yakalamıyordu; hata uygulama genelindeki arka plan iş akışına sızıyordu. Bu hem uygulamayı düşürebiliyor hem de tur döngüsünü öldürüp ekranda son durumu (Kapalı) bırakabiliyordu.
+  - Düzeltme: bağlama hatası `NoWifiException` sayılıyor; turda beklenmeyen hata "tur yok" sayılıyor ve döngü ölmüyor; koordinatörler G/Ç hatalarını yakalıyor; uygulama scope'una `CoroutineExceptionHandler` eklendi.
+  - Regresyon testi: `beklenmeyen hata tur sayilmaz, dongu olmez`.
+  - Not: telefon ADB'den düştüğü için çökme log'u okunamadı; kök neden koddan çıkarıldı.
+- **FPS düşüşü / takılmalar:**
+  - Nefes gölgesi her karede farklı yarıçapla yeniden bulanıklaştırılıyordu. Artık sabit yarıçaplı tembel `dropShadow` kullanılıyor ve yalnız saydamlık nefes alıyor.
+  - Nefes, amber parlama, basılı-tut dolumu, vurgu ve orb basma değerleri kompozisyonda okunuyordu; artık yalnız çizim/katman aşamasında okunuyor, her karede yeniden kompozisyon yok.
+  - Büyük kartta iç içe iki boyut animasyonu vardı (`animateContentSize` + `SizeTransform`); teke indi.
+  - "Basılı tutuluyor" ipucu artık dolum değerini değil, yalnız basma durumunu okuyor.
+- **Seçim halkası yarıda kesilip yeni hedefe gidiyordu:** hero boyut değiştirince kartlar kaydığı için hedef her karede değişiyor ve animasyon yeniden başlıyordu. Artık halka iki kartın canlı konumları arasında 0→1 ilerlemeyle çiziliyor; kartlar kaysa da kesintisiz gidiyor.
+- **Kart seçimi** DataStore yazımını beklemeden anında görünüyor.
+- Testler **216/216** (+2: kapalı cihazda pasif güç satırı, durum döngüsünün hatadan sağ çıkması).
 
 ### Açık kalanlar
 - Cihaz ekle / düzenle paneli, tarama: S07.

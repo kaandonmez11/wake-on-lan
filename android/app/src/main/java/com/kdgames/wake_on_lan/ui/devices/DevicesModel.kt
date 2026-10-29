@@ -112,13 +112,14 @@ object DeviceLabels {
 /** Güç satırı kullanılabilirliği (K12 + spec 9.3 madde 3–4); UI ve test ortak. */
 sealed interface PowerAvailability {
     data object Available : PowerAvailability
-    data object Hidden : PowerAvailability
-    data class Disabled(val hint: String) : PowerAvailability
+
+    /** Görünür ama pasif (K24: kapalı PC'de de satır görünür). [hint] null = ipucu yok. */
+    data class Disabled(val hint: String?) : PowerAvailability
 }
 
 fun powerAvailability(ui: DeviceUi, action: PowerAction): PowerAvailability {
     val state = ui.state
-    if (state !is DeviceState.On) return PowerAvailability.Hidden
+    if (state !is DeviceState.On) return PowerAvailability.Disabled(null)
     return when {
         ui.issue == AgentIssue.PAIRED_ELSEWHERE -> PowerAvailability.Disabled("Başka telefona eşli · PC'de WolAgent.exe reset")
         ui.device.agentId == null -> PowerAvailability.Disabled("Agent bulunamadı · PC'ye agent kur")

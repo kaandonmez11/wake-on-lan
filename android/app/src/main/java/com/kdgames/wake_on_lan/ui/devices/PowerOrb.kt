@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import com.kdgames.wake_on_lan.domain.model.DeviceState
 import com.kdgames.wake_on_lan.ui.components.HoldState
 import com.kdgames.wake_on_lan.ui.components.holdToConfirm
@@ -92,17 +93,18 @@ fun PowerOrb(
     LaunchedEffect(on, waking) {
         if (on && wasWaking[0]) {
             haptics.success()
-            burst.snapTo(1f)
+            launch {
+                burst.snapTo(1f)
+                burst.animateTo(0f, motionSpec(SpringToken.Gentle, reduceMotion))
+            }
             bloom.animateTo(1.08f, motionSpec(SpringToken.Quick, reduceMotion))
             bloom.animateTo(1f, motionSpec(SpringToken.Bouncy, reduceMotion))
         }
         wasWaking[0] = waking
     }
-    LaunchedEffect(burst.value > 0f) { if (burst.value > 0f) burst.animateTo(0f, motionSpec(SpringToken.Gentle, reduceMotion)) }
 
-    val holdProgress = hold.progress.value
-    val commitScale = hold.commit.value
-    val pressScale by animateFloatAsState(if (hold.pressed) 0.96f else 1f, motionSpec(if (hold.pressed) SpringToken.Quick else SpringToken.Snappy, reduceMotion), label = "orbPress")
+    // Dolum, vurgu ve basma değerleri yalnız çizim/katman aşamasında okunur.
+    val pressScale = animateFloatAsState(if (hold.pressed) 0.96f else 1f, motionSpec(if (hold.pressed) SpringToken.Quick else SpringToken.Snappy, reduceMotion), label = "orbPress")
 
     val gesture = when {
         tapEnabled -> Modifier.pressable(onClick = { haptics.click(); onTap() }, onClickLabel = "Uyandır")
@@ -120,7 +122,7 @@ fun PowerOrb(
         modifier
             .size(ringSize)
             .graphicsLayer {
-                val s = bloom.value * commitScale * pressScale
+                val s = bloom.value * hold.commit.value * pressScale.value
                 scaleX = s
                 scaleY = s
             }
@@ -151,6 +153,7 @@ fun PowerOrb(
                 }
             }
             // Basılı tut dolumu: halka boyunca kırmızı.
+            val holdProgress = hold.progress.value
             if (holdProgress > 0.001f) {
                 drawArc(WolColors.Danger, startAngle = -90f, sweepAngle = 360f * holdProgress, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke + 1.dp.toPx(), cap = StrokeCap.Round))
             }

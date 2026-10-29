@@ -38,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -52,6 +54,7 @@ import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.RollingNumber
 import com.kdgames.wake_on_lan.ui.components.breathing
+import com.kdgames.wake_on_lan.ui.components.breathingShadow
 import com.kdgames.wake_on_lan.ui.components.openCardEffects
 import com.kdgames.wake_on_lan.ui.components.pressable
 import com.kdgames.wake_on_lan.ui.components.rememberHoldState
@@ -70,7 +73,7 @@ import androidx.compose.animation.core.tween
 private val PowerRow = listOf(PowerAction.LOCK, PowerAction.SLEEP, PowerAction.HIBERNATE, PowerAction.RESTART, PowerAction.SHUTDOWN)
 
 /** Hero kartın modu: içerik bölümü bu üç durum arasında akar. */
-private enum class HeroMode { On, Waking, Other }
+private enum class HeroMode { Waking, Normal }
 
 /**
  * Seçili cihaz kartı (spec 10.2). Seçim değişince ikon balonu rengi, ad ve adres akarak değişir;
@@ -95,9 +98,10 @@ fun HeroCard(
 
     val holding = (listOf(PowerAction.SHUTDOWN to orbHold) + rowHolds.map { it.key to it.value }).firstOrNull { it.second.holding }?.first
     val openness by animateFloatAsState(if (ui.isOn) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "heroOpen")
-    val breath by breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "heroBreath")
-    val wakingGlow by breathing(1_600, 0.6f, 1f, running = ui.isWaking, label = "heroWakingGlow")
-    val amber by animateFloatAsState(if (ui.isWaking) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "heroAmber")
+    // Sürekli değerler State olarak tutulur ve yalnız çizimde okunur: her karede yeniden kompozisyon yok.
+    val breath = breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "heroBreath")
+    val wakingGlow = breathing(1_600, 0.6f, 1f, running = ui.isWaking, label = "heroWakingGlow")
+    val amber = animateFloatAsState(if (ui.isWaking) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "heroAmber")
 
     val shutdown = powerAvailability(ui, PowerAction.SHUTDOWN)
     GlassSurface(
@@ -106,19 +110,23 @@ fun HeroCard(
         accent = palette.start,
         modifier = modifier
             .fillMaxWidth()
-            .dropShadow(shape, Shadow(radius = 40.dp * breath, color = palette.end.copy(alpha = 0.30f * openness), offset = DpOffset(0.dp, 10.dp)))
+            .breathingShadow(shape, palette.end, maxAlpha = 0.30f, strength = { openness }, breath = breath)
             .openCardEffects(shape, palette.start, openness),
     ) {
-        // Uyanıyor: amber zemin (%30 → %8) + nefes alan amber çerçeve (spec 10.2, 12.5).
-        if (amber > 0.01f) {
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .background(Brush.verticalGradient(listOf(WolColors.Amber.copy(alpha = 0.30f * amber), WolColors.Amber.copy(alpha = 0.08f * amber))))
-                    .border(1.dp, WolColors.Amber.copy(alpha = 0.60f * amber * wakingGlow), shape),
-            )
-        }
-        Column(Modifier.padding(18.dp).animateContentSize(motionSpec(SpringToken.Smooth, reduceMotion))) {
+        // Uyanıyor: amber zemin (%30 → %8) + nefes alan amber çerçeve (spec 10.2, 12.5); çizimde okunur.
+        Box(
+            Modifier
+                .matchParentSize()
+                .drawBehind {
+                    val a = amber.value
+                    if (a <= 0.01f) return@drawBehind
+                    drawRect(Brush.verticalGradient(listOf(WolColors.Amber.copy(alpha = 0.30f * a), WolColors.Amber.copy(alpha = 0.08f * a))))
+                    val outline = shape.createOutline(size, layoutDirection, this)
+                    drawOutline(outline, WolColors.Amber.copy(alpha = 0.60f * a * wakingGlow.value), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+                },
+        )
+        // Boyutu tek kaynak yönetir (aşağıdaki AnimatedContent); iç içe iki boyut animasyonu takılma yapıyordu.
+        Column(Modifier.padding(18.dp)) {
             AnimatedVisibility(
                 visible = holding != null,
                 enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
@@ -163,11 +171,8 @@ fun HeroCard(
                 )
             }
 
-            val mode = when (state) {
-                is DeviceState.On -> HeroMode.On
-                is DeviceState.Waking -> HeroMode.Waking
-                else -> HeroMode.Other
-            }
+            // K24: güç satırı kapalı PC'de de görünür (pasif); yalnız uyanırken adım kartlarına yer verir.
+            val mode = if (state is DeviceState.Waking) HeroMode.Waking else HeroMode.Normal
             AnimatedContent(
                 targetState = mode,
                 transitionSpec = {
@@ -183,7 +188,7 @@ fun HeroCard(
                             Spacer(Modifier.height(16.dp))
                             WakeSteps((state as? DeviceState.Waking)?.step ?: com.kdgames.wake_on_lan.domain.model.WakeStep.PACKET, palette)
                         }
-                        HeroMode.On -> {
+                        HeroMode.Normal -> {
                             Spacer(Modifier.height(16.dp))
                             Text("Güç · Basılı tut", style = WolType.Label, color = WolColors.TextTertiary)
                             Spacer(Modifier.height(8.dp))
@@ -200,13 +205,13 @@ fun HeroCard(
                                 }
                             }
                             val hint = (powerAvailability(ui, PowerAction.LOCK) as? PowerAvailability.Disabled)?.hint
-                            AnimatedVisibility(hint != null, enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandVertically(), exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically()) {
+                            AnimatedVisibility(
+                                hint != null,
+                                enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
+                                exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
+                            ) {
                                 Text(hint ?: "", style = WolType.Label, color = WolColors.TextTertiary, modifier = Modifier.padding(top = 8.dp))
                             }
-                            Spacer(Modifier.height(16.dp))
-                            HistoryBars(ui.history)
-                        }
-                        HeroMode.Other -> {
                             Spacer(Modifier.height(16.dp))
                             HistoryBars(ui.history)
                         }

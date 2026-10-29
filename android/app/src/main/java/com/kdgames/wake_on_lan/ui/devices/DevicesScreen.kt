@@ -2,7 +2,6 @@ package com.kdgames.wake_on_lan.ui.devices
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -95,7 +94,10 @@ fun DevicesScreen(
 ) {
     val haptics = LocalHaptics.current
     val reduceMotion = LocalReduceMotion.current
-    val selected = state.selected
+    // Dokununca seçim anında görünür; DataStore yazımı arkadan gelir.
+    var localSelection by remember { mutableStateOf<Long?>(null) }
+    val selectedId = localSelection?.takeIf { id -> state.devices.any { it.id == id } } ?: state.selectedId
+    val selected = state.copy(selectedId = selectedId).selected
     val cardRects = remember { mutableStateMapOf<Long, Rect>() }
     var gridOrigin by remember { mutableStateOf(Offset.Zero) }
     var confirmCard by remember { mutableStateOf<DeviceUi?>(null) }
@@ -135,8 +137,7 @@ fun DevicesScreen(
             item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        WifiPill(state.wifi, Modifier.weight(1f, fill = false))
-                        Spacer(Modifier.weight(1f))
+                        Box(Modifier.weight(1f)) { WifiPill(state.wifi) }
                         SettingsBubble(onOpenSettings)
                     }
                     Spacer(Modifier.height(14.dp))
@@ -166,7 +167,10 @@ fun DevicesScreen(
             items(state.devices, key = { it.id }) { ui ->
                 DeviceCard(
                     ui = ui,
-                    onSelect = { onSelect(ui.id) },
+                    onSelect = {
+                        localSelection = ui.id
+                        onSelect(ui.id)
+                    },
                     onWake = { onWake(ui.id) },
                     onShutdown = { onPower(ui.id, PowerAction.SHUTDOWN) },
                     onAccessibilityShutdown = { confirmCard = ui },
@@ -199,36 +203,46 @@ fun DevicesScreen(
 }
 
 /**
- * Seçili kartın etrafında 2 beyaz halka (spec 10.2). Seçim değişince yeni karta `bouncy` ile kayar;
- * kaydırmada (aynı seçim) karta yapışık kalır.
+ * Seçili kartın etrafında 2 beyaz halka (spec 10.2). Seçim değişince eski karttan yeniye `bouncy` ile kayar.
+ * Konum iki kartın **canlı** konumları arasında 0→1 ilerlemeyle hesaplanır: hero boyut değiştirip kartlar
+ * kayarken halka yarıda kesilip yeniden başlamaz (S06 cihaz testi). Konumlar yalnız çizimde okunur.
  */
 @Composable
 private fun SelectionRing(selectedId: Long?, rects: Map<Long, Rect>, visible: Boolean) {
     val reduceMotion = LocalReduceMotion.current
-    val target = selectedId?.let(rects::get)
-    val anim = remember { Animatable(Rect.Zero, Rect.VectorConverter) }
-    val lastId = remember { longArrayOf(Long.MIN_VALUE) }
-    val alpha by animateFloatAsState(if (visible && target != null) 1f else 0f, motionSpec(SpringToken.Snappy, reduceMotion), label = "ringAlpha")
-    LaunchedEffect(selectedId, target) {
-        if (target == null) return@LaunchedEffect
-        if (lastId[0] == Long.MIN_VALUE || anim.value == Rect.Zero) {
-            anim.snapTo(target)
-        } else if (lastId[0] != selectedId) {
-            anim.animateTo(target, motionSpec(SpringToken.Bouncy, reduceMotion))
-        } else if (!anim.isRunning) {
-            anim.snapTo(target)
+    val progress = remember { Animatable(1f) }
+    val ids = remember { longArrayOf(Long.MIN_VALUE, Long.MIN_VALUE) } // [0] = kaynak, [1] = hedef
+    val alpha = animateFloatAsState(if (visible && selectedId != null) 1f else 0f, motionSpec(SpringToken.Snappy, reduceMotion), label = "ringAlpha")
+    LaunchedEffect(selectedId) {
+        val target = selectedId ?: return@LaunchedEffect
+        if (ids[1] == Long.MIN_VALUE) {
+            ids[0] = target
+            ids[1] = target
+            return@LaunchedEffect
         }
-        lastId[0] = selectedId ?: Long.MIN_VALUE
+        if (ids[1] == target) return@LaunchedEffect
+        ids[0] = ids[1]
+        ids[1] = target
+        progress.snapTo(0f)
+        progress.animateTo(1f, motionSpec(SpringToken.Bouncy, reduceMotion))
     }
-    if (alpha <= 0.01f) return
     Canvas(Modifier.fillMaxSize()) {
-        val r = anim.value
-        if (r == Rect.Zero) return@Canvas
+        val a = alpha.value
+        if (a <= 0.01f) return@Canvas
+        val to = rects[ids[1]] ?: return@Canvas
+        val from = rects[ids[0]] ?: to
+        val t = progress.value
+        val r = Rect(
+            left = from.left + (to.left - from.left) * t,
+            top = from.top + (to.top - from.top) * t,
+            right = from.right + (to.right - from.right) * t,
+            bottom = from.bottom + (to.bottom - from.bottom) * t,
+        )
         val corner = WolDimens.CornerCard.toPx()
-        listOf(3.dp to 0.95f, 7.dp to 0.35f).forEach { (gap, a) ->
+        listOf(3.dp to 0.95f, 7.dp to 0.35f).forEach { (gap, ringAlpha) ->
             val g = gap.toPx()
             drawRoundRect(
-                color = Color.White.copy(alpha = a * alpha),
+                color = Color.White.copy(alpha = ringAlpha * a),
                 topLeft = Offset(r.left - g, r.top - g),
                 size = Size(r.width + 2 * g, r.height + 2 * g),
                 cornerRadius = CornerRadius(corner + g),
@@ -254,17 +268,24 @@ fun WifiPill(wifi: WifiState, modifier: Modifier = Modifier) {
             ) { sym -> SymbolIcon(sym, contentDescription = "Wi-Fi sinyali", size = 18.dp, filled = true) }
             Spacer(Modifier.width(8.dp))
             if (!wifi.connected) {
-                AnimatedText("Wi-Fi yok", style = WolType.Chip, color = WolColors.TextSecondary)
+                AnimatedText("Wi-Fi yok", style = WolType.Chip, color = WolColors.TextSecondary, maxLines = 1)
             } else {
-                AnimatedText(wifi.ssid ?: "Wi-Fi", style = if (wifi.ssid != null) WolType.Technical else WolType.Chip, color = WolColors.TextPrimary)
+                // SSID gerekirse "…" ile kısalır; Mbps ve IP her zaman tam ve tek satır.
+                AnimatedText(
+                    wifi.ssid ?: "Wi-Fi",
+                    style = if (wifi.ssid != null) WolType.Technical else WolType.Chip,
+                    color = WolColors.TextPrimary,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
                 wifi.linkSpeedMbps?.let { mbps ->
                     Dot()
                     RollingNumber(mbps.toLong(), style = WolType.Technical, color = WolColors.TextSecondary)
-                    Text(" Mbps", style = WolType.Chip, color = WolColors.TextSecondary)
+                    Text(" Mbps", style = WolType.Chip, color = WolColors.TextSecondary, maxLines = 1, softWrap = false)
                 }
                 wifi.phoneIp?.let { ip ->
                     Dot()
-                    AnimatedText(ip, style = WolType.Technical, color = WolColors.TextSecondary)
+                    AnimatedText(ip, style = WolType.Technical, color = WolColors.TextSecondary, maxLines = 1)
                 }
             }
         }
@@ -272,7 +293,7 @@ fun WifiPill(wifi: WifiState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Dot() = Text(" · ", style = WolType.Chip, color = WolColors.TextTertiary)
+private fun Dot() = Text(" · ", style = WolType.Chip, color = WolColors.TextTertiary, maxLines = 1, softWrap = false)
 
 @Composable
 private fun SettingsBubble(onClick: () -> Unit) {

@@ -82,12 +82,26 @@ class DevicesScreenTest {
     }
 
     @Test
-    fun kapali_cihazda_orba_dokunmak_uyandirir_ve_guc_satiri_yok() {
+    fun kapali_cihazda_orba_dokunmak_uyandirir() {
         show(two(off))
-        compose.onNode(hasContentDescription("Kilitle · basılı tut")).assertDoesNotExist()
         compose.onNode(hasContentDescription("Uyandır")).performClick()
         compose.waitForIdle()
         assertEquals(listOf(1L), wakes)
+    }
+
+    /** K24 (S06 cihaz testi): kapalı PC'de güç satırı görünür ama pasif; basılı tutmak bir şey yapmaz. */
+    @Test
+    fun kapali_cihazda_guc_satiri_gorunur_ama_pasif() {
+        show(two(off))
+        val lock = compose.onNode(hasContentDescription("Kilitle · basılı tut"))
+        lock.assertExists()
+        compose.onNode(hasContentDescription("Kapat · basılı tut")).assertExists()
+        compose.mainClock.autoAdvance = false
+        lock.performTouchInput { down(center) }
+        compose.mainClock.advanceTimeBy(1_700)
+        lock.performTouchInput { up() }
+        compose.mainClock.advanceTimeBy(300)
+        assertTrue(powers.isEmpty())
     }
 
     @Test
@@ -204,7 +218,7 @@ class DeviceLabelsTest {
         assertEquals("Agent yok", DeviceLabels.agent(DeviceUi(device(1, "x", "1.1.1.1", agent = false), on)))
         assertEquals("Başka telefona eşli", DeviceLabels.agent(DeviceUi(d, on, issue = AgentIssue.PAIRED_ELSEWHERE)))
 
-        assertEquals(PowerAvailability.Hidden, powerAvailability(DeviceUi(d, off), PowerAction.LOCK))
+        assertEquals(PowerAvailability.Disabled(null), powerAvailability(DeviceUi(d, off), PowerAction.LOCK))
         assertEquals(PowerAvailability.Available, powerAvailability(DeviceUi(d, on), PowerAction.LOCK))
         assertTrue(powerAvailability(DeviceUi(d.copy(hibernateAvailable = false), on), PowerAction.HIBERNATE) is PowerAvailability.Disabled)
         assertTrue(powerAvailability(DeviceUi(device(1, "x", "1.1.1.1", agent = false), on), PowerAction.SHUTDOWN) is PowerAvailability.Disabled)

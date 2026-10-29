@@ -102,6 +102,9 @@ class PowerCoordinator @Inject constructor(
         } catch (_: NoWifiException) {
             events.emit(DomainEvent.NoWifi(id))
             return
+        } catch (_: java.io.IOException) {
+            events.emit(DomainEvent.AgentFailed(id, "NO_REPLY"))
+            return
         }
         when (result) {
             is AgentResult.Ok -> Unit

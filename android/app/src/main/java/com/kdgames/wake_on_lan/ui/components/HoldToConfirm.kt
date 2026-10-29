@@ -51,7 +51,8 @@ class HoldState internal constructor(
     private var job: Job? = null
     private var lastTick = 0
 
-    val holding: Boolean get() = pressed && progress.value > 0f
+    /** Basılı tutuluyor mu (ipucu satırı). Yalnız basma durumunu okur; dolum değeri kompozisyonu tetiklemez. */
+    val holding: Boolean get() = pressed
 
     internal fun press(onCommit: () -> Unit) {
         pressed = true

@@ -138,6 +138,8 @@ class WakeCoordinator @Inject constructor(
             }
         } catch (_: NoWifiException) {
             events.emit(DomainEvent.NoWifi(deviceId))
+        } catch (_: java.io.IOException) {
+            events.emit(DomainEvent.NoWifi(deviceId))
         } finally {
             engine.setOverlay(deviceId, null)
         }

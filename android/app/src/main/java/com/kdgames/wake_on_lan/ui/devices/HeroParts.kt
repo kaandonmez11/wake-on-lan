@@ -80,16 +80,15 @@ fun HoldPowerButton(
     val shape = RoundedCornerShape(WolDimens.CornerPowerButton)
     val danger = action == PowerAction.SHUTDOWN
     val fillColor = if (action == PowerAction.SHUTDOWN || action == PowerAction.RESTART) WolColors.Danger else Color.White
-    val alpha by animateFloatAsState(if (enabled) 1f else 0.38f, motionSpec(SpringToken.Snappy, reduceMotion), label = "powerAlpha")
-    val press by animateFloatAsState(if (hold.pressed) 0.96f else 1f, motionSpec(if (hold.pressed) SpringToken.Quick else SpringToken.Snappy, reduceMotion), label = "powerPress")
-    val progress = hold.progress.value
+    val alpha = animateFloatAsState(if (enabled) 1f else 0.38f, motionSpec(SpringToken.Snappy, reduceMotion), label = "powerAlpha")
+    val press = animateFloatAsState(if (hold.pressed) 0.96f else 1f, motionSpec(if (hold.pressed) SpringToken.Quick else SpringToken.Snappy, reduceMotion), label = "powerPress")
     val title = DeviceLabels.actionTitle(action)
     Column(
         modifier
             .height(62.dp)
             .graphicsLayer {
-                this.alpha = alpha
-                val s = press * hold.commit.value
+                this.alpha = alpha.value
+                val s = press.value * hold.commit.value
                 scaleX = s
                 scaleY = s
             }
@@ -97,6 +96,7 @@ fun HoldPowerButton(
             .background(if (danger) WolColors.Danger.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.08f))
             .border(1.dp, if (danger) WolColors.Danger.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.12f), shape)
             .drawBehind {
+                val progress = hold.progress.value
                 if (progress > 0f) {
                     val h = size.height * progress
                     drawRect(fillColor.copy(alpha = 0.32f), topLeft = Offset(0f, size.height - h), size = size.copy(height = h))
