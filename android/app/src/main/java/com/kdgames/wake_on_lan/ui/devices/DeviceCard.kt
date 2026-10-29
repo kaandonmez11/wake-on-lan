@@ -47,6 +47,7 @@ import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.breathing
 import com.kdgames.wake_on_lan.ui.components.GlowLayer
+import com.kdgames.wake_on_lan.ui.components.HoldState
 import com.kdgames.wake_on_lan.ui.components.OpenCardOverlay
 import com.kdgames.wake_on_lan.ui.components.holdToConfirm
 import com.kdgames.wake_on_lan.ui.components.loopProgress
@@ -82,6 +83,7 @@ fun DeviceCard(
     val palette = ui.palette
     val openness by animateFloatAsState(if (ui.isOn) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cardOpen")
     val breath = breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "cardBreath")
+    val hold = rememberHoldState()
     Box(
         modifier
             .height(150.dp)
@@ -105,7 +107,7 @@ fun DeviceCard(
             Row(verticalAlignment = Alignment.Top) {
                 IconBubble(ui, size = 44.dp)
                 Spacer(Modifier.weight(1f))
-                CardPowerButton(ui, onWake, onShutdown, onAccessibilityShutdown)
+                CardPowerButton(ui, hold, onWake, onShutdown, onAccessibilityShutdown)
             }
             Spacer(Modifier.weight(1f))
             Text(ui.device.name, style = WolType.CardName, color = WolColors.TextPrimary, maxLines = 1)
@@ -117,7 +119,9 @@ fun DeviceCard(
             Spacer(Modifier.height(10.dp))
             StatusBar(ui)
         }
-        OpenCardOverlay(shape, palette.start, openness, Modifier.matchParentSize())
+        // Küçük kartlarda ışık süpürmesi yok (yalnız büyük kartta, Kaan); dönen hüzme kalır.
+        OpenCardOverlay(shape, palette.start, openness, Modifier.matchParentSize(), lightSweep = false)
+        HoldOutline(shape, hold, Modifier.matchParentSize())
     }
     }
 }
@@ -194,10 +198,9 @@ private fun StatusBar(ui: DeviceUi) {
 
 /** Kart güç butonu (44): kapalı = dokun uyandır; açık = basılı tut Kapat, halka dolumu kartta görünür. */
 @Composable
-private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> Unit, onAccessibilityShutdown: () -> Unit) {
+private fun CardPowerButton(ui: DeviceUi, hold: HoldState, onWake: () -> Unit, onShutdown: () -> Unit, onAccessibilityShutdown: () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHaptics.current
-    val hold = rememberHoldState()
     val canWake = ui.state is DeviceState.Off && ui.device.mac != null
     val dimmed = ui.state is DeviceState.Off && ui.device.mac == null
     val dimAlpha = animateFloatAsState(if (dimmed) 0.38f else 1f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cpbDim")
@@ -236,14 +239,54 @@ private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> 
                 val color = if (ui.isWaking) WolColors.Amber else WolColors.Danger
                 drawArc(color, -90f + spin * 360f, 90f, false, topLeft = Offset(stroke / 2, stroke / 2), size = size.copy(size.width - stroke, size.height - stroke), style = Stroke(stroke, cap = StrokeCap.Round))
             }
+            // Basılı tut dolumu kartın tüm çerçevesinde (HoldOutline); butonda yalnız hafif kırmızı ton.
             val p = hold.progress.value
-            if (p > 0f) {
-                // Küçük butonda kenar dolumu zor görünüyordu: içi kırmızı dolar + kalın kırmızı halka (Kaan).
-                drawCircle(WolColors.Danger, radius = size.minDimension / 2 * p, alpha = 0.55f)
-                drawArc(WolColors.Danger, -90f, 360f * p, false, topLeft = Offset(stroke, stroke), size = size.copy(size.width - 2 * stroke, size.height - 2 * stroke), style = Stroke(stroke * 1.6f, cap = StrokeCap.Round))
-            }
+            if (p > 0f) drawCircle(WolColors.Danger, alpha = 0.35f * p)
             }
         })
         SymbolIcon(Sym.power_settings_new, contentDescription = null, size = 22.dp, tint = icon)
     }
+}
+
+/**
+ * Küçük kartta basılı tut dolumu: kartın çerçevesi boyunca, üst ortadan saat yönünde kırmızı çizgi (Kaan:
+ * buton kenarında belli olmuyordu). Yol boyut başına bir kez; her karede yalnız kesit güncellenir.
+ */
+@Composable
+private fun HoldOutline(shape: androidx.compose.ui.graphics.Shape, hold: HoldState, modifier: Modifier) {
+    Spacer(
+        modifier.graphicsLayer().drawWithCache {
+            val inset = 1.5.dp.toPx()
+            val outline = shape.createOutline(size.copy(size.width - 2 * inset, size.height - 2 * inset), layoutDirection, this)
+            val full = androidx.compose.ui.graphics.Path().apply {
+                when (outline) {
+                    is androidx.compose.ui.graphics.Outline.Rectangle -> addRect(outline.rect)
+                    is androidx.compose.ui.graphics.Outline.Rounded -> addRoundRect(outline.roundRect)
+                    is androidx.compose.ui.graphics.Outline.Generic -> addPath(outline.path)
+                }
+                translate(Offset(inset, inset))
+            }
+            val measure = androidx.compose.ui.graphics.PathMeasure().apply { setPath(full, false) }
+            val length = measure.length
+            // Yuvarlak dikdörtgen yolu sol üst köşe yayından başlar; üst ortadan başlatmak için kaydır.
+            val startOffset = size.width / 2 - WolDimens.CornerCard.toPx() / 2
+            val segment = androidx.compose.ui.graphics.Path()
+            val tail = androidx.compose.ui.graphics.Path()
+            val stroke = Stroke(3.dp.toPx(), cap = StrokeCap.Round)
+            onDrawBehind {
+                val p = hold.progress.value
+                if (p <= 0f) return@onDrawBehind
+                val travel = length * p
+                segment.rewind()
+                tail.rewind()
+                val end = startOffset + travel
+                measure.getSegment(startOffset, minOf(end, length), segment, true)
+                drawPath(segment, WolColors.Danger, style = stroke)
+                if (end > length) {
+                    measure.getSegment(0f, end - length, tail, true)
+                    drawPath(tail, WolColors.Danger, style = stroke)
+                }
+            }
+        },
+    )
 }

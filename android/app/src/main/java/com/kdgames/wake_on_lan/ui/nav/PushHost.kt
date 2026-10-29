@@ -73,12 +73,12 @@ fun PushHost(
         Box(
             Modifier
                 .fillMaxSize()
-                .graphicsLayer { translationX = -size.width * 0.30f * progress.value }
-                .drawWithContent {
-                    drawContent()
-                    // Alttaki içerik (arka plan değil) kararır; üstteki saydam panelle karışıp okunmaz olmasın.
+                .graphicsLayer {
+                    // %30 paralaks + tamamen solma: arka plan sabit kaldığı için alttaki ekran arkada
+                    // görünmemeli (S06 cihaz testi: "panel ekranın 3'te 1'ine kayıyor, arkada görünüyor").
                     val p = progress.value
-                    if (p > 0f) drawRect(Color.Black.copy(alpha = 0.55f * p))
+                    translationX = -size.width * 0.30f * p
+                    alpha = (1f - p).coerceIn(0f, 1f)
                 },
         ) {
             // Üst ekran tamamen örtünce alttaki sonsuz animasyonlar kare üretmez.

@@ -115,9 +115,10 @@ fun Modifier.holdToConfirm(
             if (!enabled) Modifier
             else Modifier.pointerInput(state) {
                 awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
+                    // Olaylar tüketilir: karttaki güç butonunu basılı tutmak kartı "seçmesin" (S06 cihaz testi).
+                    awaitFirstDown(requireUnconsumed = false).consume()
                     state.press { commit() }
-                    waitForUpOrCancellation()
+                    waitForUpOrCancellation()?.consume()
                     state.release()
                 }
             },

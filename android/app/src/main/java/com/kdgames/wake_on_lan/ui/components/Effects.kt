@@ -73,10 +73,10 @@ fun breathing(periodMs: Int, min: Float, max: Float, running: Boolean = true, la
  * matrisi güncellenir (S06: kare başı yeni shader yerel belleği şişiriyordu).
  */
 @Composable
-fun OpenCardOverlay(shape: Shape, beamColor: Color, strength: Float, modifier: Modifier = Modifier) {
+fun OpenCardOverlay(shape: Shape, beamColor: Color, strength: Float, modifier: Modifier = Modifier, lightSweep: Boolean = true) {
     val running = strength > 0.01f
     val beam = loopProgress(8_000, running, label = "beam")
-    val sweep = loopProgress(7_000, running, rest = 1f, label = "sweep")
+    val sweep = loopProgress(7_000, running && lightSweep, rest = 1f, label = "sweep")
     val current = rememberUpdatedState(strength)
     // Kendi grafik katmanı: her karede yalnız bu ince katman yeniden kaydedilir, kartın içeriği değil.
     Box(modifier.graphicsLayer().drawWithCache {
@@ -141,7 +141,7 @@ private fun Modifier.breathingGlow(corner: Dp, color: Color, maxAlpha: Float, st
         // Geometri boyut başına bir kez; her karede yalnız saydamlık okunur (nesne üretimi yok).
         val c = corner.toPx()
         val spread = 22.dp.toPx()
-        val dy = 8.dp.toPx()
+        val dy = 0f // ortalı: aşağı kaydırılmış parlama "oturmamış" görünüyordu (S06 cihaz testi)
         val ring = spread / GLOW_STEPS
         val stroke = Stroke(ring)
         val offsets = Array(GLOW_STEPS) { i -> val g = ring * (i + 0.5f); Offset(-g, -g + dy) }

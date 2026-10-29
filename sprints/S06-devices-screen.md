@@ -216,6 +216,18 @@ Doğrulama (telefonda, 1 dk, durum turları ve ping çalışırken): dosya tanı
 - **Ölçüm notu:** önceki "~65 MB sabit" ölçümler büyük ihtimalle telefonun ekranı kapalıyken alındı (gfxinfo 0 kare). Ekran açıkken PSS ~160 MB ve GL/EGL ~50 MB görüldü, 12 sn'de 22 MB Java ayırması vardı. Kaan uygulamayı kapattığı için büyüme olup olmadığı doğrulanamadı; bir sonraki testte uygulama açıkken ölçülecek.
 - Testler **219/219**.
 
+### Cihaz testi 5. tur düzeltmeleri (Kaan, 2026-10-29)
+- **Ekran açık bellek ölçümü (2 dk):** PSS ~126 MB sabit, yerel ~13 MB, GL+EGL ~35 MB, dosya tanımlayıcısı 169–177. gfxinfo: 13.327 kare (~120 fps), takılan kare %0,61, 90. yüzdelik 14 ms. Sızıntı yok.
+- **Parlama/gölge "aşağı kaymış":** nefes parlaması artık ortalı (8 dp aşağı kaydırma kaldırıldı); cam gölgesinin dikey kayması 12 → 6 dp (spec 11.2'den Kaan'ın gözlemiyle sapma).
+- **Işık süpürmesi** yalnız büyük kartta ve PC açıkken; küçük kartlarda yok (dönen hüzme kalıyor).
+- **Toast:**
+  - Sağ üstten gelmesinin sebebi, kırpma kapatılınca boyut animasyonunun sol üste hizalanmasıydı. Artık ortadan geliyor (`contentAlignment = TopCenter`, boyut anında).
+  - Gölge kırpılmasının asıl sebebi: solma katmanı içeriği kendi sınırında ayrı katmanda çiziyor. Toast'un etrafına gölge payı (alt 32 dp) eklendi.
+- **Küçük kartın güç butonunu basılı tutup bırakınca kart seçiliyordu:** basılı-tut dokunuşları artık tüketiliyor, karta tıklama olarak geçmiyor (regresyon testi; düzeltme geri alınınca kırmızı olduğu doğrulandı).
+- **Küçük kart dolumu** artık kartın tüm çerçevesi boyunca, üst ortadan saat yönünde kırmızı çizgi (`HoldOutline`, yol önbellekte). Butonda yalnız hafif kırmızı ton var.
+- **Ayarlar:** alttaki Cihazlar/Otomasyon ekranı %30 paralaksla kayarken tamamen soluyor; arkada yalnız sabit canlı arka plan kalıyor.
+- Testler **220/220**.
+
 ### Açık kalanlar
 - Cihaz ekle / düzenle paneli, tarama: S07.
 - Ayarlar içeriği ve titreşim anahtarı: S10.

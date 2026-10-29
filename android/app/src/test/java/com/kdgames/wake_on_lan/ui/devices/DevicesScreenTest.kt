@@ -135,6 +135,22 @@ class DevicesScreenTest {
         assertEquals((before.left + before.right).value / 2, (during.left + during.right).value / 2, 0.5f)
     }
 
+    /** S06 cihaz testi: küçük kartın güç butonunu basılı tutup bırakınca kart seçiliyordu (çerçeve geliyordu). */
+    @Test
+    fun kart_guc_butonunu_basili_tutmak_karti_secmez() {
+        show(two(on, on))
+        compose.mainClock.autoAdvance = false
+        // Kart tıklanabilir olduğu için butonun anlamı karta birleşir; butonun kendisi birleştirilmemiş ağaçta.
+        val button = compose.onNode(hasContentDescription("Oyun PC kapat · basılı tut"), useUnmergedTree = true)
+        button.performTouchInput { down(center) }
+        compose.mainClock.advanceTimeBy(1_700)
+        button.performTouchInput { up() }
+        compose.mainClock.advanceTimeBy(500)
+        assertEquals(listOf(2L to PowerAction.SHUTDOWN), powers)
+        // Hero hâlâ ilk cihazda: seçim değişmedi.
+        compose.onNode(hasText("192.168.1.26 · D8:BB:C1:0A:2F:91")).assertExists()
+    }
+
     @Test
     fun acik_cihazda_orba_dokunmak_bir_sey_yapmaz() {
         show(two(on))

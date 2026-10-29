@@ -29,7 +29,8 @@ object GlassTokens {
     val BorderColor = Color.White.copy(alpha = 0.14f)
     val HighlightColor = Color.White.copy(alpha = 0.35f)
     val ShadowColor = Color.Black.copy(alpha = 0.28f)
-    val ShadowOffsetY = 12.dp
+    // Spec 12; Kaan'ın cihaz testinde gölge "aşağı kaymış" göründü → 6.
+    val ShadowOffsetY = 6.dp
     val ShadowRadius = 32.dp
     const val ACCENT_ALPHA = 0.30f
 }

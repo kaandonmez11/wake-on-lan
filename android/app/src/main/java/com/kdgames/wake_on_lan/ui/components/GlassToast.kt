@@ -39,6 +39,7 @@ import com.kdgames.wake_on_lan.ui.theme.SpringToken
 import com.kdgames.wake_on_lan.ui.theme.WolColors
 import com.kdgames.wake_on_lan.ui.theme.WolType
 import com.kdgames.wake_on_lan.ui.theme.SymbolIcon
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import kotlinx.coroutines.delay
 
@@ -76,21 +77,24 @@ fun GlassToastHost(state: ToastHostState, modifier: Modifier = Modifier) {
             state.next()
         }
     }
-    Box(modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp, start = 24.dp, end = 24.dp), contentAlignment = Alignment.TopCenter) {
+    Box(modifier.fillMaxWidth().statusBarsPadding(), contentAlignment = Alignment.TopCenter) {
         AnimatedContent(
             targetState = toast,
             contentKey = { it?.id },
+            contentAlignment = Alignment.TopCenter,
             transitionSpec = {
                 // clip=false: varsayılan SizeTransform büyüme sırasında gölgeyi kırpıyordu (S06 cihaz testi).
                 (if (reduceMotion) fadeIn(tween(REDUCED_CROSSFADE_MS)) togetherWith fadeOut(tween(REDUCED_CROSSFADE_MS))
                 else (slideInVertically(SpringToken.Smooth.spec(IntOffset.VisibilityThreshold)) { -it } + fadeIn(SpringToken.Smooth.spec()) +
                     scaleIn(SpringToken.Bouncy.spec(), initialScale = 0.92f)) togetherWith
                     (slideOutVertically(SpringToken.Snappy.spec(IntOffset.VisibilityThreshold)) { -it / 2 } + fadeOut(SpringToken.Snappy.spec()) +
-                        scaleOut(SpringToken.Snappy.spec(), targetScale = 0.96f))) using SizeTransform(clip = false)
+                        scaleOut(SpringToken.Snappy.spec(), targetScale = 0.96f))) using SizeTransform(clip = false) { _, _ -> snap() }
             },
             label = "toast",
         ) { t ->
-            if (t != null) {
+            // Solma/ölçek animasyonu içeriği kendi sınırında ayrı katmanda çizer; gölge (32 yarıçap) bu
+            // pay sayesinde katmanın içinde kalır, büyürken kırpılmaz (S06 cihaz testi).
+            if (t != null) Box(Modifier.padding(horizontal = 24.dp, vertical = 8.dp).padding(bottom = 32.dp)) {
                 GlassSurface(shape = RoundedCornerShape(50), backdropBlur = true, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
                     Row(
                         Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
