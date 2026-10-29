@@ -86,7 +86,7 @@ fun FloatingNavBar(
                 }
             })
         }
-        AddButton(onClick = onAdd)
+        AddButton(onClick = onAdd, label = if (selected == MainTab.Automation) "Zamanlayıcı ekle" else "Cihaz ekle")
     }
 }
 
@@ -143,18 +143,18 @@ private fun TabPill(selected: MainTab, onSelect: (MainTab) -> Unit) {
 }
 
 @Composable
-private fun AddButton(onClick: () -> Unit) {
+private fun AddButton(onClick: () -> Unit, label: String) {
     val palette = DevicePalette.Ice
     Box(
         modifier = Modifier
             .size(WolDimens.NavHeight)
             .clip(CircleShape)
-            .pressable(onClick = onClick, onClickLabel = "Cihaz ekle")
+            .pressable(onClick = onClick, onClickLabel = label)
             .drawBehind {
                 drawRect(cssLinearGradient(135f, size, 0f to palette.start, 1f to palette.end))
             },
         contentAlignment = Alignment.Center,
     ) {
-        SymbolIcon(Sym.add, contentDescription = "Cihaz ekle", size = 30.dp, weight = 600, tint = WolColors.OnGradient)
+        SymbolIcon(Sym.add, contentDescription = label, size = 30.dp, weight = 600, tint = WolColors.OnGradient)
     }
 }

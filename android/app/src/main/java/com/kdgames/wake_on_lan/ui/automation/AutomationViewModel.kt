@@ -111,6 +111,10 @@ class AutomationViewModel @Inject constructor(
 
     fun setEnabled(id: Long, enabled: Boolean) = edit(id) { ScheduleEngine.setEnabled(it, enabled) }
 
+    fun delete(id: Long) {
+        viewModelScope.launch { schedules.getSchedule(id)?.let { schedules.delete(it) } }
+    }
+
     fun toggleSkip(id: Long) = edit(id) { s ->
         val now = wall.nowMs()
         if (ScheduleEngine.isSkipped(s, now)) ScheduleEngine.undoSkip(s) else ScheduleEngine.skip(s, now, ZoneId.systemDefault())

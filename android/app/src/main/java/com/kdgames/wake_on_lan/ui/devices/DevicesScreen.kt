@@ -92,6 +92,8 @@ fun DevicesScreen(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     onEdit: (Long) -> Unit = {},
+    /** Kart menüsünden "Sil" (onay MainActivity'de). */
+    onDelete: (Long) -> Unit = {},
     events: Flow<DomainEvent>? = null,
     toasts: ToastHostState = remember { ToastHostState() },
 ) {
@@ -182,6 +184,8 @@ fun DevicesScreen(
                     onWake = { onWake(ui.id) },
                     onShutdown = { onPower(ui.id, PowerAction.SHUTDOWN) },
                     onAccessibilityShutdown = { confirmCard = ui },
+                    onEdit = { onEdit(ui.id) },
+                    onDelete = { onDelete(ui.id) },
                     modifier = Modifier
                         .animateItem(
                             fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion),

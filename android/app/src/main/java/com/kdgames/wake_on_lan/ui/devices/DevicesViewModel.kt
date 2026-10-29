@@ -34,9 +34,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class DevicesViewModel @Inject constructor(
-    repo: DeviceRepository,
+    private val repo: DeviceRepository,
     engine: StatusEngine,
-    linker: AgentLinker,
+    private val linker: AgentLinker,
     monitor: NetworkMonitor,
     private val settings: SettingsStore,
     private val wake: WakeCoordinator,
@@ -82,4 +82,13 @@ class DevicesViewModel @Inject constructor(
     fun wake(id: Long) = wake.wake(id)
 
     fun power(id: Long, action: PowerAction) = power.execute(id, action)
+
+    /** Kart menüsünden silme: paneldeki gibi agent eşleşmesi de kalkar (K25). */
+    fun delete(id: Long) {
+        viewModelScope.launch {
+            val device = repo.getDevice(id) ?: return@launch
+            repo.delete(id, keepAgentKey = true)
+            linker.release(device)
+        }
+    }
 }

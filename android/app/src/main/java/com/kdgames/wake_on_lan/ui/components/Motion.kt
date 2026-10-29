@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Row
@@ -56,18 +57,36 @@ fun Modifier.pressable(
     enabled: Boolean = true,
     role: Role = Role.Button,
     onClickLabel: String? = null,
+    /** Basılı tutma (bağlam menüsü, S08); null ise yalnız tıklama. */
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
 ): Modifier {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     return this
         .pressScale(pressed && enabled)
-        .clickable(
-            interactionSource = interaction,
-            indication = null,
-            enabled = enabled,
-            role = role,
-            onClickLabel = onClickLabel,
-            onClick = onClick,
+        .then(
+            if (onLongClick == null) {
+                Modifier.clickable(
+                    interactionSource = interaction,
+                    indication = null,
+                    enabled = enabled,
+                    role = role,
+                    onClickLabel = onClickLabel,
+                    onClick = onClick,
+                )
+            } else {
+                Modifier.combinedClickable(
+                    interactionSource = interaction,
+                    indication = null,
+                    enabled = enabled,
+                    role = role,
+                    onClickLabel = onClickLabel,
+                    onLongClickLabel = onLongClickLabel,
+                    onLongClick = onLongClick,
+                    onClick = onClick,
+                )
+            },
         )
 }
 

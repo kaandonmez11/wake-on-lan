@@ -59,6 +59,10 @@ class MainActivity : ComponentActivity() {
                     editorOpen = true
                 }
                 val closeEditor = { editorOpen = false }
+                // Kart menüsünden "Sil": geçmiş ve zamanlayıcılar da gittiği için onay istenir.
+                var deleteDevice by remember { mutableStateOf<com.kdgames.wake_on_lan.data.db.Device?>(null) }
+                var lastDeleteName by remember { mutableStateOf("") }
+                deleteDevice?.let { lastDeleteName = it.name }
                 var sheetOpen by remember { mutableStateOf(false) }
                 var showDevices by remember { mutableIntStateOf(0) }
                 val openSheet = { mode: SheetMode ->
@@ -84,6 +88,7 @@ class MainActivity : ComponentActivity() {
                 Box(Modifier.fillMaxSize()) {
                     AppNav(
                         onAddDevice = { openSheet(SheetMode.Add) },
+                        onAddSchedule = { openEditor(com.kdgames.wake_on_lan.ui.automation.EditorMode.Add) },
                         devicesTint = tint,
                         modifier = Modifier.sheetBackdrop(motion).sheetBackdrop(editorMotion),
                         showDevicesRequest = showDevices,
@@ -98,6 +103,7 @@ class MainActivity : ComponentActivity() {
                                 onPower = { id, action -> devicesViewModel.power(id, action) },
                                 onAdd = { openSheet(SheetMode.Add) },
                                 onEdit = { openSheet(SheetMode.Edit(it)) },
+                                onDelete = { id -> deleteDevice = state.devices.firstOrNull { it.id == id }?.device },
                                 onOpenSettings = openSettings,
                             )
                         },
@@ -109,6 +115,7 @@ class MainActivity : ComponentActivity() {
                                 onEdit = { openEditor(com.kdgames.wake_on_lan.ui.automation.EditorMode.Edit(it)) },
                                 onToggle = automationViewModel::setEnabled,
                                 onSkip = automationViewModel::toggleSkip,
+                                onDelete = automationViewModel::delete,
                                 onOpenSettings = openSettings,
                             )
                         },
@@ -143,6 +150,17 @@ class MainActivity : ComponentActivity() {
                                 onDelete = { sheetViewModel.delete(onResult) },
                                 onClose = closeSheet,
                             )
+                        },
+                    )
+                    com.kdgames.wake_on_lan.ui.sheet.DeleteConfirm(
+                        visible = deleteDevice != null,
+                        title = "Cihaz silinsin mi?",
+                        message = "$lastDeleteName, uyandırma geçmişi ve zamanlayıcıları silinir.",
+                        onCancel = { deleteDevice = null },
+                        onConfirm = {
+                            deleteDevice?.let { devicesViewModel.delete(it.id) }
+                            deleteDevice = null
+                            toasts.show("Cihaz silindi", ToastKind.Info, Sym.delete)
                         },
                     )
                 }

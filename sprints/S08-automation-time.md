@@ -135,5 +135,17 @@ _2026-10-30 · Claude_
   - Atlanan çalışmalar (zaten açık / kapalıya komut yok / kullanıcı atladı) sessiz kalıyor (K12). Kartta küçük zil ikonu bildirimin açık olduğunu gösteriyor.
 - Testler 274/274 (bildirim açık/kapalı/atlanınca sessiz + v2→v3 geçişi).
 
+**Tur 2:** bildirim testleri 1–5 geçti. Notlar ve yapılanlar:
+- Alttaki "+" sekmeye göre: Cihazlar'da cihaz, Otomasyon'da zamanlayıcı ekler (erişilebilirlik etiketi de değişiyor).
+- Liste altındaki "Zamanlayıcı ekle" butonu kalktı. Liste boşken kartsız bilgi paneli var:
+  - nefes alan cam saat dairesi ve etrafında yavaş dönen kesik halka;
+  - "Henüz zamanlayıcı yok" + "Sağ alttaki + ile …" (cihaz yoksa önce cihaz eklemeyi söyler);
+  - dokunulmayan iki örnek hap.
+- Basılı tutunca cam bağlam menüsü (`bouncy` büyüyerek gelir, solarak kapanır, dışarı dokununca kapanır):
+  - cihaz kartında Düzenle + Sil; Sil önce "Cihaz silinsin mi?" onayı sorar, sonra K25 UNPAIR akışı çalışır;
+  - zamanlayıcı kartında yalnız Sil.
+- Zamanlayıcı kartında, adın yanında düzenle (kalem) ikonu.
+- Testler 276/276 (boş panel, zamanlayıcıda yalnız Sil, cihaz kartında Düzenle/Sil).
+
 ### Cihaz testi
 _(Kaan)_

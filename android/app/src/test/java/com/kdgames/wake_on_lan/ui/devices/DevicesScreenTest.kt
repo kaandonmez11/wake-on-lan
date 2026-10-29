@@ -6,11 +6,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import com.kdgames.wake_on_lan.data.db.Device
 import com.kdgames.wake_on_lan.data.db.WakeAttempt
 import com.kdgames.wake_on_lan.data.repo.WakeHistory
@@ -240,6 +242,30 @@ class DevicesScreenTest {
     }
 
     private fun hasClickActionText() = androidx.compose.ui.test.hasClickAction()
+    @Test
+    fun `kart basili tutulunca Duzenle ve Sil menusu`() {
+        val edited = mutableListOf<Long>()
+        val deleted = mutableListOf<Long>()
+        val state = two(off)
+        compose.setContent {
+            WolTheme {
+                DevicesScreen(
+                    state = state, onSelect = {}, onWake = {}, onPower = { _, _ -> }, onAdd = {}, onOpenSettings = {},
+                    onEdit = { edited += it }, onDelete = { deleted += it },
+                )
+            }
+        }
+        compose.onAllNodes(hasContentDescription("Oyun PC, ", substring = true) and hasClickAction())[0].performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onNode(androidx.compose.ui.test.hasTestTag("menu_Düzenle")).performClick()
+        compose.waitForIdle()
+        assertEquals(listOf(2L), edited)
+        compose.onAllNodes(hasContentDescription("Oyun PC, ", substring = true) and hasClickAction())[0].performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onNode(androidx.compose.ui.test.hasTestTag("menu_Sil")).performClick()
+        compose.waitForIdle()
+        assertEquals(listOf(2L), deleted)
+    }
 }
 
 class DeviceLabelsTest {

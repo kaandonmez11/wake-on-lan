@@ -15,6 +15,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.kdgames.wake_on_lan.data.FakeKeyVault
@@ -81,11 +83,34 @@ class AutomationScreenTest {
     }
 
     @Test
-    fun `bos sekme - baslik, aciklama, Zamanlayici ekle`() {
+    fun `bos sekme - baslik, aciklama, + ipucu paneli, ekle butonu yok`() {
         compose.setContent { WolTheme { AutomationScreen(state = AutomationUiState(hasDevices = true, loaded = true)) } }
         compose.onNodeWithText("Otomasyon").assertExists()
         compose.onNodeWithText("Zamanlayıcılar telefondan çalışır, Wi-Fi şart").assertExists()
-        compose.onNode(hasText("Zamanlayıcı ekle") and hasClickAction()).assertIsEnabled()
+        compose.onNodeWithText("Henüz zamanlayıcı yok").assertExists()
+        compose.onNodeWithText("Sağ alttaki + ile PC'ni belirli saatlerde aç, kapat ya da uyut").assertExists()
+        compose.onNode(hasText("Zamanlayıcı ekle") and hasClickAction()).assertDoesNotExist()
+    }
+
+    @Test
+    fun `basili tutunca yalniz Sil, dokununca silinir`() {
+        var deleted = 0L
+        val s = Schedule(id = 4, deviceId = 1, action = PowerAction.WAKE, type = ScheduleType.TIME, daysMask = ScheduleEngine.WEEKDAYS, minuteOfDay = 510)
+        compose.setContent {
+            WolTheme {
+                AutomationScreen(
+                    state = AutomationUiState(cards = listOf(ScheduleLabels.card(s, device, now, zone)), hasDevices = true, loaded = true),
+                    onDelete = { deleted = it },
+                )
+            }
+        }
+        compose.onNode(hasText("Ofis PC") and hasClickAction(), useUnmergedTree = false).performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onNodeWithTag("menu_Sil").assertExists()
+        compose.onNodeWithTag("menu_Düzenle").assertDoesNotExist()
+        compose.onNodeWithTag("menu_Sil").performClick()
+        compose.waitForIdle()
+        assertEquals(4L, deleted)
     }
 }
 

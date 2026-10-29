@@ -51,6 +51,8 @@ private const val TAB_ENTER_SCALE = 0.98f
 @Composable
 fun AppNav(
     onAddDevice: () -> Unit = {},
+    /** Otomasyon sekmesinde "+" (S08, Kaan): zamanlayıcı ekler. */
+    onAddSchedule: () -> Unit = {},
     devicesTint: Color = Color.Unspecified,
     modifier: Modifier = Modifier,
     /** Her artışta Cihazlar sekmesine geçilir ve Ayarlar kapanır (panelden kayıt, spec 10.5). */
@@ -113,7 +115,7 @@ fun AppNav(
                     if (it != tab) tabDirection = if (it.ordinal > tab.ordinal) 1 else -1
                     tab = it
                 },
-                onAdd = onAddDevice,
+                onAdd = { if (tab == MainTab.Automation) onAddSchedule() else onAddDevice() },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

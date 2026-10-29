@@ -165,6 +165,10 @@ private fun EditorBody(state: EditorUiState, actions: EditorActions, bodyScroll:
 private fun DevicePicker(state: EditorUiState, onSelect: (Long) -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHaptics.current
+    if (state.devices.isEmpty()) {
+        Text("Henüz cihaz yok · önce Cihazlar sekmesinden bir PC ekle", style = WolType.BodySmall, color = WolColors.Amber, modifier = Modifier.padding(start = 4.dp))
+        return
+    }
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         state.devices.forEach { d ->
             val selected = d.id == state.form.deviceId

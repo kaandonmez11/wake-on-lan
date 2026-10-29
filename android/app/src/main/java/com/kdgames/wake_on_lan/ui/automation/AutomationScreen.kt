@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,6 +81,7 @@ fun AutomationScreen(
     onToggle: (Long, Boolean) -> Unit = { _, _ -> },
     onSkip: (Long) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onDelete: (Long) -> Unit = {},
 ) {
     val reduceMotion = LocalReduceMotion.current
     LazyColumn(
@@ -115,6 +117,7 @@ fun AutomationScreen(
                 onClick = { onEdit(card.id) },
                 onToggle = { onToggle(card.id, it) },
                 onSkip = { onSkip(card.id) },
+                onDelete = { onDelete(card.id) },
                 modifier = Modifier.animateItem(
                     fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion),
                     placementSpec = motionSpec(SpringToken.Smooth, reduceMotion),
@@ -122,8 +125,14 @@ fun AutomationScreen(
                 ),
             )
         }
-        item(key = "add") {
-            AddButton(state.hasDevices, onAdd, Modifier.animateItem(placementSpec = motionSpec(SpringToken.Smooth, reduceMotion)))
+        // Liste altındaki ekle butonu yok (Kaan): ekleme sağ alttaki + ile; liste boşsa bilgi paneli.
+        if (state.loaded && state.cards.isEmpty()) {
+            item(key = "empty") {
+                AutomationEmptyState(
+                    state.hasDevices,
+                    Modifier.animateItem(fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion), fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion)),
+                )
+            }
         }
     }
 }
@@ -144,26 +153,74 @@ private fun WarningRow(text: String, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Boş Otomasyon (S08, Kaan): Cihazlar'daki cam karttan farklı, kartsız açık düzen. Ortada nefes alan cam saat
+ * dairesi ve etrafında yavaş dönen kesik halka; altında başlık, "+" ipucu ve örnek zamanlayıcı hapları.
+ */
 @Composable
-private fun AddButton(enabled: Boolean, onAdd: () -> Unit, modifier: Modifier = Modifier) {
-    val reduceMotion = LocalReduceMotion.current
-    val alpha by animateFloatAsState(if (enabled) 1f else 0.45f, motionSpec(SpringToken.Snappy, reduceMotion), label = "addAlpha")
-    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        GlassSurface(
-            shape = RoundedCornerShape(50),
-            modifier = Modifier
-                .graphicsLayer { this.alpha = alpha }
-                .pressable(onClick = onAdd, enabled = enabled, onClickLabel = "Zamanlayıcı ekle"),
-        ) {
-            Row(Modifier.padding(horizontal = 18.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                SymbolIcon(Sym.add, contentDescription = null, size = 18.dp)
-                Spacer(Modifier.width(6.dp))
-                Text("Zamanlayıcı ekle", style = WolType.BodyLarge, color = WolColors.TextPrimary)
+private fun AutomationEmptyState(hasDevices: Boolean, modifier: Modifier = Modifier) {
+    val turn = com.kdgames.wake_on_lan.ui.components.loopProgress(24_000, label = "emptyRing")
+    val breath = com.kdgames.wake_on_lan.ui.components.breathing(3_200, 0.96f, 1.04f, label = "emptyBreath")
+    val palette = DevicePalette.Ice
+    Column(modifier.fillMaxWidth().padding(top = 36.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(132.dp), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .graphicsLayer { rotationZ = turn.value * 360f }
+                    .drawBehind {
+                        val stroke = 1.5.dp.toPx()
+                        drawCircle(
+                            brush = Brush.sweepGradient(listOf(palette.start.copy(alpha = 0.0f), palette.start.copy(alpha = 0.7f), palette.end.copy(alpha = 0.0f))),
+                            radius = size.minDimension / 2 - stroke,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = stroke,
+                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 7.dp.toPx())),
+                            ),
+                        )
+                    },
+            )
+            GlassSurface(
+                shape = CircleShape,
+                modifier = Modifier.size(92.dp).graphicsLayer { scaleX = breath.value; scaleY = breath.value },
+            ) {
+                Box(Modifier.matchParentSize(), contentAlignment = Alignment.Center) {
+                    SymbolIcon(Sym.schedule, contentDescription = null, size = 40.dp, tint = palette.start)
+                }
             }
         }
-        AnimatedVisibility(!enabled, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-            Text("Önce bir cihaz ekle", style = WolType.BodySmall, color = WolColors.TextTertiary, modifier = Modifier.padding(top = 8.dp))
+        Spacer(Modifier.height(18.dp))
+        Text("Henüz zamanlayıcı yok", style = WolType.CardName, color = WolColors.TextPrimary)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            if (hasDevices) "Sağ alttaki + ile PC'ni belirli saatlerde aç, kapat ya da uyut"
+            else "Önce Cihazlar sekmesinden bir PC ekle, sonra + ile zamanlayıcı kur",
+            style = WolType.BodySmall,
+            color = WolColors.TextTertiary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
+        Spacer(Modifier.height(18.dp))
+        // Örnekler (dokunulmaz): neler yapılabileceğini gösterir.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ExamplePill(PowerAction.WAKE, "Hafta içi 08:30", ActionTone.WAKE)
+            ExamplePill(PowerAction.SHUTDOWN, "Her gün 00:30", ActionTone.SHUTDOWN)
         }
+    }
+}
+
+@Composable
+private fun ExamplePill(action: PowerAction, text: String, tone: ActionTone) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.06f))
+            .padding(start = 6.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ActionTag(action, ScheduleLabels.action(action), tone)
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = WolType.Chip, color = WolColors.TextSecondary)
     }
 }
 
@@ -175,23 +232,41 @@ fun ScheduleCard(
     onToggle: (Boolean) -> Unit,
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
+    onDelete: () -> Unit = {},
 ) {
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHaptics.current
+    var menu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val alpha by animateFloatAsState(if (card.enabled) 1f else 0.7f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cardAlpha")
     GlassSurface(
         shape = RoundedCornerShape(WolDimens.CornerSchedule),
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha }
-            .pressable(onClick = onClick, onClickLabel = "Düzenle"),
+            .pressable(
+                onClick = onClick,
+                onClickLabel = "Düzenle",
+                // S08 (Kaan): basılı tutunca yalnız Sil.
+                onLongClick = { haptics.click(); menu = true },
+                onLongClickLabel = "Sil",
+            ),
     ) {
+        com.kdgames.wake_on_lan.ui.components.ContextMenu(
+            expanded = menu,
+            onDismiss = { menu = false },
+            items = listOf(com.kdgames.wake_on_lan.ui.components.MenuItem("Sil", Sym.delete, destructive = true, onClick = onDelete)),
+        )
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ScheduleBubble(card.iconKey, card.palette)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(card.deviceName, style = WolType.BodyLarge, color = WolColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(card.deviceName, style = WolType.BodyLarge, color = WolColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        // Karta dokunmanın düzenlemeyi açtığını gösterir (Kaan).
+                        Spacer(Modifier.width(6.dp))
+                        SymbolIcon(Sym.edit, contentDescription = null, size = 14.dp, tint = WolColors.TextTertiary)
+                    }
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         ActionTag(card.schedule.action, card.actionLabel, card.tone)
