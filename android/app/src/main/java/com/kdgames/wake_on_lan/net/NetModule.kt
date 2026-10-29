@@ -72,4 +72,7 @@ abstract class NetBindings {
 
     @Binds
     abstract fun wifiChangeTime(impl: NetworkMonitor): WifiChangeTime
+
+    @Binds
+    abstract fun wifiStateSource(impl: NetworkMonitor): WifiStateSource
 }

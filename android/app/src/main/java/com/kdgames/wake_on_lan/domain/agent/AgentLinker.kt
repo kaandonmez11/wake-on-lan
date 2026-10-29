@@ -52,6 +52,14 @@ class PhoneIdentity @Inject constructor(@ApplicationContext private val context:
 /** Agent çipinin ek durumu (K6). */
 enum class AgentIssue { PAIRED_ELSEWHERE }
 
+/** Cihaz eklenince/düzenlenince hemen discovery + eşleşme (spec 10.5); testte kaydedici. */
+interface AgentLinkTrigger {
+    fun linkNow()
+
+    /** Agent sorunları (K6 "Başka telefona eşli"), cihaz id'sine göre. */
+    val issues: StateFlow<Map<Long, AgentIssue>>
+}
+
 /**
  * Spec 7.5 + 10.5 + K6 + K16:
  * - ön planda açılışta ve her 60 sn DISCOVER; agentId eşleşen cihazın IP'si sessizce güncellenir;
@@ -73,13 +81,13 @@ class AgentLinker @Inject constructor(
     private val foreground: AppForeground,
     private val clock: Clock,
     @AppScope private val scope: CoroutineScope,
-) : RoundObserver, UnknownPhoneHandler {
+) : RoundObserver, UnknownPhoneHandler, AgentLinkTrigger {
 
     private val mutex = Mutex()
     private var lastRefresh = Long.MIN_VALUE / 2
     private var job: Job? = null
     private val _issues = MutableStateFlow<Map<Long, AgentIssue>>(emptyMap())
-    val issues: StateFlow<Map<Long, AgentIssue>> = _issues.asStateFlow()
+    override val issues: StateFlow<Map<Long, AgentIssue>> = _issues.asStateFlow()
 
     @Synchronized
     fun start() {
@@ -92,6 +100,10 @@ class AgentLinker @Inject constructor(
                 }
             }
         }
+    }
+
+    override fun linkNow() {
+        scope.launch { refresh(force = true) }
     }
 
     /** Arka planda discovery tetikle (kısa aralıkla gelen istekler birleştirilir). */

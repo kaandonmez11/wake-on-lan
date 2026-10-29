@@ -66,3 +66,8 @@ data class WifiState(
 fun interface WifiChangeTime {
     fun lastChangeMs(): Long
 }
+
+/** Güncel Wi-Fi durumu kaynağı (NetworkMonitor; testte sabit akış). */
+interface WifiStateSource {
+    val state: kotlinx.coroutines.flow.StateFlow<WifiState>
+}

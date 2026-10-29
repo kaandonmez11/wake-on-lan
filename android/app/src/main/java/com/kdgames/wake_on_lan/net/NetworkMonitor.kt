@@ -32,7 +32,7 @@ import javax.inject.Singleton
 class NetworkMonitor @Inject constructor(
     @ApplicationContext private val context: Context,
     @AppScope scope: CoroutineScope,
-) : WifiChangeTime {
+) : WifiChangeTime, WifiStateSource {
     @Volatile private var lastNetwork: Network? = null
     @Volatile private var lastBssid: String? = null
     @Volatile private var changedAt: Long = Long.MIN_VALUE / 2
@@ -45,7 +45,7 @@ class NetworkMonitor @Inject constructor(
     private val restarts = MutableStateFlow(0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val state: StateFlow<WifiState> = restarts
+    override val state: StateFlow<WifiState> = restarts
         .flatMapLatest { wifiUpdates() }
         .stateIn(scope, SharingStarted.Eagerly, WifiState.Disconnected)
 

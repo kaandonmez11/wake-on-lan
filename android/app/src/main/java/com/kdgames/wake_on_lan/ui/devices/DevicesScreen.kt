@@ -91,6 +91,7 @@ fun DevicesScreen(
     onAdd: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onEdit: (Long) -> Unit = {},
     events: Flow<DomainEvent>? = null,
     toasts: ToastHostState = remember { ToastHostState() },
 ) {
@@ -98,6 +99,8 @@ fun DevicesScreen(
     val reduceMotion = LocalReduceMotion.current
     // Dokununca seçim anında görünür; DataStore yazımı arkadan gelir.
     var localSelection by remember { mutableStateOf<Long?>(null) }
+    // Kalıcı seçim değişince (dokunuşun DataStore'a yazılması ya da panelden yeni cihaz) yerel seçim düşer.
+    LaunchedEffect(state.selectedId) { localSelection = null }
     val selectedId = localSelection?.takeIf { id -> state.devices.any { it.id == id } } ?: state.selectedId
     val selected = state.copy(selectedId = selectedId).selected
     val cardRects = remember { mutableStateMapOf<Long, Rect>() }
@@ -155,7 +158,7 @@ fun DevicesScreen(
                         ui = selected,
                         onWake = { onWake(selected.id) },
                         onPower = { onPower(selected.id, it) },
-                        onEdit = { toasts.show("Düzenleme bir sonraki güncellemede", ToastKind.Info, Sym.edit) },
+                        onEdit = { onEdit(selected.id) },
                         modifier = Modifier.animateItem(
                             fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion),
                             placementSpec = motionSpec(SpringToken.Smooth, reduceMotion),

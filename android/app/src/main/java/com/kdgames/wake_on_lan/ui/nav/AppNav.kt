@@ -52,6 +52,9 @@ private const val TAB_ENTER_SCALE = 0.98f
 fun AppNav(
     onAddDevice: () -> Unit = {},
     devicesTint: Color = Color.Unspecified,
+    modifier: Modifier = Modifier,
+    /** Her artışta Cihazlar sekmesine geçilir ve Ayarlar kapanır (panelden kayıt, spec 10.5). */
+    showDevicesRequest: Int = 0,
     devices: @Composable (openSettings: () -> Unit) -> Unit = { DevicesPlaceholder() },
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Devices) }
@@ -60,9 +63,16 @@ fun AppNav(
     val hazeState = rememberHazeState()
     val reduceMotion = LocalReduceMotion.current
     val shiftPx = with(LocalDensity.current) { TabShift.roundToPx() }
+    LaunchedEffect(showDevicesRequest) {
+        if (showDevicesRequest > 0 && tab != MainTab.Devices) {
+            tabDirection = -1
+            tab = MainTab.Devices
+        }
+        if (showDevicesRequest > 0) settingsOpen = false
+    }
 
     CompositionLocalProvider(LocalHazeState provides hazeState) {
-      Box(Modifier.fillMaxSize()) {
+      Box(modifier.fillMaxSize()) {
         // Arka plan push'un dışında: Ayarlar açılınca yandan kaymaz, yerinde tam ekran sahnesine
         // akarak dönüşür ve sürekli canlı moda geçer (S06 cihaz testi, spec 12.4).
         LivingBackground(

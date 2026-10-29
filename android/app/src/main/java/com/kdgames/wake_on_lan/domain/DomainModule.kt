@@ -27,6 +27,7 @@ abstract class DomainModule {
     @Binds abstract fun prober(impl: NetworkSignalProber): SignalProber
     @Binds abstract fun roundObserver(impl: AgentLinker): RoundObserver
     @Binds abstract fun unknownPhone(impl: AgentLinker): UnknownPhoneHandler
+    @Binds abstract fun linkTrigger(impl: AgentLinker): com.kdgames.wake_on_lan.domain.agent.AgentLinkTrigger
     @Binds abstract fun foreground(impl: ProcessForeground): AppForeground
     @Binds abstract fun magicSender(impl: WifiMagicSender): MagicSender
     @Binds abstract fun recorder(impl: RepositoryAttemptRecorder): AttemptRecorder

@@ -110,7 +110,7 @@ fun DeviceCard(
                 CardPowerButton(ui, hold, onWake, onShutdown, onAccessibilityShutdown)
             }
             Spacer(Modifier.weight(1f))
-            Text(ui.device.name, style = WolType.CardName, color = WolColors.TextPrimary, maxLines = 1)
+            AnimatedText(ui.device.name, style = WolType.CardName, color = WolColors.TextPrimary, maxLines = 1)
             AnimatedText(
                 DeviceLabels.card(ui.state, ui.history),
                 style = WolType.BodySmall,

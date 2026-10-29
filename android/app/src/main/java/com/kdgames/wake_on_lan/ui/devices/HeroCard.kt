@@ -278,14 +278,12 @@ fun IconBubble(ui: DeviceUi, size: androidx.compose.ui.unit.Dp) {
 
 @Composable
 private fun EditButton(onClick: () -> Unit) {
-    // S07'ye kadar pasif görünümlü; dokununca bilgi verir.
     Box(
         Modifier
             .size(38.dp)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.08f))
             .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
-            .graphicsLayer { alpha = 0.55f }
             .pressable(onClick = onClick, onClickLabel = "Düzenle"),
         contentAlignment = Alignment.Center,
     ) { SymbolIcon(Sym.edit, contentDescription = "Düzenle", size = 18.dp) }

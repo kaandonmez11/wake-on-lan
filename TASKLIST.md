@@ -107,13 +107,13 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)** (6 tur düzeltmeyle)
 
 ## S07 — Cihaz paneli + tarama
-- [ ] NetworkScanner + MdnsResolver + ikon tahmini
-- [ ] DeviceSheet (sürükle-kapat, scrim+blur)
-- [ ] Önizleme, Ağda bulunanlar, form, IconPicker, ColorPicker
-- [ ] Alt bar, ipuçları, Sil onayı, doğrulamalar
-- [ ] Kaydet akışı + otomatik eşleşme
-- [ ] "+", boş durum, kalem bağlantıları
-- [ ] Testler yeşil · animasyon denetimi · rapor · commit
+- [x] NetworkScanner + MdnsResolver + ikon tahmini
+- [x] DeviceSheet (sürükle-kapat, scrim+blur)
+- [x] Önizleme, Ağda bulunanlar, form, IconPicker, ColorPicker
+- [x] Alt bar, ipuçları, Sil onayı, doğrulamalar
+- [x] Kaydet akışı + otomatik eşleşme
+- [x] "+", boş durum, kalem bağlantıları
+- [x] Testler yeşil · animasyon denetimi · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S08 — Otomasyon 1
