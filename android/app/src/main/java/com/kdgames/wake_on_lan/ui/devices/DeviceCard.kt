@@ -256,36 +256,36 @@ private fun CardPowerButton(ui: DeviceUi, hold: HoldState, onWake: () -> Unit, o
 private fun HoldOutline(shape: androidx.compose.ui.graphics.Shape, hold: HoldState, modifier: Modifier) {
     Spacer(
         modifier.graphicsLayer().drawWithCache {
+            // Yol elle kurulur: üst ortadan başlar, saat yönünde döner (hazır yuvarlak dikdörtgen yolu
+            // sol alttan saat yönünün tersine başlıyordu — S06 cihaz testi).
             val inset = 1.5.dp.toPx()
-            val outline = shape.createOutline(size.copy(size.width - 2 * inset, size.height - 2 * inset), layoutDirection, this)
+            val l = inset
+            val t = inset
+            val r = size.width - inset
+            val b = size.height - inset
+            val rad = (WolDimens.CornerCard.toPx() - inset).coerceAtMost(minOf(r - l, b - t) / 2)
             val full = androidx.compose.ui.graphics.Path().apply {
-                when (outline) {
-                    is androidx.compose.ui.graphics.Outline.Rectangle -> addRect(outline.rect)
-                    is androidx.compose.ui.graphics.Outline.Rounded -> addRoundRect(outline.roundRect)
-                    is androidx.compose.ui.graphics.Outline.Generic -> addPath(outline.path)
-                }
-                translate(Offset(inset, inset))
+                moveTo((l + r) / 2, t)
+                lineTo(r - rad, t)
+                arcTo(androidx.compose.ui.geometry.Rect(r - 2 * rad, t, r, t + 2 * rad), -90f, 90f, false)
+                lineTo(r, b - rad)
+                arcTo(androidx.compose.ui.geometry.Rect(r - 2 * rad, b - 2 * rad, r, b), 0f, 90f, false)
+                lineTo(l + rad, b)
+                arcTo(androidx.compose.ui.geometry.Rect(l, b - 2 * rad, l + 2 * rad, b), 90f, 90f, false)
+                lineTo(l, t + rad)
+                arcTo(androidx.compose.ui.geometry.Rect(l, t, l + 2 * rad, t + 2 * rad), 180f, 90f, false)
+                close()
             }
             val measure = androidx.compose.ui.graphics.PathMeasure().apply { setPath(full, false) }
             val length = measure.length
-            // Yuvarlak dikdörtgen yolu sol üst köşe yayından başlar; üst ortadan başlatmak için kaydır.
-            val startOffset = size.width / 2 - WolDimens.CornerCard.toPx() / 2
             val segment = androidx.compose.ui.graphics.Path()
-            val tail = androidx.compose.ui.graphics.Path()
             val stroke = Stroke(3.dp.toPx(), cap = StrokeCap.Round)
             onDrawBehind {
                 val p = hold.progress.value
                 if (p <= 0f) return@onDrawBehind
-                val travel = length * p
                 segment.rewind()
-                tail.rewind()
-                val end = startOffset + travel
-                measure.getSegment(startOffset, minOf(end, length), segment, true)
+                measure.getSegment(0f, length * p, segment, true)
                 drawPath(segment, WolColors.Danger, style = stroke)
-                if (end > length) {
-                    measure.getSegment(0f, end - length, tail, true)
-                    drawPath(tail, WolColors.Danger, style = stroke)
-                }
             }
         },
     )

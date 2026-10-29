@@ -102,7 +102,9 @@ fun PushHost(
                                 size = androidx.compose.ui.geometry.Size(edge, size.height),
                             )
                         }
-                        drawRect(Color.White.copy(alpha = 0.10f), size = androidx.compose.ui.geometry.Size(1.dp.toPx(), size.height))
+                        // Kenar vurgusu yalnız kayarken: panel tam açıkken solda çizgi kalmasın (S06 cihaz testi).
+                        val edgeLine = 0.10f * kotlin.math.sin(Math.PI.toFloat() * p.coerceIn(0f, 1f))
+                        if (edgeLine > 0.003f) drawRect(Color.White.copy(alpha = edgeLine), size = androidx.compose.ui.geometry.Size(1.dp.toPx(), size.height))
                     },
             ) {
                 top()

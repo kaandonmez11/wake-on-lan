@@ -228,6 +228,12 @@ Doğrulama (telefonda, 1 dk, durum turları ve ping çalışırken): dosya tanı
 - **Ayarlar:** alttaki Cihazlar/Otomasyon ekranı %30 paralaksla kayarken tamamen soluyor; arkada yalnız sabit canlı arka plan kalıyor.
 - Testler **220/220**.
 
+### Cihaz testi 6. tur (Kaan, 2026-10-29)
+- 5. turun 1–5 ve 8. maddeleri geçti.
+- **Küçük kart çerçeve dolumu sol alttan saat yönünün tersine başlıyordu:** hazır yuvarlak dikdörtgen yolu yerine yol elle kuruluyor; üst ortadan başlıyor, saat yönünde dönüyor.
+- **Ayarlar açıkken en solda ince çizgi kalıyordu:** panelin kenar vurgusu artık yalnız kayma sırasında görünüyor (`sin(πp)`), tam açıkken yok.
+- Testler **220/220**.
+
 ### Açık kalanlar
 - Cihaz ekle / düzenle paneli, tarama: S07.
 - Ayarlar içeriği ve titreşim anahtarı: S10.
