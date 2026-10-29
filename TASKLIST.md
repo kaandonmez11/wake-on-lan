@@ -9,7 +9,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S02 | 2 | Veri katmanı | ✅ |
 | S03 | 3 | Ağ çekirdeği | ✅ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ✅ |
-| S05 | 5 | StatusEngine + koordinatörler | 🧪 cihaz testi bekliyor |
+| S05 | 5 | StatusEngine + koordinatörler | ✅ |
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ☐ |
 | S07 | 7 | Cihaz paneli + tarama | ☐ |
 | S08 | 8a | Otomasyon 1: zaman tetikli | ☐ |
@@ -92,7 +92,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] IP yeniden çözümleme + agent bağlantı denemesi + MAC doldurma
 - [x] Debug › Durum sekmesi
 - [x] Domain testleri yeşil · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)**
 
 ## S06 — Cihazlar ekranı
 - [ ] Windows güç ikonları (SegoeIcons.ttf → vector) + önizleme PNG → **Kaan onayı**

@@ -129,7 +129,7 @@ _2026-10-29 · Claude_
 - [x] Uyandırma adımları, 3 sn süre, 60 sn başarısızlık → testte → #8, #10.
 - [x] K12 (On değilse komut yok), SHUTDOWN / SLEEP / K23 / RESTART / 90 sn → testte → #6, #7, #9, #11, #12.
 - [x] Room göçü testte; telefonda mevcut veriyle açıldı.
-- [ ] Gerçek PC ile #1–#14 sende (özellikle #4, #13, #14: AgentLinker).
+- [x] **Kaan: #1–#14 geçti** (2026-10-29); titreme yok.
 
 ### Açık kalanlar
 - Asıl Cihazlar ekranı, olayların toast/çip olarak gösterimi, "Başka telefona eşli" çipi: S06.
