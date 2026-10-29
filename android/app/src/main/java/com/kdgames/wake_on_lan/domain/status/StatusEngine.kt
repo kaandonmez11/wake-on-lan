@@ -104,6 +104,10 @@ class StatusEngine @Inject constructor(
 
     fun device(id: Long): Device? = devices.value?.get(id)
 
+    /** Arka planda (alarmla açılan süreç) cihaz listesi yüklenene dek bekler; yoksa null. */
+    suspend fun awaitDevice(id: Long, timeoutMs: Long = 5_000): Device? =
+        kotlinx.coroutines.withTimeoutOrNull(timeoutMs) { devices.first { it != null } }?.get(id)
+
     fun state(id: Long): DeviceState? = _states.value[id]
 
     /** Katmanın altındaki kesin durum (On/Off). */

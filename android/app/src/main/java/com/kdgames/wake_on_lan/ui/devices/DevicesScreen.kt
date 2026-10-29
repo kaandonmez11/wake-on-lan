@@ -345,7 +345,7 @@ private fun WifiLevelIcon(level: Int, modifier: Modifier = Modifier) {
 private fun Dot() = Text(" · ", style = WolType.Chip, color = WolColors.TextTertiary, maxLines = 1, softWrap = false)
 
 @Composable
-private fun SettingsBubble(onClick: () -> Unit) {
+internal fun SettingsBubble(onClick: () -> Unit) {
     GlassSurface(shape = CircleShape, modifier = Modifier.size(44.dp).pressable(onClick = onClick, onClickLabel = "Ayarlar")) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             SymbolIcon(Sym.settings, contentDescription = "Ayarlar", size = 20.dp)

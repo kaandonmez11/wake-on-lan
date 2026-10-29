@@ -14,6 +14,9 @@
     <!-- SSID okumak için (Wi-Fi pill, "eve gelince"). Kesin konum yaklaşıkla birlikte istenir. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Zamanlayıcılar (spec 9.4): sideload uygulamada kurulumda verilen tam saatli alarm, açılışta yeniden kurma. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".WolApp"
@@ -33,6 +36,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Zamanlayıcı alarmı (spec 9.4): paketleri hemen gönderir, doğrulamayı VerifyWorker'a bırakır. -->
+        <receiver
+            android:name=".domain.schedule.ScheduleAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Açılış, güncelleme, saat ve saat dilimi değişimi → tüm alarmlar yeniden. -->
+        <receiver
+            android:name=".domain.schedule.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

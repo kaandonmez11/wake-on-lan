@@ -53,6 +53,9 @@ class ScheduleRepository @Inject constructor(private val db: AppDatabase) {
 
     suspend fun getRun(id: Long): ScheduleRun? = runs.getById(id)
 
+    /** Debug › Zamanlayıcı: tüm zamanlayıcıların son çalışmaları. */
+    fun observeRecentRuns(limit: Int = 20): Flow<List<ScheduleRun>> = runs.observeRecent(limit)
+
     suspend fun startRun(scheduleId: Long, occurrence: Long, startedAt: Long): Long = db.withTransaction {
         val id = runs.insert(
             ScheduleRun(scheduleId = scheduleId, occurrence = occurrence, startedAt = startedAt, endedAt = null, result = RunResult.RUNNING),

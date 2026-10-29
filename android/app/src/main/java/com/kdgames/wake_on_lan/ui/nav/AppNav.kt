@@ -56,6 +56,7 @@ fun AppNav(
     /** Her artışta Cihazlar sekmesine geçilir ve Ayarlar kapanır (panelden kayıt, spec 10.5). */
     showDevicesRequest: Int = 0,
     devices: @Composable (openSettings: () -> Unit) -> Unit = { DevicesPlaceholder() },
+    automation: @Composable (openSettings: () -> Unit) -> Unit = { AutomationScreen(onOpenSettings = it) },
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Devices) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
@@ -100,7 +101,7 @@ fun AppNav(
                         TabLayer(active = tab == t, direction = tabDirection, shiftPx = shiftPx) {
                             when (t) {
                                 MainTab.Devices -> devices { settingsOpen = true }
-                                MainTab.Automation -> AutomationScreen()
+                                MainTab.Automation -> automation { settingsOpen = true }
                             }
                         }
                     }

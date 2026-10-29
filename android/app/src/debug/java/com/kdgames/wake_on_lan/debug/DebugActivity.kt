@@ -56,12 +56,14 @@ class DebugActivity : ComponentActivity() {
     @Inject lateinit var powerCoordinator: PowerCoordinator
     @Inject lateinit var agentLinker: AgentLinker
     @Inject lateinit var domainEvents: DomainEvents
+    @Inject lateinit var scheduleRepository: com.kdgames.wake_on_lan.data.repo.ScheduleRepository
+    @Inject lateinit var scheduleService: com.kdgames.wake_on_lan.domain.schedule.ScheduleService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val deps = DebugDeps(deviceRepository, settingsStore, keyVault, networkMonitor, wolSender, tcpProbe, icmpProbe, agentClient, netBiosProbe,
-            statusEngine, wakeCoordinator, powerCoordinator, agentLinker, domainEvents)
+            statusEngine, wakeCoordinator, powerCoordinator, agentLinker, domainEvents, scheduleRepository, scheduleService)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 DebugRoot(deps)
@@ -86,6 +88,8 @@ class DebugDeps(
     val power: PowerCoordinator,
     val linker: AgentLinker,
     val events: DomainEvents,
+    val schedules: com.kdgames.wake_on_lan.data.repo.ScheduleRepository,
+    val scheduleService: com.kdgames.wake_on_lan.domain.schedule.ScheduleService,
 )
 
 private enum class DebugTab(val title: String) {
@@ -95,6 +99,7 @@ private enum class DebugTab(val title: String) {
     Network("Ağ"),
     Agent("Agent"),
     Status("Durum"),
+    Schedule("Zamanlayıcı"),
 }
 
 @Composable
@@ -114,6 +119,7 @@ private fun DebugRoot(deps: DebugDeps) {
                 DebugTab.Network -> NetworkTab(deps.network, deps.wol, deps.tcp, deps.icmp)
                 DebugTab.Agent -> AgentTab(deps.agent, deps.netBios, deps.network, deps.linker.phoneKeys, deps.vault)
                 DebugTab.Status -> StatusTab(deps.devices, deps.engine, deps.wake, deps.power, deps.linker, deps.events)
+                DebugTab.Schedule -> ScheduleTab(deps.schedules, deps.devices, deps.scheduleService)
             }
         }
     }

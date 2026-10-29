@@ -140,7 +140,8 @@ fun DeviceSheet(
         }
         DeleteConfirm(
             visible = confirmDelete,
-            name = state.form.name.trim().ifEmpty { "Cihaz" },
+            title = "Cihaz silinsin mi?",
+            message = "${state.form.name.trim().ifEmpty { "Cihaz" }}, uyandırma geçmişi ve zamanlayıcıları silinir.",
             onCancel = { confirmDelete = false },
             onConfirm = {
                 confirmDelete = false
@@ -151,7 +152,7 @@ fun DeviceSheet(
 }
 
 @Composable
-private fun SheetHeader(title: String, dragHandle: Modifier, onClose: () -> Unit) {
+internal fun SheetHeader(title: String, dragHandle: Modifier, onClose: () -> Unit) {
     Column(dragHandle.fillMaxWidth().padding(horizontal = 20.dp)) {
         Box(
             Modifier
@@ -239,7 +240,7 @@ private fun SheetBody(state: SheetUiState, actions: SheetActions, bodyScroll: Ne
 }
 
 @Composable
-private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(text, style = WolType.Label, color = WolColors.TextTertiary, modifier = modifier.padding(bottom = 8.dp, start = 4.dp))
 }
 
@@ -657,9 +658,9 @@ private fun BottomBar(state: SheetUiState, onSave: () -> Unit, onDelete: () -> U
     }
 }
 
-/** "Cihaz silinsin mi?" cam onayı: scrim solar, kart `bouncy` ile büyüyerek gelir. */
+/** Silme onayı ("Cihaz silinsin mi?", "Zamanlayıcı silinsin mi?") cam onayı: scrim solar, kart `bouncy` ile büyüyerek gelir. */
 @Composable
-private fun DeleteConfirm(visible: Boolean, name: String, onCancel: () -> Unit, onConfirm: () -> Unit) {
+internal fun DeleteConfirm(visible: Boolean, title: String, message: String, onCancel: () -> Unit, onConfirm: () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     AnimatedVisibility(
         visible = visible,
@@ -691,10 +692,10 @@ private fun DeleteConfirm(visible: Boolean, name: String, onCancel: () -> Unit, 
                     SymbolIcon(Sym.delete, contentDescription = null, size = 24.dp, tint = WolColors.Danger)
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("Cihaz silinsin mi?", style = WolType.CardName, color = WolColors.TextPrimary)
+                Text(title, style = WolType.CardName, color = WolColors.TextPrimary)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "$name, uyandırma geçmişi ve zamanlayıcıları silinir.",
+                    message,
                     style = WolType.BodySmall,
                     color = WolColors.TextTertiary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,

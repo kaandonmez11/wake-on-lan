@@ -50,14 +50,24 @@ class AppNavTest {
     @Test
     fun gecisSirasindaBaslikDikeydeOynamaz() {
         compose.setContent { WolTheme { AppNav() } }
-        val finalTop = compose.onNode(isHeading() and hasText("Cihazlar")).getBoundsInRoot().top
+        // Her başlığın oturmuş konumu (Otomasyon'da başlığın üstünde Wi-Fi pill'i var, S08).
+        fun top(title: String) = compose.onNode(isHeading() and hasText(title)).getBoundsInRoot().top.value
+        val finalTop = mutableMapOf("Cihazlar" to top("Cihazlar"))
+        tab("Otomasyon").performClick()
+        compose.waitForIdle()
+        finalTop["Otomasyon"] = top("Otomasyon")
+        tab("Cihazlar").performClick()
+        compose.waitForIdle()
 
         compose.mainClock.autoAdvance = false
         tab("Otomasyon").performClick()
         repeat(12) {
             compose.mainClock.advanceTimeBy(32)
             compose.onAllNodes(isHeading()).fetchSemanticsNodes().forEach { node ->
-                assertEquals(finalTop.value, node.boundsInRoot.top / node.layoutInfo.density.density, 0.5f)
+                val title = node.config[androidx.compose.ui.semantics.SemanticsProperties.Text].first().text
+                // Üst kenar eksenli 0.98 → 1 ölçek başlığı en çok %2 oynatabilir; kayma (S01 hatası) bunu aşar.
+                val expected = finalTop.getValue(title)
+                assertEquals(expected, node.boundsInRoot.top / node.layoutInfo.density.density, maxOf(0.5f, expected * 0.021f))
             }
         }
         compose.mainClock.autoAdvance = true

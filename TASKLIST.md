@@ -117,14 +117,14 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)** (3 tur; K25 agent tanıma + UNPAIR eklendi)
 
 ## S08 — Otomasyon 1
-- [ ] ScheduleEngine (saf) + metinler
-- [ ] AlarmScheduler + ScheduleAlarmReceiver + VerifyWorker
-- [ ] ScheduleRunner tek deneme (K12)
-- [ ] BootReceiver
-- [ ] AutomationScreen + kartlar + GradientSwitch
-- [ ] ScheduleEditorSheet (TIME)
-- [ ] Debug › Zamanlayıcı sekmesi
-- [ ] Testler yeşil · rapor · commit
+- [x] ScheduleEngine (saf) + metinler
+- [x] AlarmScheduler + ScheduleAlarmReceiver + VerifyWorker
+- [x] ScheduleRunner tek deneme (K12)
+- [x] BootReceiver
+- [x] AutomationScreen + kartlar + GradientSwitch
+- [x] ScheduleEditorSheet (TIME)
+- [x] Debug › Zamanlayıcı sekmesi
+- [x] Testler yeşil · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S09 — Otomasyon 2

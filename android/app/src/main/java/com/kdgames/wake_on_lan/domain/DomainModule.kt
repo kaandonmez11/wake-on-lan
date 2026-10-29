@@ -32,4 +32,12 @@ abstract class DomainModule {
     @Binds abstract fun magicSender(impl: WifiMagicSender): MagicSender
     @Binds abstract fun recorder(impl: RepositoryAttemptRecorder): AttemptRecorder
     @Binds abstract fun commander(impl: ClientAgentCommander): AgentCommander
+    @Binds abstract fun alarms(impl: com.kdgames.wake_on_lan.domain.schedule.AndroidAlarmScheduler): com.kdgames.wake_on_lan.domain.schedule.AlarmScheduler
+    @Binds abstract fun runStore(impl: com.kdgames.wake_on_lan.domain.schedule.RepositoryRunStore): com.kdgames.wake_on_lan.domain.schedule.ScheduleRunStore
+    @Binds abstract fun retryInterval(impl: com.kdgames.wake_on_lan.domain.schedule.SettingsRetryInterval): com.kdgames.wake_on_lan.domain.schedule.RetryIntervalSource
+
+    companion object {
+        @dagger.Provides
+        fun wallClock(): com.kdgames.wake_on_lan.domain.schedule.WallClock = com.kdgames.wake_on_lan.domain.schedule.WallClock.System
+    }
 }

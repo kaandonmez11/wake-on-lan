@@ -36,6 +36,8 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val devicesViewModel: DevicesViewModel by viewModels()
     private val sheetViewModel: DeviceSheetViewModel by viewModels()
+    private val automationViewModel: com.kdgames.wake_on_lan.ui.automation.AutomationViewModel by viewModels()
+    private val editorViewModel: com.kdgames.wake_on_lan.ui.automation.ScheduleEditorViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge-to-edge: şeffaf sistem çubukları, açık (beyaz) ikonlar (spec 10).
@@ -50,6 +52,13 @@ class MainActivity : ComponentActivity() {
                 val tint by devicesViewModel.tint.collectAsStateWithLifecycle()
                 val toasts = remember { ToastHostState() }
                 val motion = rememberSheetMotion()
+                val editorMotion = rememberSheetMotion()
+                var editorOpen by remember { mutableStateOf(false) }
+                val openEditor = { mode: com.kdgames.wake_on_lan.ui.automation.EditorMode ->
+                    editorViewModel.open(mode, preferredDevice = devicesViewModel.state.value.selected?.id)
+                    editorOpen = true
+                }
+                val closeEditor = { editorOpen = false }
                 var sheetOpen by remember { mutableStateOf(false) }
                 var showDevices by remember { mutableIntStateOf(0) }
                 val openSheet = { mode: SheetMode ->
@@ -76,7 +85,7 @@ class MainActivity : ComponentActivity() {
                     AppNav(
                         onAddDevice = { openSheet(SheetMode.Add) },
                         devicesTint = tint,
-                        modifier = Modifier.sheetBackdrop(motion),
+                        modifier = Modifier.sheetBackdrop(motion).sheetBackdrop(editorMotion),
                         showDevicesRequest = showDevices,
                         devices = { openSettings ->
                             val state by devicesViewModel.state.collectAsStateWithLifecycle()
@@ -90,6 +99,33 @@ class MainActivity : ComponentActivity() {
                                 onAdd = { openSheet(SheetMode.Add) },
                                 onEdit = { openSheet(SheetMode.Edit(it)) },
                                 onOpenSettings = openSettings,
+                            )
+                        },
+                        automation = { openSettings ->
+                            val state by automationViewModel.state.collectAsStateWithLifecycle()
+                            com.kdgames.wake_on_lan.ui.automation.AutomationScreen(
+                                state = state,
+                                onAdd = { openEditor(com.kdgames.wake_on_lan.ui.automation.EditorMode.Add) },
+                                onEdit = { openEditor(com.kdgames.wake_on_lan.ui.automation.EditorMode.Edit(it)) },
+                                onToggle = automationViewModel::setEnabled,
+                                onSkip = automationViewModel::toggleSkip,
+                                onOpenSettings = openSettings,
+                            )
+                        },
+                    )
+                    val editorState by editorViewModel.state.collectAsStateWithLifecycle()
+                    com.kdgames.wake_on_lan.ui.automation.ScheduleEditorSheet(
+                        open = editorOpen,
+                        state = editorState,
+                        motion = editorMotion,
+                        actions = remember {
+                            com.kdgames.wake_on_lan.ui.automation.EditorActions(
+                                onEdit = editorViewModel::edit,
+                                onToggleDay = editorViewModel::toggleDay,
+                                onShiftMinutes = editorViewModel::shiftMinutes,
+                                onSave = { editorViewModel.save(closeEditor) },
+                                onDelete = { editorViewModel.delete(closeEditor) },
+                                onClose = closeEditor,
                             )
                         },
                     )

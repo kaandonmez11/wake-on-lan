@@ -110,6 +110,9 @@ interface ScheduleRunDao {
     @Query("SELECT * FROM ScheduleRun WHERE scheduleId = :scheduleId ORDER BY startedAt DESC, id DESC LIMIT 1")
     fun observeLatest(scheduleId: Long): Flow<ScheduleRun?>
 
+    @Query("SELECT * FROM ScheduleRun ORDER BY startedAt DESC, id DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<ScheduleRun>>
+
     @Query("SELECT COUNT(*) FROM ScheduleRun WHERE scheduleId = :scheduleId")
     suspend fun count(scheduleId: Long): Int
 
