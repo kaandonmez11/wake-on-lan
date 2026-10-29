@@ -17,6 +17,8 @@
     <!-- Zamanlayıcılar (spec 9.4): sideload uygulamada kurulumda verilen tam saatli alarm, açılışta yeniden kurma. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Zamanlayıcı "Bildirim gönder" (S08, Kaan) ve S09 başarısız bildirimi. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".WolApp"

@@ -79,6 +79,8 @@ data class Schedule(
     val enabled: Boolean = true,
     val skippedOccurrence: Long? = null,
     val skipNextEvent: Boolean = false,
+    /** S08 (Kaan): çalışınca bildirim göster ("Ofis PC'ye açma emri verildi"). */
+    @ColumnInfo(defaultValue = "0") val notify: Boolean = false,
 )
 
 @Entity(

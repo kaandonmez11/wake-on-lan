@@ -58,8 +58,6 @@ import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.WinPowerIcon
 import com.kdgames.wake_on_lan.ui.components.pressable
-import com.kdgames.wake_on_lan.ui.devices.SettingsBubble
-import com.kdgames.wake_on_lan.ui.devices.WifiPill
 import com.kdgames.wake_on_lan.ui.devices.iconSymbol
 import com.kdgames.wake_on_lan.ui.theme.DevicePalette
 import com.kdgames.wake_on_lan.ui.theme.LocalHaptics
@@ -95,12 +93,8 @@ fun AutomationScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "header") {
+            // Kaan (S08 cihaz testi): Otomasyon'da Wi-Fi pill'i ve ayarlar balonu yok; yalnız başlık + açıklama.
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.weight(1f)) { WifiPill(state.wifi) }
-                    SettingsBubble(onOpenSettings)
-                }
-                Spacer(Modifier.height(14.dp))
                 Text("Otomasyon", style = WolType.PageTitle, color = WolColors.TextPrimary, modifier = Modifier.semantics { heading() })
                 Spacer(Modifier.height(4.dp))
                 Text("Zamanlayıcılar telefondan çalışır, Wi-Fi şart", style = WolType.BodySmall, color = WolColors.TextTertiary)
@@ -202,7 +196,11 @@ fun ScheduleCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         ActionTag(card.schedule.action, card.actionLabel, card.tone)
                         Spacer(Modifier.width(8.dp))
-                        Text(card.trigger, style = WolType.BodySmall, color = WolColors.TextSecondaryAlt, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(card.trigger, style = WolType.BodySmall, color = WolColors.TextSecondaryAlt, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        if (card.schedule.notify) {
+                            Spacer(Modifier.width(6.dp))
+                            SymbolIcon(Sym.notifications, contentDescription = "Bildirim açık", size = 14.dp, tint = WolColors.TextTertiary, filled = true)
+                        }
                     }
                 }
                 Spacer(Modifier.width(10.dp))

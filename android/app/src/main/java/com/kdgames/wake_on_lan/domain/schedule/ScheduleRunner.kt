@@ -113,6 +113,7 @@ class ScheduleRunner @Inject constructor(
     private val commander: AgentCommander,
     private val recorder: AttemptRecorder,
     private val unknownPhone: UnknownPhoneHandler,
+    private val notifier: ScheduleNotifier,
     private val retry: RetryIntervalSource,
     private val clock: Clock,
     private val wall: WallClock,
@@ -129,8 +130,13 @@ class ScheduleRunner @Inject constructor(
             return RunResult.SKIPPED_BY_USER
         }
         val runId = store.startRun(scheduleId, occurrence, started)
+        var deviceName = "Cihaz"
+        val notify = schedule.notify
         val (result, attempts) = try {
-            execute(schedule, packetSent)
+            execute(schedule, packetSent) { name ->
+                deviceName = name
+                if (notify) notifier.started(scheduleId, name, schedule.action)
+            }
         } catch (e: kotlinx.coroutines.CancellationException) {
             store.finishRun(runId, wall.nowMs(), RunResult.FAILED, RunAttempts.encode(listOf(RunAttempt(wall.nowMs(), AttemptOutcome.NO_REPLY, "İş durduruldu"))))
             throw e
@@ -139,18 +145,32 @@ class ScheduleRunner @Inject constructor(
             RunResult.FAILED to listOf(RunAttempt(wall.nowMs(), AttemptOutcome.AGENT_ERROR, "Hata: ${e.javaClass.simpleName}"))
         }
         store.finishRun(runId, wall.nowMs(), result, RunAttempts.encode(attempts))
+        if (notify && (result == RunResult.SUCCESS || result == RunResult.FAILED)) {
+            val last = attempts.lastOrNull()
+            // Başarıda yalnız uyanma süresi eklenir ("Açıldı · 12 sn'de"); hatada sebep.
+            val reason = when {
+                result == RunResult.FAILED -> last?.reason
+                schedule.action == PowerAction.WAKE -> last?.reason
+                else -> null
+            }
+            runCatching { notifier.finished(scheduleId, deviceName, schedule.action, result, reason) }
+        }
         return result
     }
 
-    private suspend fun execute(schedule: Schedule, packetSent: Boolean): Pair<RunResult, List<RunAttempt>> {
+    /** [onSend] aksiyon gerçekten gönderilmeden hemen önce (cihaz adıyla); atlamalarda çağrılmaz. */
+    private suspend fun execute(schedule: Schedule, packetSent: Boolean, onSend: (String) -> Unit): Pair<RunResult, List<RunAttempt>> {
         val device = engine.awaitDevice(schedule.deviceId)
             ?: return RunResult.FAILED to listOf(RunAttempt(wall.nowMs(), AttemptOutcome.AGENT_ERROR, "Cihaz bulunamadı"))
         return when (probe(device)) {
-            Probe.NO_WIFI -> RunResult.FAILED to listOf(RunAttempt(wall.nowMs(), AttemptOutcome.NO_WIFI, "Wi-Fi yok"))
+            Probe.NO_WIFI -> {
+                onSend(device.name)
+                RunResult.FAILED to listOf(RunAttempt(wall.nowMs(), AttemptOutcome.NO_WIFI, "Wi-Fi yok"))
+            }
             Probe.ON -> if (schedule.action == PowerAction.WAKE) RunResult.SKIPPED_ALREADY to emptyList()
-            else agentAction(device, schedule.action)
+            else { onSend(device.name); agentAction(device, schedule.action) }
             // K12: kapalı PC'ye güç komutu gönderilmez.
-            Probe.OFF -> if (schedule.action == PowerAction.WAKE) wake(device, packetSent)
+            Probe.OFF -> if (schedule.action == PowerAction.WAKE) { onSend(device.name); wake(device, packetSent) }
             else RunResult.SKIPPED_ALREADY to emptyList()
         }
     }
@@ -196,7 +216,7 @@ class ScheduleRunner @Inject constructor(
                     val sec = ((clock.nowMs() - start) / 1000).toInt()
                     recorder.record(device.id, at, true, sec, AttemptSource.SCHEDULE)
                     engine.markTried(device.id)
-                    return RunResult.SUCCESS to listOf(RunAttempt(at, AttemptOutcome.OK, "Uyandı · $sec sn"))
+                    return RunResult.SUCCESS to listOf(RunAttempt(at, AttemptOutcome.OK, "$sec sn'de"))
                 }
                 delay((StatusEngine.TRANSITION_INTERVAL_MS - (clock.nowMs() - roundStart)).coerceAtLeast(0))
             }

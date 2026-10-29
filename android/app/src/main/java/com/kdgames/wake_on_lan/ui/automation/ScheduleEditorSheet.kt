@@ -154,6 +154,9 @@ private fun EditorBody(state: EditorUiState, actions: EditorActions, bodyScroll:
         Spacer(Modifier.height(20.dp))
         SectionLabel("Saat")
         TimePicker(state.form.minuteOfDay, actions.onShiftMinutes)
+        Spacer(Modifier.height(20.dp))
+        SectionLabel("Bildirim")
+        NotifyRow(state.form.notify, palette) { on -> actions.onEdit { copy(notify = on) } }
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -276,6 +279,56 @@ private fun TriggerSegment(palette: DevicePalette) {
                 Text("Eve gelince · yakında", style = WolType.Chip, color = WolColors.TextSecondary)
             }
         }
+    }
+}
+
+/**
+ * "Bildirim gönder": açılınca Android 13+ bildirim izni istenir. Reddedildiyse ikinci dokunuş uygulamanın
+ * bildirim ayarlarını açar; izin yokken anahtar açık kalmaz.
+ */
+@Composable
+private fun NotifyRow(checked: Boolean, palette: DevicePalette, onChange: (Boolean) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    fun granted() = context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    var denied by remember { mutableStateOf(false) }
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
+        denied = !ok
+        if (ok) onChange(true)
+    }
+    val toggle = { on: Boolean ->
+        when {
+            !on -> onChange(false)
+            granted() -> { denied = false; onChange(true) }
+            denied -> context.startActivity(
+                android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            else -> launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .pressable(onClick = { toggle(!checked) }, onClickLabel = "Bildirim gönder")
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SymbolIcon(Sym.notifications, contentDescription = null, size = 22.dp, filled = checked)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Bildirim gönder", style = WolType.BodyLarge, color = WolColors.TextPrimary)
+            AnimatedText(
+                if (denied && !checked) "Bildirim izni kapalı · dokun, ayarlardan aç" else "Çalışınca emri ve sonucu bildir",
+                style = WolType.BodySmall,
+                color = if (denied && !checked) WolColors.Amber else WolColors.TextTertiary,
+                maxLines = 2,
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        GradientSwitch(checked = checked, palette = palette, onCheckedChange = { toggle(it) }, modifier = Modifier.testTag("notify_switch"))
     }
 }
 

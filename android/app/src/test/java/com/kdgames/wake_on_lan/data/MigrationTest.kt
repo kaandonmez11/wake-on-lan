@@ -41,4 +41,25 @@ class MigrationTest {
             }
         }
     }
+
+    @Test
+    fun v2den_v3e_zamanlayicilar_korunur_notify_false() {
+        helper.createDatabase(name, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO Device (id, name, ip, mac, hostname, iconKey, colorIndex, probePorts, sortOrder, agentId, agentKeyAlias, agentPort, hibernateAvailable, sleepHibernates, shutdownMode) " +
+                    "VALUES (1, 'Ofis PC', '192.168.1.26', NULL, NULL, 'pc', 0, '3389,445,135', 0, NULL, NULL, 40900, 1, 0, 'FORCE')",
+            )
+            db.execSQL(
+                "INSERT INTO Schedule (id, deviceId, action, type, daysMask, minuteOfDay, ssid, enabled, skippedOccurrence, skipNextEvent) " +
+                    "VALUES (1, 1, 'WAKE', 'TIME', 31, 510, NULL, 1, NULL, 0)",
+            )
+        }
+        helper.runMigrationsAndValidate(name, 3, true).use { db ->
+            db.query("SELECT minuteOfDay, notify FROM Schedule").use { c ->
+                c.moveToFirst()
+                assertEquals(510, c.getInt(0))
+                assertEquals(0, c.getInt(1))
+            }
+        }
+    }
 }

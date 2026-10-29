@@ -125,5 +125,15 @@ _2026-10-30 · Claude_
 - `WIFI_CONNECT` tetikleyicisi.
 - Ayarlar'daki kırmızı izin satırı (S10).
 
+### Cihaz testi düzeltmeleri
+**Tur 1 (Kaan, 2026-10-30):** 1–3, 5–8, 10, 11 geçti. 4 (Kapat) ve 9 (yeniden başlatma) denenmedi, Kaan diğerlerine dayanarak geçti saydı. Notlar ve yapılanlar:
+- Otomasyon'un üstündeki Wi-Fi pill'i ve ayarlar balonu kalktı; yalnız başlık + açıklama kaldı (S06 öncesi hâli). Ayarlar Cihazlar sekmesinden açılıyor.
+- **Zamanlayıcı başına "Bildirim gönder"** (varsayılan kapalı):
+  - Veri: `Schedule.notify`, DB v3 (AutoMigration 2→3, `MigrationTest`).
+  - Editörde anahtar satırı: açılınca Android bildirim izni isteniyor; reddedildiyse ikinci dokunuş uygulamanın bildirim ayarlarını açıyor.
+  - Bildirim aksiyon gerçekten gönderilince "Ofis PC · Açma emri verildi" diye çıkıyor, aynı bildirim sonuçla güncelleniyor ("Açıldı · 12 sn'de" / "Açılmadı · Paket gitti · cevap yok").
+  - Atlanan çalışmalar (zaten açık / kapalıya komut yok / kullanıcı atladı) sessiz kalıyor (K12). Kartta küçük zil ikonu bildirimin açık olduğunu gösteriyor.
+- Testler 274/274 (bildirim açık/kapalı/atlanınca sessiz + v2→v3 geçişi).
+
 ### Cihaz testi
 _(Kaan)_

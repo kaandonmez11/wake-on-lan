@@ -31,6 +31,8 @@ data class EditorForm(
     val action: PowerAction = PowerAction.WAKE,
     val daysMask: Int = ScheduleEngine.WEEKDAYS,
     val minuteOfDay: Int = 8 * 60 + 30,
+    /** Çalışınca bildirim (S08, Kaan). */
+    val notify: Boolean = false,
 )
 
 /** Kaydet'i engelleyen durumlar (spec 15 zamanlayıcı). */
@@ -96,7 +98,7 @@ class ScheduleEditorViewModel @Inject constructor(
             val s = schedules.getSchedule(mode.id) ?: return@launch
             original = s
             _state.update {
-                it.copy(form = EditorForm(s.deviceId, s.action, s.daysMask, s.minuteOfDay ?: 0)).withPreview()
+                it.copy(form = EditorForm(s.deviceId, s.action, s.daysMask, s.minuteOfDay ?: 0, s.notify)).withPreview()
             }
         }
     }
@@ -121,6 +123,7 @@ class ScheduleEditorViewModel @Inject constructor(
                 type = ScheduleType.TIME,
                 daysMask = s.form.daysMask,
                 minuteOfDay = s.form.minuteOfDay,
+                notify = s.form.notify,
                 skippedOccurrence = if (changed) null else base.skippedOccurrence,
             )
             when (schedules.save(schedule)) {

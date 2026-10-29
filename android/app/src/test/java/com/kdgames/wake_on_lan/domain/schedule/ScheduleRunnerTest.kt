@@ -51,12 +51,22 @@ private class RunnerSetup(
     val commands = mutableListOf<AgentCommand>()
     var commandResult: AgentResult<Unit> = AgentResult.Ok(Unit, 5)
     var onCommand: () -> Unit = {}
+    val notes = mutableListOf<String>()
+    private val notifier = object : ScheduleNotifier {
+        override fun started(scheduleId: Long, deviceName: String, action: PowerAction) {
+            notes += "$deviceName: ${ScheduleTexts.ordered(action)}"
+        }
+        override fun finished(scheduleId: Long, deviceName: String, action: PowerAction, result: RunResult, reason: String?) {
+            notes += "$deviceName: ${ScheduleTexts.result(action, result, reason)}"
+        }
+    }
     val runner = ScheduleRunner(
         store, h.engine,
         { _, onFirst -> packets++; onFirst() },
         { _, cmd, _ -> commands += cmd; onCommand(); commandResult },
         attempts,
         { },
+        notifier,
         { 2 },
         h.clock,
         { 1_000_000L + test.testScheduler.currentTime },
@@ -157,6 +167,35 @@ class ScheduleRunnerTest {
         s.h.wifi = false
         assertEquals(RunResult.FAILED, s.runner.run(7, 100))
         assertEquals(listOf(AttemptOutcome.NO_WIFI), s.outcomes())
+    }
+
+    @Test
+    fun `bildirim acik - emir verildi, sonra sonuc`() = runTest {
+        val s = RunnerSetup(this, PowerAction.WAKE) { t -> if (t < 6_000) off else on }
+        s.store.schedule = s.store.schedule.copy(notify = true)
+        assertEquals(RunResult.SUCCESS, s.runner.run(7, 100))
+        assertEquals(2, s.notes.size)
+        assertEquals("Ofis PC: Açma emri verildi", s.notes[0])
+        assertTrue(s.notes[1].startsWith("Ofis PC: Açıldı · "), s.notes[1])
+    }
+
+    @Test
+    fun `bildirim acik - basarisizlikta sebep`() = runTest {
+        val s = RunnerSetup(this, PowerAction.WAKE) { off }
+        s.store.schedule = s.store.schedule.copy(notify = true)
+        s.runner.run(7, 100)
+        assertEquals(listOf("Ofis PC: Açma emri verildi", "Ofis PC: Açılmadı · Paket gitti · cevap yok"), s.notes)
+    }
+
+    @Test
+    fun `bildirim kapaliysa ya da atlandiysa sessiz`() = runTest {
+        val quiet = RunnerSetup(this, PowerAction.WAKE) { t -> if (t < 6_000) off else on }
+        quiet.runner.run(7, 100)
+        assertTrue(quiet.notes.isEmpty())
+        val skipped = RunnerSetup(this, PowerAction.SHUTDOWN) { off }
+        skipped.store.schedule = skipped.store.schedule.copy(notify = true)
+        assertEquals(RunResult.SKIPPED_ALREADY, skipped.runner.run(7, 100))
+        assertTrue(skipped.notes.isEmpty())
     }
 
     @Test

@@ -7,9 +7,12 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [Device::class, WakeAttempt::class, Schedule::class, ScheduleRun::class, DeviceStateCache::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)], // S05: Device.sleepHibernates (K23)
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2), // S05: Device.sleepHibernates (K23)
+        AutoMigration(from = 2, to = 3), // S08: Schedule.notify
+    ],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
