@@ -39,10 +39,10 @@ import com.kdgames.wake_on_lan.domain.model.PowerAction
 import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.breathing
-import com.kdgames.wake_on_lan.ui.components.breathingShadow
+import com.kdgames.wake_on_lan.ui.components.GlowLayer
+import com.kdgames.wake_on_lan.ui.components.OpenCardOverlay
 import com.kdgames.wake_on_lan.ui.components.holdToConfirm
 import com.kdgames.wake_on_lan.ui.components.loopProgress
-import com.kdgames.wake_on_lan.ui.components.openCardEffects
 import com.kdgames.wake_on_lan.ui.components.pressable
 import com.kdgames.wake_on_lan.ui.components.rememberHoldState
 import com.kdgames.wake_on_lan.ui.theme.LocalHaptics
@@ -75,15 +75,14 @@ fun DeviceCard(
     val palette = ui.palette
     val openness by animateFloatAsState(if (ui.isOn) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cardOpen")
     val breath = breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "cardBreath")
-    GlassSurface(
-        shape = shape,
-        modifier = modifier
+    Box(
+        modifier
             .height(150.dp)
-            .breathingShadow(shape, palette.end, maxAlpha = 0.40f, strength = { openness }, breath = breath)
-            .openCardEffects(shape, palette.start, openness)
             .semantics { contentDescription = "${ui.device.name}, ${DeviceLabels.card(ui.state, ui.history)}" }
             .pressable(onClick = { haptics.tick(); onSelect() }, onClickLabel = "Seç"),
     ) {
+    GlowLayer(WolDimens.CornerCard, palette.end, maxAlpha = 0.40f, strength = { openness }, breath = breath, modifier = Modifier.matchParentSize())
+    GlassSurface(shape = shape, modifier = Modifier.fillMaxSize()) {
         // Açık kart gradient'i + çerçeve, açıklık oranıyla akarak gelir.
         Box(
             Modifier
@@ -111,6 +110,8 @@ fun DeviceCard(
             Spacer(Modifier.height(10.dp))
             StatusBar(ui)
         }
+        OpenCardOverlay(shape, palette.start, openness, Modifier.matchParentSize())
+    }
     }
 }
 
@@ -188,7 +189,7 @@ private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> 
             .then(gesture),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.fillMaxSize()) {
+        Canvas(Modifier.fillMaxSize().graphicsLayer()) {
             drawCircle(Brush.linearGradient(listOf(bg1, bg2), start = Offset.Zero, end = Offset(size.width, size.height)))
             if (on) drawCircle(ui.palette.start.copy(alpha = 0.55f), radius = size.minDimension / 2 + 2.dp.toPx(), style = Stroke(1.dp.toPx()))
             val stroke = 3.dp.toPx()

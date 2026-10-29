@@ -5,6 +5,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -130,34 +132,38 @@ fun PowerOrb(
             .then(gesture),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(ringSize)) {
-            val stroke = 5.dp.toPx()
-            val inset = stroke / 2
-            val arcSize = Size(size.width - stroke, size.height - stroke)
-            // Zemin halkası.
-            drawCircle(Color.White.copy(alpha = 0.10f), radius = size.minDimension / 2 - inset, style = Stroke(stroke))
-            // Parlama (açıkken + bloom patlaması).
-            val glowAlpha = 0.35f * glow + 0.45f * burst.value
-            if (glowAlpha > 0f) {
-                drawCircle(
-                    Brush.radialGradient(listOf(palette.start.copy(alpha = glowAlpha), Color.Transparent), center = center, radius = size.minDimension / 2),
-                    radius = size.minDimension / 2,
-                )
-            }
-            // Durum yayı / açık halka.
-            if (arcSweep > 0.001f) {
-                rotate(spin * 360f) {
-                    val brush = if (on && !transition) Brush.sweepGradient(listOf(palette.start, palette.end, palette.start), center)
-                    else Brush.sweepGradient(listOf(arcColor.copy(alpha = 0f), arcColor), center)
-                    drawArc(brush, startAngle = -90f, sweepAngle = 360f * arcSweep, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+        // Kendi katmanı + fırçalar önbellekte: dönen halka her karede yalnız bu katmanı, yeni nesne üretmeden çizer.
+        Spacer(
+            Modifier.size(ringSize).graphicsLayer().drawWithCache {
+                val stroke = 5.dp.toPx()
+                val inset = stroke / 2
+                val arcSize = Size(size.width - stroke, size.height - stroke)
+                val ringStroke = Stroke(stroke, cap = StrokeCap.Round)
+                val holdStroke = Stroke(stroke + 1.dp.toPx(), cap = StrokeCap.Round)
+                val baseStroke = Stroke(stroke)
+                val c = Offset(size.width / 2, size.height / 2)
+                val glowBrush = Brush.radialGradient(listOf(palette.start, Color.Transparent), center = c, radius = size.minDimension / 2)
+                val onBrush = Brush.sweepGradient(listOf(palette.start, palette.end, palette.start), c)
+                val arcBrush = Brush.sweepGradient(listOf(arcColor.copy(alpha = 0f), arcColor), c)
+                onDrawBehind {
+                    drawCircle(Color.White.copy(alpha = 0.10f), radius = size.minDimension / 2 - inset, style = baseStroke)
+                    // Parlama (açıkken + bloom patlaması).
+                    val glowAlpha = (0.35f * glow + 0.45f * burst.value).coerceIn(0f, 1f)
+                    if (glowAlpha > 0f) drawCircle(glowBrush, radius = size.minDimension / 2, alpha = glowAlpha)
+                    // Durum yayı / açık halka.
+                    if (arcSweep > 0.001f) {
+                        rotate(spin * 360f) {
+                            drawArc(if (on && !transition) onBrush else arcBrush, -90f, 360f * arcSweep, false, Offset(inset, inset), arcSize, style = ringStroke)
+                        }
+                    }
+                    // Basılı tut dolumu: halka boyunca kırmızı.
+                    val holdProgress = hold.progress.value
+                    if (holdProgress > 0.001f) {
+                        drawArc(WolColors.Danger, -90f, 360f * holdProgress, false, Offset(inset, inset), arcSize, style = holdStroke)
+                    }
                 }
-            }
-            // Basılı tut dolumu: halka boyunca kırmızı.
-            val holdProgress = hold.progress.value
-            if (holdProgress > 0.001f) {
-                drawArc(WolColors.Danger, startAngle = -90f, sweepAngle = 360f * holdProgress, useCenter = false, topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke + 1.dp.toPx(), cap = StrokeCap.Round))
-            }
-        }
+            },
+        )
         Canvas(Modifier.size(orbSize)) {
             drawCircle(Brush.linearGradient(listOf(orbStart, orbEnd), start = Offset.Zero, end = Offset(size.width, size.height)))
             drawCircle(Color.White.copy(alpha = 0.18f * (1f - glow) + 0.10f), style = Stroke(1.dp.toPx()))

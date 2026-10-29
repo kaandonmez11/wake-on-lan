@@ -52,6 +52,9 @@ private val SaturationFilter = ColorFilter.colorMatrix(ColorMatrix().apply { set
  * Strong'daki köşe parlaması belirirken akarak gelir, sonra sabit kalır (Kaan: nefes alma yok).
  *
  * @param accent [GlassVariant.Strong] için sağ üstten gelen cihaz rengi (%30 radial).
+ * @param backdropBlur Gerçek zamanlı arka plan bulanıklığı. Pahalı bir GPU geçişi olduğu için varsayılan
+ *   olarak yalnız içeriğin üstünde duran yüzeylerde (nav dock) açık. Canlı arka plan zaten yumuşak bir
+ *   gradyan olduğundan kartların altında bulanıklık gözle fark edilmiyor (S06 FPS düzeltmesi).
  */
 @Composable
 fun GlassSurface(
@@ -59,6 +62,7 @@ fun GlassSurface(
     modifier: Modifier = Modifier,
     variant: GlassVariant = GlassVariant.Normal,
     accent: Color = Color.Unspecified,
+    backdropBlur: Boolean = variant == GlassVariant.Dock,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val hazeState = LocalHazeState.current
@@ -87,7 +91,7 @@ fun GlassSurface(
             )
             .clip(shape)
             .then(
-                if (hazeState != null) {
+                if (hazeState != null && backdropBlur) {
                     Modifier.hazeBlur(
                         input = HazeInput.Sources(hazeState),
                         style = HazeBlurStyle {

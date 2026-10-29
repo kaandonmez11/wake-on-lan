@@ -7,7 +7,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
@@ -54,8 +56,8 @@ import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.RollingNumber
 import com.kdgames.wake_on_lan.ui.components.breathing
-import com.kdgames.wake_on_lan.ui.components.breathingShadow
-import com.kdgames.wake_on_lan.ui.components.openCardEffects
+import com.kdgames.wake_on_lan.ui.components.GlowLayer
+import com.kdgames.wake_on_lan.ui.components.OpenCardOverlay
 import com.kdgames.wake_on_lan.ui.components.pressable
 import com.kdgames.wake_on_lan.ui.components.rememberHoldState
 import com.kdgames.wake_on_lan.ui.theme.GlassVariant
@@ -68,6 +70,7 @@ import com.kdgames.wake_on_lan.ui.theme.WolColors
 import com.kdgames.wake_on_lan.ui.theme.WolDimens
 import com.kdgames.wake_on_lan.ui.theme.WolType
 import com.kdgames.wake_on_lan.ui.theme.motionSpec
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 
 private val PowerRow = listOf(PowerAction.LOCK, PowerAction.SLEEP, PowerAction.HIBERNATE, PowerAction.RESTART, PowerAction.SHUTDOWN)
@@ -104,19 +107,19 @@ fun HeroCard(
     val amber = animateFloatAsState(if (ui.isWaking) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "heroAmber")
 
     val shutdown = powerAvailability(ui, PowerAction.SHUTDOWN)
+    Box(modifier.fillMaxWidth()) {
+    GlowLayer(WolDimens.CornerHero, palette.end, maxAlpha = 0.30f, strength = { openness }, breath = breath, modifier = Modifier.matchParentSize())
     GlassSurface(
         shape = shape,
         variant = GlassVariant.Strong,
         accent = palette.start,
-        modifier = modifier
-            .fillMaxWidth()
-            .breathingShadow(shape, palette.end, maxAlpha = 0.30f, strength = { openness }, breath = breath)
-            .openCardEffects(shape, palette.start, openness),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        // Uyanıyor: amber zemin (%30 → %8) + nefes alan amber çerçeve (spec 10.2, 12.5); çizimde okunur.
+        // Uyanıyor: amber zemin (%30 → %8) + nefes alan amber çerçeve (spec 10.2, 12.5); kendi katmanında çizilir.
         Box(
             Modifier
                 .matchParentSize()
+                .graphicsLayer()
                 .drawBehind {
                     val a = amber.value
                     if (a <= 0.01f) return@drawBehind
@@ -125,8 +128,9 @@ fun HeroCard(
                     drawOutline(outline, WolColors.Amber.copy(alpha = 0.60f * a * wakingGlow.value), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
                 },
         )
-        // Boyutu tek kaynak yönetir (aşağıdaki AnimatedContent); iç içe iki boyut animasyonu takılma yapıyordu.
-        Column(Modifier.padding(18.dp)) {
+        OpenCardOverlay(shape, palette.start, openness, Modifier.matchParentSize())
+        // Boyutun tek kaynağı: bu Column'un animateContentSize'ı (içteki AnimatedContent boyutu anında alır).
+        Column(Modifier.animateContentSize(motionSpec(SpringToken.Smooth, reduceMotion)).padding(18.dp)) {
             AnimatedVisibility(
                 visible = holding != null,
                 enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
@@ -153,7 +157,11 @@ fun HeroCard(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         StateChip(state)
                         AgentChip(ui)
-                        AnimatedVisibility(ui.device.mac == null, enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)), exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion))) {
+                        AnimatedVisibility(
+                            ui.device.mac == null,
+                            enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandHorizontally(motionSpec(SpringToken.Snappy, reduceMotion)),
+                            exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkHorizontally(motionSpec(SpringToken.Snappy, reduceMotion)),
+                        ) {
                             Chip { Text("MAC bekleniyor", style = WolType.Chip, color = WolColors.Amber) }
                         }
                     }
@@ -178,7 +186,7 @@ fun HeroCard(
                 transitionSpec = {
                     if (reduceMotion) fadeIn(tween(REDUCED_CROSSFADE_MS)) togetherWith fadeOut(tween(REDUCED_CROSSFADE_MS))
                     else (fadeIn(SpringToken.Smooth.spec()) togetherWith fadeOut(SpringToken.Snappy.spec())) using
-                        SizeTransform(clip = false) { _, _ -> SpringToken.Smooth.spec(IntSize.VisibilityThreshold) }
+                        SizeTransform(clip = false) { _, _ -> snap() }
                 },
                 label = "heroMode",
             ) { m ->
@@ -219,6 +227,7 @@ fun HeroCard(
                 }
             }
         }
+    }
     }
 
     confirm?.let { action ->

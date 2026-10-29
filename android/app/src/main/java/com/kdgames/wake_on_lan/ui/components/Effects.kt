@@ -7,13 +7,18 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -62,15 +67,18 @@ fun breathing(periodMs: Int, min: Float, max: Float, running: Boolean = true, la
 /**
  * Spec 12.5 açık kart/hero efektleri: kenarda cihaz renginde dönen ışık hüzmesi (conic, 8 sn) ve
  * 7 sn'de bir geçen yumuşak ışık süpürmesi. [strength] 0..1 (açık ↔ kapalı geçişte akar).
+ *
+ * Bellek: şekil yolu ve shader'lar boyut başına bir kez yaratılır; her karede yalnız dönüş/kaydırma
+ * matrisi güncellenir (S06: kare başı yeni shader yerel belleği şişiriyordu).
  */
 @Composable
-fun Modifier.openCardEffects(shape: Shape, beamColor: Color, strength: Float): Modifier {
+fun OpenCardOverlay(shape: Shape, beamColor: Color, strength: Float, modifier: Modifier = Modifier) {
     val running = strength > 0.01f
     val beam = loopProgress(8_000, running, label = "beam")
     val sweep = loopProgress(7_000, running, rest = 1f, label = "sweep")
-    return drawWithContent {
-        drawContent()
-        if (strength <= 0.01f) return@drawWithContent
+    val current = rememberUpdatedState(strength)
+    // Kendi grafik katmanı: her karede yalnız bu ince katman yeniden kaydedilir, kartın içeriği değil.
+    Box(modifier.graphicsLayer().drawWithCache {
         val outline = shape.createOutline(size, layoutDirection, this)
         val path = Path().apply {
             when (outline) {
@@ -79,59 +87,69 @@ fun Modifier.openCardEffects(shape: Shape, beamColor: Color, strength: Float): M
                 is Outline.Generic -> addPath(outline.path)
             }
         }
-        // Dönen hüzme: kenar boyunca, merkez etrafında dönen conic gradient çizgisi.
-        val brush = Brush.sweepGradient(
-            0f to Color.Transparent,
-            0.12f to beamColor.copy(alpha = 0.85f * strength),
-            0.24f to Color.Transparent,
-            1f to Color.Transparent,
-            center = center,
+        val beamArgb = beamColor.copy(alpha = 0.85f).toArgb()
+        val sweepShader = android.graphics.SweepGradient(size.width / 2, size.height / 2, intArrayOf(0, beamArgb, 0, 0), floatArrayOf(0f, 0.12f, 0.24f, 1f))
+        val sweepMatrix = android.graphics.Matrix()
+        val sweepBrush = ShaderBrush(sweepShader)
+        val lightWidth = size.width * 0.5f
+        val lightShader = android.graphics.LinearGradient(
+            0f, 0f, lightWidth, size.height,
+            intArrayOf(0, Color.White.copy(alpha = 0.10f).toArgb(), 0), floatArrayOf(0f, 0.5f, 1f),
+            android.graphics.Shader.TileMode.CLAMP,
         )
-        drawPath(path, brush = RotatedSweep(brush, beam.value * 360f, center), style = Stroke(width = 1.5.dp.toPx()))
-        // Işık süpürmesi: periyodun ilk %22'sinde soldan sağa geçen çapraz parlama.
-        val t = sweep.value / 0.22f
-        if (t in 0f..1f) {
-            val x = -size.width * 0.6f + size.width * 2.2f * t
-            clipPath(path) {
-                drawRect(
-                    Brush.linearGradient(
-                        0f to Color.Transparent,
-                        0.5f to Color.White.copy(alpha = 0.10f * strength),
-                        1f to Color.Transparent,
-                        start = Offset(x, 0f),
-                        end = Offset(x + size.width * 0.5f, size.height),
-                    ),
-                )
+        val lightMatrix = android.graphics.Matrix()
+        val lightBrush = ShaderBrush(lightShader)
+        val stroke = Stroke(width = 1.5.dp.toPx())
+        onDrawBehind {
+            val s = current.value
+            if (s <= 0.01f) return@onDrawBehind
+            sweepMatrix.setRotate(beam.value * 360f, center.x, center.y)
+            sweepShader.setLocalMatrix(sweepMatrix)
+            drawPath(path, sweepBrush, alpha = s, style = stroke)
+            // Işık süpürmesi: periyodun ilk %22'sinde soldan sağa geçen çapraz parlama.
+            val t = sweep.value / 0.22f
+            if (t in 0f..1f) {
+                lightMatrix.setTranslate(-size.width * 0.6f + size.width * 2.2f * t, 0f)
+                lightShader.setLocalMatrix(lightMatrix)
+                clipPath(path) { drawRect(lightBrush, alpha = s) }
             }
         }
-    }
-}
-
-/** Sweep gradient'i merkez etrafında [angle] derece döndüren fırça. */
-@Suppress("FunctionName")
-private fun RotatedSweep(base: Brush, angle: Float, center: Offset): Brush {
-    // Brush.sweepGradient başlangıç açısını desteklemediği için renk duraklarını kaydırıyoruz.
-    return object : androidx.compose.ui.graphics.ShaderBrush() {
-        override fun createShader(size: androidx.compose.ui.geometry.Size): androidx.compose.ui.graphics.Shader {
-            val shader = (base as androidx.compose.ui.graphics.ShaderBrush).createShader(size)
-            val m = android.graphics.Matrix().apply { setRotate(angle, center.x, center.y) }
-            shader.setLocalMatrix(m)
-            return shader
-        }
-    }
+    })
 }
 
 /**
- * Spec 12.5 nefes alan parlama. Gölge yarıçapı sabit (bulanıklık bir kez hesaplanır), yalnız saydamlık
- * ±%15 nefes alır; değerler gölge çizilirken okunur, her karede yeniden kompozisyon olmaz (S06 FPS düzeltmesi).
+ * Spec 12.5 nefes alan parlama (gölge opaklığı ±%15, 3 sn). Bulanık gölge bitmap'i yerine kartın dışına
+ * çizilen, dışa doğru sönen ince halkalar: hiç bitmap ve kare başı nesne üretmez (S06: animasyonlu
+ * `dropShadow` her karede yeni gölge bitmap'i üretip uygulamayı ~770 MB'a çıkarıyordu).
  */
-fun Modifier.breathingShadow(shape: Shape, color: Color, maxAlpha: Float, strength: () -> Float, breath: State<Float>): Modifier =
-    dropShadow(shape) {
-        radius = 40.dp.toPx()
-        offset = Offset(0f, 10.dp.toPx())
-        this.color = color
-        alpha = (maxAlpha * strength() * breath.value).coerceIn(0f, 1f)
+@Composable
+fun GlowLayer(corner: Dp, color: Color, maxAlpha: Float, strength: () -> Float, breath: State<Float>, modifier: Modifier = Modifier) {
+    // Kartın arkasında, kendi katmanında: nefes her karede yalnız bu katmanı yeniden çizer.
+    Box(modifier.graphicsLayer().breathingGlow(corner, color, maxAlpha, strength, breath))
+}
+
+private fun Modifier.breathingGlow(corner: Dp, color: Color, maxAlpha: Float, strength: () -> Float, breath: State<Float>): Modifier =
+    drawBehind {
+        val a = maxAlpha * strength() * breath.value
+        if (a <= 0.005f) return@drawBehind
+        val c = corner.toPx()
+        val spread = 22.dp.toPx()
+        val dy = 8.dp.toPx()
+        val ring = spread / GLOW_STEPS
+        for (i in 0 until GLOW_STEPS) {
+            val g = ring * (i + 0.5f)
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(-g, -g + dy),
+                size = androidx.compose.ui.geometry.Size(size.width + 2 * g, size.height + 2 * g),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(c + g),
+                alpha = (a * (1f - i / GLOW_STEPS.toFloat()) * 0.55f).coerceIn(0f, 1f),
+                style = Stroke(ring),
+            )
+        }
     }
+
+private const val GLOW_STEPS = 7
 
 /** Windows 11 güç ikonu (K17, Segoe Fluent Icons glifi). */
 @Composable

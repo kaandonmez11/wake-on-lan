@@ -152,7 +152,7 @@ private fun StepCard(title: String, status: StepStatus, palette: DevicePalette, 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Canvas(Modifier.size(18.dp)) {
+        Canvas(Modifier.size(18.dp).graphicsLayer()) {
             val stroke = 2.dp.toPx()
             if (status == StepStatus.Active) {
                 drawCircle(Color.White.copy(alpha = 0.18f), style = Stroke(stroke))

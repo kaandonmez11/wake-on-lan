@@ -166,6 +166,20 @@ _2026-10-29 · Claude_
 - **Kart seçimi** DataStore yazımını beklemeden anında görünüyor.
 - Testler **216/216** (+2: kapalı cihazda pasif güç satırı, durum döngüsünün hatadan sağ çıkması).
 
+### Cihaz testi 2. tur düzeltmeleri (Kaan, 2026-10-29)
+- **Asıl çökme sebebi bulundu: bellek.** Log'da `lmkd: Reclaim 'com.kdgames.wake_on_lan' … 772688kB rss, 712068kB anon rss` ve 500–640 ms'lik `NativeAlloc` GC duraklamaları vardı. Uygulama Java hatası vermeden sistem tarafından öldürülüyordu; FPS düşüşünün sebebi de bu duraklamalardı.
+  - Suçlu: animasyonlu nefes gölgesi (`dropShadow`). Yarıçapı ya da saydamlığı değişince her karede her kart için yeni bir bulanık gölge bitmap'i üretiliyordu.
+  - Yerine bitmap kullanmayan, dışa doğru sönen ince halkalar (`GlowLayer`) geldi.
+- **Kare başı nesne üretimi kaldırıldı:**
+  - Dönen hüzme ve ışık süpürmesinde shader'lar ve şekil yolu boyut başına bir kez yaratılıyor, her karede yalnız matris güncelleniyor.
+  - Orb halkasının gradyanları önbellekte.
+- **Katman izolasyonu:** hüzme, nefes, amber parlama, orb halkası, kart güç butonu ve adım spinner'ı kendi grafik katmanlarında. Artık her karede yalnız o ince katman yeniden kaydediliyor; kartın tamamı ve cam yüzeyin gradyanları değil.
+- **Gerçek zamanlı arka plan bulanıklığı** artık yalnız nav dock ve toast'ta (`GlassSurface.backdropBlur`). Kartlar, hero, pill ve balonlarda kapalı: canlı arka plan zaten yumuşak bir gradyan olduğu için fark gözle görülmüyor, her yüzey için ayrı GPU blur geçişi kalktı. Spec 11.2'den bilinçli sapma.
+- **Ölçüm** (telefonda, ekran açık, 1 dk): PSS ~65 MB, RSS ~155 MB, sabit; önceki sürüm ~770 MB'a çıkıyordu.
+- **Büyük kart boyutu akmıyordu** ("MAC bekleniyor" çipi bir anda kapanıp kart bir anda kısalıyordu): boyutun tek kaynağı yeniden Column'un `animateContentSize`'ı, içteki AnimatedContent boyutu anında alıyor. Çip artık daralarak ve solarak kapanıyor.
+- **Art arda dokunuşta seçim halkası sekiyordu:** yeni hedefe artık o an çizildiği yerden gidiyor; eski karta sıçramıyor.
+- Testler **216/216**.
+
 ### Açık kalanlar
 - Cihaz ekle / düzenle paneli, tarama: S07.
 - Ayarlar içeriği ve titreşim anahtarı: S10.

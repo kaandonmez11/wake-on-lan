@@ -211,33 +211,37 @@ fun DevicesScreen(
 private fun SelectionRing(selectedId: Long?, rects: Map<Long, Rect>, visible: Boolean) {
     val reduceMotion = LocalReduceMotion.current
     val progress = remember { Animatable(1f) }
-    val ids = remember { longArrayOf(Long.MIN_VALUE, Long.MIN_VALUE) } // [0] = kaynak, [1] = hedef
+    val target = remember { longArrayOf(Long.MIN_VALUE) }
+    // Art arda dokunuşta halka eski karta sıçramaz: yeni hedefe o an çizildiği yerden gider.
+    val from = remember { arrayOf<Rect?>(null) }
+    val drawn = remember { arrayOf<Rect?>(null) }
     val alpha = animateFloatAsState(if (visible && selectedId != null) 1f else 0f, motionSpec(SpringToken.Snappy, reduceMotion), label = "ringAlpha")
     LaunchedEffect(selectedId) {
-        val target = selectedId ?: return@LaunchedEffect
-        if (ids[1] == Long.MIN_VALUE) {
-            ids[0] = target
-            ids[1] = target
+        val id = selectedId ?: return@LaunchedEffect
+        if (target[0] == Long.MIN_VALUE || drawn[0] == null) {
+            target[0] = id
             return@LaunchedEffect
         }
-        if (ids[1] == target) return@LaunchedEffect
-        ids[0] = ids[1]
-        ids[1] = target
+        if (target[0] == id) return@LaunchedEffect
+        from[0] = drawn[0]
+        target[0] = id
         progress.snapTo(0f)
         progress.animateTo(1f, motionSpec(SpringToken.Bouncy, reduceMotion))
+        from[0] = null
     }
     Canvas(Modifier.fillMaxSize()) {
         val a = alpha.value
-        if (a <= 0.01f) return@Canvas
-        val to = rects[ids[1]] ?: return@Canvas
-        val from = rects[ids[0]] ?: to
+        val to = rects[target[0]] ?: return@Canvas
+        val start = from[0] ?: to
         val t = progress.value
         val r = Rect(
-            left = from.left + (to.left - from.left) * t,
-            top = from.top + (to.top - from.top) * t,
-            right = from.right + (to.right - from.right) * t,
-            bottom = from.bottom + (to.bottom - from.bottom) * t,
+            left = start.left + (to.left - start.left) * t,
+            top = start.top + (to.top - start.top) * t,
+            right = start.right + (to.right - start.right) * t,
+            bottom = start.bottom + (to.bottom - start.bottom) * t,
         )
+        drawn[0] = r
+        if (a <= 0.01f) return@Canvas
         val corner = WolDimens.CornerCard.toPx()
         listOf(3.dp to 0.95f, 7.dp to 0.35f).forEach { (gap, ringAlpha) ->
             val g = gap.toPx()

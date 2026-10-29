@@ -89,7 +89,7 @@ fun GlassToastHost(state: ToastHostState, modifier: Modifier = Modifier) {
             label = "toast",
         ) { t ->
             if (t != null) {
-                GlassSurface(shape = RoundedCornerShape(50), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                GlassSurface(shape = RoundedCornerShape(50), backdropBlur = true, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
                     Row(
                         Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
