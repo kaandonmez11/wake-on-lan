@@ -194,6 +194,28 @@ Bulunan ve düzeltilenler:
 
 Doğrulama (telefonda, 1 dk, durum turları ve ping çalışırken): dosya tanımlayıcısı **135 → 135**, thread **50 → 50**, PSS **~68 MB** sabit. Testler **216/216**.
 
+### Cihaz testi 4. tur düzeltmeleri (Kaan, 2026-10-29)
+- **Seçim halkası sekme geçişinde kayıyordu:** kart konumları kök koordinatta ölçülüyordu; sekme katmanının kayma/ölçeği hem ölçüme hem çizime uygulanıyordu. Artık halkayı çizen Box'a göre (`localBoundingBoxOf`) ölçülüyor.
+- **Toast gölgesi büyürken kırpılıyordu:** AnimatedContent'in varsayılan `SizeTransform(clip=true)`'su kaldırıldı.
+- **MAC'siz PC:** orb ve kart güç butonu soluk ve pasif; erişilebilirlik etiketi "Uyandırılamaz · MAC bekleniyor".
+- **Çipler:**
+  - Orb satırının altında tam genişlikte tek satır; alt satıra sarıp kartı zıplatmıyor.
+  - Çip genişliği tek bir `animateContentSize(smooth)` ile akıyor.
+  - Metin yalnız solarak değişiyor (`ChipText`); kayma ve boyut animasyonu çakışması kaldırıldı.
+  - "MAC bekleniyor" baştan genişleyip daralıyor.
+- **Basılı tutma ipucu** artık "Güç · Basılı tut" başlığının yerine solarak geliyor: düzen sabit, butonlar kaymıyor, kart büyümüyor (regresyon testi: `basili_tutarken_butonlar_yerinden_oynamaz`).
+- **Güç satırından Kapat kaldırıldı** (büyük orb = basılı tut Kapat); satırın altındaki tekrar eden pasiflik ipucu kaldırıldı (agent çipinde var); hiç deneme yoksa boş çubuk alanı gizleniyor.
+- **Hero ışık süpürmesi** kartın tamamen dışında başlayıp dışında bitiyor, `sin(πt)` zarfıyla solarak giriyor ve çıkıyor.
+- **Ayarlar:**
+  - Canlı arka plan push'un dışına alındı; açılınca yerinde tam ekran sahnesine akıyor ve sürekli canlı moda geçiyor.
+  - Panel saydam cam tabaka; kayarken sol kenar gölgesi ve 1 dp vurgu görünüyor. Alttaki içerik %55 kararıyor.
+- **Wi-Fi seviye ikonu:** kendi çizimimiz; 4 bant ayrı ayrı spring ile dolup sönüyor.
+- **Mesh / roaming:** NetworkMonitor ağ ya da BSSID (erişim noktası) değişim anını tutuyor. StatusEngine değişimden sonraki **10 sn** negatif tur saymıyor (regresyon testi). Telefon diğer mesh node'una geçerken açık PC'ler artık kısa kesintide "Kapalı"ya düşmemeli; kesinti 10 sn'den uzun sürerse yine kapalı görünür, Kaan'ın testi gösterecek.
+- **Küçük kart güç butonu:** basılı tutunca içi kırmızı doluyor + kalın kırmızı halka.
+- **Nefes halkaları** her karede halka başına `Stroke` nesnesi üretiyordu; geometri artık önbellekte.
+- **Ölçüm notu:** önceki "~65 MB sabit" ölçümler büyük ihtimalle telefonun ekranı kapalıyken alındı (gfxinfo 0 kare). Ekran açıkken PSS ~160 MB ve GL/EGL ~50 MB görüldü, 12 sn'de 22 MB Java ayırması vardı. Kaan uygulamayı kapattığı için büyüme olup olmadığı doğrulanamadı; bir sonraki testte uygulama açıkken ölçülecek.
+- Testler **219/219**.
+
 ### Açık kalanlar
 - Cihaz ekle / düzenle paneli, tarama: S07.
 - Ayarlar içeriği ve titreşim anahtarı: S10.

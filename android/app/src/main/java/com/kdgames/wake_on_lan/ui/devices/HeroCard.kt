@@ -74,7 +74,8 @@ import com.kdgames.wake_on_lan.ui.theme.motionSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 
-private val PowerRow = listOf(PowerAction.LOCK, PowerAction.SLEEP, PowerAction.HIBERNATE, PowerAction.RESTART, PowerAction.SHUTDOWN)
+/** Kapat satırda yok: büyük orb zaten basılı tut = Kapat (Kaan, S06 cihaz testi). */
+private val PowerRow = listOf(PowerAction.LOCK, PowerAction.SLEEP, PowerAction.HIBERNATE, PowerAction.RESTART)
 
 /** Hero kartın modu: içerik bölümü bu üç durum arasında akar. */
 private enum class HeroMode { Waking, Normal }
@@ -83,7 +84,6 @@ private enum class HeroMode { Waking, Normal }
  * Seçili cihaz kartı (spec 10.2). Seçim değişince ikon balonu rengi, ad ve adres akarak değişir;
  * çipler genişliğini spring ile ayarlar; uyanırken güç satırı ve geçmişin yerine adım kartları gelir.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HeroCard(
     ui: DeviceUi,
@@ -137,18 +137,6 @@ fun HeroCard(
         OpenCardOverlay(shape, palette.start, openness, Modifier.matchParentSize())
         // Boyutun tek kaynağı: bu Column'un animateContentSize'ı (içteki AnimatedContent boyutu anında alır).
         Column(Modifier.animateContentSize(motionSpec(SpringToken.Smooth, reduceMotion)).padding(18.dp)) {
-            AnimatedVisibility(
-                visible = holding != null,
-                enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
-                exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
-            ) {
-                Text(
-                    holding?.let(DeviceLabels::holdHint) ?: "",
-                    style = WolType.Chip,
-                    color = WolColors.DangerLight,
-                    modifier = Modifier.padding(bottom = 10.dp),
-                )
-            }
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -156,21 +144,9 @@ fun HeroCard(
                         EditButton(onEdit)
                     }
                     Spacer(Modifier.height(14.dp))
-                    AnimatedText(ui.device.name, style = WolType.HeroName, color = WolColors.TextPrimary)
+                    AnimatedText(ui.device.name, style = WolType.HeroName, color = WolColors.TextPrimary, maxLines = 1)
                     Spacer(Modifier.height(2.dp))
-                    AnimatedText("${ui.device.ip} · ${ui.device.mac ?: "MAC yok"}", style = WolType.TechnicalSmall, color = WolColors.TextTertiary)
-                    Spacer(Modifier.height(10.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StateChip(state)
-                        AgentChip(ui)
-                        AnimatedVisibility(
-                            ui.device.mac == null,
-                            enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandHorizontally(motionSpec(SpringToken.Snappy, reduceMotion)),
-                            exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkHorizontally(motionSpec(SpringToken.Snappy, reduceMotion)),
-                        ) {
-                            Chip { Text("MAC bekleniyor", style = WolType.Chip, color = WolColors.Amber) }
-                        }
-                    }
+                    AnimatedText("${ui.device.ip} · ${ui.device.mac ?: "MAC yok"}", style = WolType.TechnicalSmall, color = WolColors.TextTertiary, maxLines = 1)
                 }
                 Spacer(Modifier.size(8.dp))
                 PowerOrb(
@@ -179,10 +155,29 @@ fun HeroCard(
                     hold = orbHold,
                     tapEnabled = state is DeviceState.Off && ui.device.mac != null,
                     holdEnabled = shutdown == PowerAvailability.Available,
+                    // MAC yokken kapalı orb soluk ve pasif: dokunulabilir gibi görünmesin (Kaan).
+                    dimmed = state is DeviceState.Off && ui.device.mac == null,
                     onTap = onWake,
                     onHoldCommit = { onPower(PowerAction.SHUTDOWN) },
                     onAccessibilityHold = { confirm = PowerAction.SHUTDOWN },
                 )
+            }
+            Spacer(Modifier.height(12.dp))
+            // Çipler tam genişlikte tek satır: alt satıra sarıp kartı zıplatmaz (S06 cihaz testi).
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StateChip(state)
+                AgentChip(ui)
+                AnimatedVisibility(
+                    ui.device.mac == null,
+                    enter = fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) + expandHorizontally(motionSpec(SpringToken.Smooth, reduceMotion), expandFrom = Alignment.Start),
+                    exit = fadeOut(motionSpec(SpringToken.Smooth, reduceMotion)) + shrinkHorizontally(motionSpec(SpringToken.Smooth, reduceMotion), shrinkTowards = Alignment.Start),
+                ) {
+                    Chip { Text("MAC bekleniyor", style = WolType.Chip, color = WolColors.Amber, maxLines = 1, softWrap = false) }
+                }
             }
 
             // K24: güç satırı kapalı PC'de de görünür (pasif); yalnız uyanırken adım kartlarına yer verir.
@@ -204,7 +199,9 @@ fun HeroCard(
                         }
                         HeroMode.Normal -> {
                             Spacer(Modifier.height(16.dp))
-                            Text("Güç · Basılı tut", style = WolType.Label, color = WolColors.TextTertiary)
+                            // Basılı tutarken ipucu bu başlığın yerine solarak gelir: düzen değişmez,
+                            // butonlar kaymaz, kart büyümez (S06 cihaz testi).
+                            HoldLabel(holding)
                             Spacer(Modifier.height(8.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 PowerRow.forEach { action ->
@@ -218,15 +215,8 @@ fun HeroCard(
                                     )
                                 }
                             }
-                            val hint = (powerAvailability(ui, PowerAction.LOCK) as? PowerAvailability.Disabled)?.hint
-                            AnimatedVisibility(
-                                hint != null,
-                                enter = fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + expandVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
-                                exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Snappy, reduceMotion)),
-                            ) {
-                                Text(hint ?: "", style = WolType.Label, color = WolColors.TextTertiary, modifier = Modifier.padding(top = 8.dp))
-                            }
-                            Spacer(Modifier.height(16.dp))
+                            // Pasiflik sebebi zaten agent çipinde; burada tekrar yazılmaz (Kaan).
+                            Spacer(Modifier.height(14.dp))
                             HistoryBars(ui.history)
                         }
                     }
@@ -244,6 +234,25 @@ fun HeroCard(
             confirmButton = { TextButton(onClick = { confirm = null; onPower(action) }) { Text(DeviceLabels.actionTitle(action)) } },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text("Vazgeç") } },
         )
+    }
+}
+
+/** "Güç · Basılı tut" başlığı; basılı tutarken aynı yerde ipucuna solarak döner (yükseklik sabit). */
+@Composable
+private fun HoldLabel(holding: PowerAction?) {
+    val reduceMotion = LocalReduceMotion.current
+    Box(Modifier.fillMaxWidth().height(16.dp), contentAlignment = Alignment.CenterStart) {
+        AnimatedContent(
+            targetState = holding,
+            transitionSpec = {
+                fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) togetherWith fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) using
+                    SizeTransform(clip = false) { _, _ -> snap() }
+            },
+            label = "holdLabel",
+        ) { action ->
+            if (action == null) Text("Güç · Basılı tut", style = WolType.Label, color = WolColors.TextTertiary, maxLines = 1)
+            else Text(DeviceLabels.holdHint(action), style = WolType.Label, color = WolColors.DangerLight, maxLines = 1)
+        }
     }
 }
 
@@ -289,7 +298,7 @@ fun Chip(content: @Composable () -> Unit) {
         Modifier
             .clip(RoundedCornerShape(50))
             .background(Color.White.copy(alpha = 0.10f))
-            .animateContentSize(motionSpec(SpringToken.Snappy, reduceMotion))
+            .animateContentSize(motionSpec(SpringToken.Smooth, reduceMotion))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -317,7 +326,7 @@ private fun StateChip(state: DeviceState?) {
     Chip {
         StatusDot(dot)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AnimatedText(prefix, style = WolType.Chip, color = WolColors.TextPrimary)
+            ChipText(prefix, WolColors.TextPrimary)
             if (number != null) {
                 RollingNumber(number, style = WolType.TechnicalSmall, color = WolColors.TextPrimary)
                 Text(suffix, style = WolType.Chip, color = WolColors.TextPrimary)
@@ -340,6 +349,23 @@ private fun AgentChip(ui: DeviceUi) {
     )
     Chip {
         SymbolIcon(Sym.verified_user, contentDescription = null, size = 14.dp, tint = color, filled = label == "Agent")
-        AnimatedText(label, style = WolType.Chip, color = WolColors.TextPrimary)
+        ChipText(label, WolColors.TextPrimary)
     }
+}
+
+/**
+ * Çip metni: yalnız solarak değişir, boyutu anında alır; genişliği çipin tek `animateContentSize`'ı akıtır.
+ * (AnimatedText'in kayma + boyut animasyonu çipin kendi boyut animasyonuyla çakışıp zıplatıyordu.)
+ */
+@Composable
+private fun ChipText(text: String, color: Color) {
+    val reduceMotion = LocalReduceMotion.current
+    AnimatedContent(
+        targetState = text,
+        transitionSpec = {
+            fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) togetherWith fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) using
+                SizeTransform(clip = false) { _, _ -> snap() }
+        },
+        label = "chipText",
+    ) { t -> Text(t, style = WolType.Chip, color = color, maxLines = 1, softWrap = false) }
 }

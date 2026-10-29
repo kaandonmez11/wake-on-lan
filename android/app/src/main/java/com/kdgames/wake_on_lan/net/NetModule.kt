@@ -69,4 +69,7 @@ abstract class NetBindings {
 
     @Binds
     abstract fun agentTransport(impl: UdpAgentTransport): AgentTransport
+
+    @Binds
+    abstract fun wifiChangeTime(impl: NetworkMonitor): WifiChangeTime
 }

@@ -199,6 +199,8 @@ private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> 
     val haptics = LocalHaptics.current
     val hold = rememberHoldState()
     val canWake = ui.state is DeviceState.Off && ui.device.mac != null
+    val dimmed = ui.state is DeviceState.Off && ui.device.mac == null
+    val dimAlpha = animateFloatAsState(if (dimmed) 0.38f else 1f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cpbDim")
     val canHold = powerAvailability(ui, PowerAction.SHUTDOWN) == PowerAvailability.Available
     val on = ui.isOn
     val bg1 by animateColorAsState(if (on) ui.palette.start else Color.White.copy(alpha = 0.10f), motionSpec(SpringToken.Smooth, reduceMotion), label = "cpb1")
@@ -215,6 +217,7 @@ private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> 
         Modifier
             .size(44.dp)
             .graphicsLayer {
+                alpha = dimAlpha.value
                 val s = press * hold.commit.value
                 scaleX = s
                 scaleY = s
@@ -235,7 +238,9 @@ private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> 
             }
             val p = hold.progress.value
             if (p > 0f) {
-                drawArc(WolColors.Danger, -90f, 360f * p, false, topLeft = Offset(stroke / 2, stroke / 2), size = size.copy(size.width - stroke, size.height - stroke), style = Stroke(stroke, cap = StrokeCap.Round))
+                // Küçük butonda kenar dolumu zor görünüyordu: içi kırmızı dolar + kalın kırmızı halka (Kaan).
+                drawCircle(WolColors.Danger, radius = size.minDimension / 2 * p, alpha = 0.55f)
+                drawArc(WolColors.Danger, -90f, 360f * p, false, topLeft = Offset(stroke, stroke), size = size.copy(size.width - 2 * stroke, size.height - 2 * stroke), style = Stroke(stroke * 1.6f, cap = StrokeCap.Round))
             }
             }
         })

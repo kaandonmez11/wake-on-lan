@@ -181,6 +181,18 @@ class StatusEngineTest {
             assertEquals(DeviceState.Off(false), h.state(), "döngü hatadan sonra da çalışmaya devam etmeli")
         }
 
+        /** S06 cihaz testi: mesh'te başka node'a geçişte açık PC'ler kısa süre "kapalı" görünüyordu. */
+        @Test
+        fun `erisim noktasi degisiminden sonra 10 sn negatif tur sayilmaz`() = runTest {
+            val h = EngineHarness(this, foreground = true) { _, _ -> Sig.tcp() }
+            h.signals = { _, _ -> Sig.none() }
+            h.wifiChangedAt = testScheduler.currentTime
+            advanceTimeBy(9_100)
+            assertInstanceOf(DeviceState.On::class.java, h.state(), "geçişten sonraki 10 sn kapalı kararı yok")
+            advanceTimeBy(6_100)
+            assertEquals(DeviceState.Off(false), h.state(), "tolerans bitince gerçek kapalı yine algılanır")
+        }
+
         @Test
         fun `kesin karar degisince onbellege yazilir`() = runTest {
             val h = EngineHarness(this, foreground = true) { _, now -> if (now < 6_000) Sig.agent() else Sig.none() }

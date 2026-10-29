@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -100,7 +101,9 @@ fun DevicesScreen(
     val selectedId = localSelection?.takeIf { id -> state.devices.any { it.id == id } } ?: state.selectedId
     val selected = state.copy(selectedId = selectedId).selected
     val cardRects = remember { mutableStateMapOf<Long, Rect>() }
-    var gridOrigin by remember { mutableStateOf(Offset.Zero) }
+    // Kart konumları halkayı çizen Box'a göre (kök yerine): sekme geçişinin kayma/ölçek katmanı
+    // hem ölçüme hem çizime uygulanıp halkayı kaydırıyordu (S06 cihaz testi).
+    val boxCoords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
     var confirmCard by remember { mutableStateOf<DeviceUi?>(null) }
     val currentDevices by rememberUpdatedState(state.devices)
 
@@ -122,7 +125,7 @@ fun DevicesScreen(
         }
     }
 
-    Box(modifier.fillMaxSize().onGloballyPositioned { gridOrigin = it.positionInRoot() }) {
+    Box(modifier.fillMaxSize().onGloballyPositioned { boxCoords[0] = it }) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
@@ -183,8 +186,8 @@ fun DevicesScreen(
                             fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion),
                         )
                         .onGloballyPositioned { coords ->
-                            val b = coords.boundsInRoot()
-                            cardRects[ui.id] = b.translate(-gridOrigin)
+                            val box = boxCoords[0]
+                            if (box != null && box.isAttached && coords.isAttached) cardRects[ui.id] = box.localBoundingBoxOf(coords, clipBounds = false)
                         },
                 )
             }
@@ -264,14 +267,18 @@ fun WifiPill(wifi: WifiState, modifier: Modifier = Modifier) {
     val reduceMotion = LocalReduceMotion.current
     GlassSurface(shape = RoundedCornerShape(50), modifier = modifier.height(44.dp)) {
         Row(Modifier.padding(horizontal = 14.dp).height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Bağlıyken kendi çizdiğimiz seviye ikonu (çubuklar tek tek akarak dolar); bağlı değilken wifi_off.
             AnimatedContent(
-                targetState = if (wifi.connected) wifiSymbol(wifi.signalLevel) else Sym.wifi_off,
+                targetState = wifi.connected,
                 transitionSpec = {
-                    (fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + scaleIn(motionSpec(SpringToken.Snappy, reduceMotion), initialScale = 0.9f)) togetherWith
-                        fadeOut(motionSpec(SpringToken.Snappy, reduceMotion))
+                    (fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) + scaleIn(motionSpec(SpringToken.Smooth, reduceMotion), initialScale = 0.9f)) togetherWith
+                        fadeOut(motionSpec(SpringToken.Smooth, reduceMotion))
                 },
                 label = "wifiIcon",
-            ) { sym -> SymbolIcon(sym, contentDescription = "Wi-Fi sinyali", size = 18.dp, filled = true) }
+            ) { connected ->
+                if (connected) WifiLevelIcon(wifi.signalLevel, Modifier.semantics { contentDescription = "Wi-Fi sinyali" })
+                else SymbolIcon(Sym.wifi_off, contentDescription = "Wi-Fi sinyali", size = 18.dp, filled = true)
+            }
             Spacer(Modifier.width(8.dp))
             if (!wifi.connected) {
                 AnimatedText("Wi-Fi yok", style = WolType.Chip, color = WolColors.TextSecondary, maxLines = 1)
@@ -293,6 +300,39 @@ fun WifiPill(wifi: WifiState, modifier: Modifier = Modifier) {
                     Dot()
                     AnimatedText(ip, style = WolType.Technical, color = WolColors.TextSecondary, maxLines = 1)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Wi-Fi seviye ikonu (spec 10.1, 0–4): yukarı bakan 90°'lik yelpazede 4 bant. Seviye değişince her bant
+ * ayrı ayrı dolar/söner (spring); glif değişimi gibi "pat" diye değişmez (S06 cihaz testi).
+ */
+@Composable
+private fun WifiLevelIcon(level: Int, modifier: Modifier = Modifier) {
+    val reduceMotion = LocalReduceMotion.current
+    val fills = (1..4).map { band ->
+        animateFloatAsState(if (band <= level) 1f else 0.22f, motionSpec(SpringToken.Smooth, reduceMotion), label = "wifiBand$band")
+    }
+    Canvas(modifier.size(18.dp)) {
+        val origin = Offset(size.width / 2, size.height * 0.88f)
+        val outer = size.height * 0.80f
+        val step = outer / 4
+        val gap = step * 0.22f
+        for (band in 1..4) {
+            val alpha = fills[band - 1].value
+            val r = step * band
+            if (band == 1) {
+                drawArc(Color.White, 225f, 90f, useCenter = true, topLeft = Offset(origin.x - r, origin.y - r), size = Size(2 * r, 2 * r), alpha = alpha)
+            } else {
+                val thickness = step - gap
+                val mid = r - thickness / 2
+                drawArc(
+                    Color.White, 225f, 90f, useCenter = false,
+                    topLeft = Offset(origin.x - mid, origin.y - mid), size = Size(2 * mid, 2 * mid),
+                    alpha = alpha, style = Stroke(thickness),
+                )
             }
         }
     }

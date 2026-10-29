@@ -61,3 +61,8 @@ data class WifiState(
         }
     }
 }
+
+/** Wi-Fi bağlantısının (ağ ya da erişim noktası) son değişim anı; StatusEngine roaming toleransı için. */
+fun interface WifiChangeTime {
+    fun lastChangeMs(): Long
+}

@@ -57,6 +57,8 @@ fun PowerOrb(
     onHoldCommit: () -> Unit,
     onAccessibilityHold: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Kapalı ama uyandırılamaz (MAC yok): soluk görünür, dokunuşa tepki vermez. */
+    dimmed: Boolean = false,
     ringSize: Dp = 124.dp,
     orbSize: Dp = 96.dp,
 ) {
@@ -106,6 +108,7 @@ fun PowerOrb(
     }
 
     // Dolum, vurgu ve basma değerleri yalnız çizim/katman aşamasında okunur.
+    val dimAlpha = animateFloatAsState(if (dimmed) 0.38f else 1f, motionSpec(SpringToken.Smooth, reduceMotion), label = "orbDim")
     val pressScale = animateFloatAsState(if (hold.pressed) 0.96f else 1f, motionSpec(if (hold.pressed) SpringToken.Quick else SpringToken.Snappy, reduceMotion), label = "orbPress")
 
     val gesture = when {
@@ -114,6 +117,7 @@ fun PowerOrb(
         else -> Modifier
     }
     val description = when {
+        dimmed -> "Uyandırılamaz · MAC bekleniyor"
         tapEnabled -> "Uyandır"
         holdEnabled -> "Güç halkası · Kapat için basılı tut"
         waking -> "Uyanıyor"
@@ -124,6 +128,7 @@ fun PowerOrb(
         modifier
             .size(ringSize)
             .graphicsLayer {
+                alpha = dimAlpha.value
                 val s = bloom.value * hold.commit.value * pressScale.value
                 scaleX = s
                 scaleY = s

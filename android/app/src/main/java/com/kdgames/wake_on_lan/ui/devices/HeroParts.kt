@@ -188,15 +188,17 @@ fun HistoryBars(history: WakeHistory, modifier: Modifier = Modifier) {
     val time = remember { SimpleDateFormat("HH:mm", Locale.ROOT) }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val listState = rememberLazyListState()
-        LazyRow(
-            state = listState,
-            userScrollEnabled = false,
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-            modifier = Modifier.fillMaxWidth().height(30.dp),
-            reverseLayout = false,
-        ) {
-            items(history.attempts, key = { it.id }) { attempt ->
-                HistoryBar(attempt, history.attempts.indexOf(attempt), Modifier.animateItem())
+        if (history.attempts.isNotEmpty()) {
+            LazyRow(
+                state = listState,
+                userScrollEnabled = false,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                modifier = Modifier.fillMaxWidth().height(30.dp),
+                reverseLayout = false,
+            ) {
+                items(history.attempts, key = { it.id }) { attempt ->
+                    HistoryBar(attempt, history.attempts.indexOf(attempt), Modifier.animateItem())
+                }
             }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

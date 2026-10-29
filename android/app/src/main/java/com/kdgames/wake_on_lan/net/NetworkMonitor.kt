@@ -32,7 +32,14 @@ import javax.inject.Singleton
 class NetworkMonitor @Inject constructor(
     @ApplicationContext private val context: Context,
     @AppScope scope: CoroutineScope,
-) {
+) : WifiChangeTime {
+    @Volatile private var lastNetwork: Network? = null
+    @Volatile private var lastBssid: String? = null
+    @Volatile private var changedAt: Long = Long.MIN_VALUE / 2
+
+    /** Wi-Fi ağı ya da bağlı erişim noktası (mesh node, BSSID) en son ne zaman değişti (monoton ms). */
+    override fun lastChangeMs(): Long = changedAt
+
     private val connectivity = context.getSystemService(ConnectivityManager::class.java)
     private val wifiManager = context.getSystemService(WifiManager::class.java)
     private val restarts = MutableStateFlow(0)
@@ -60,6 +67,14 @@ class NetworkMonitor @Inject constructor(
                 return
             }
             val info = caps?.transportInfo as? WifiInfo
+            // Mesh/roaming: aynı SSID'de başka node'a geçiş kısa bir kesinti yaratır; StatusEngine bu
+            // anı bilip birkaç saniye "kapalı" kararı vermez (S06 cihaz testi: iki routerlı ev).
+            val bssid = info?.bssid
+            if (network != lastNetwork || (bssid != null && bssid != lastBssid)) {
+                changedAt = Clock.Monotonic.nowMs()
+                lastNetwork = network
+                if (bssid != null) lastBssid = bssid
+            }
             val v4 = link?.linkAddresses?.firstOrNull { it.address is Inet4Address }
             val rssi = info?.rssi?.takeIf { it != INVALID_RSSI }
             trySend(
@@ -102,6 +117,7 @@ class NetworkMonitor @Inject constructor(
 
             override fun onLost(network: Network) {
                 if (network != current) return
+                changedAt = Clock.Monotonic.nowMs()
                 current = null
                 caps = null
                 link = null

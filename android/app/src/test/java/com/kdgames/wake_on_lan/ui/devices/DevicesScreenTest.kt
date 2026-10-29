@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -95,13 +96,43 @@ class DevicesScreenTest {
         show(two(off))
         val lock = compose.onNode(hasContentDescription("Kilitle · basılı tut"))
         lock.assertExists()
-        compose.onNode(hasContentDescription("Kapat · basılı tut")).assertExists()
+        // Kapat satırda yok: büyük orb basılı tut = Kapat (Kaan, S06).
+        compose.onNode(hasContentDescription("Kapat · basılı tut")).assertDoesNotExist()
         compose.mainClock.autoAdvance = false
         lock.performTouchInput { down(center) }
         compose.mainClock.advanceTimeBy(1_700)
         lock.performTouchInput { up() }
         compose.mainClock.advanceTimeBy(300)
         assertTrue(powers.isEmpty())
+    }
+
+    /** S06 cihaz testi: MAC'siz cihazda uyandır dokunulabilir görünüyor ama çalışmıyordu. */
+    @Test
+    fun mac_yokken_orb_pasif_ve_uyandirmaz() {
+        val base = two(off)
+        val noMac = base.copy(devices = listOf(base.devices[0].copy(device = base.devices[0].device.copy(mac = null)), base.devices[1]))
+        show(noMac)
+        compose.onNode(hasContentDescription("Uyandırılamaz · MAC bekleniyor")).assertExists().performClick()
+        compose.waitForIdle()
+        assertTrue(wakes.isEmpty())
+        assertTrue(compose.onAllNodes(hasText("MAC bekleniyor")).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    /** S06 cihaz testi: basılı tutarken ipucu metni butonları aşağı itiyordu. */
+    @Test
+    fun basili_tutarken_butonlar_yerinden_oynamaz() {
+        show(two(on))
+        val lock = compose.onNode(hasContentDescription("Kilitle · basılı tut"))
+        val before = lock.getBoundsInRoot()
+        compose.mainClock.autoAdvance = false
+        lock.performTouchInput { down(center) }
+        compose.mainClock.advanceTimeBy(700)
+        compose.onNode(hasText("Kilitleniyor · bırakırsan iptal")).assertExists()
+        val during = lock.getBoundsInRoot()
+        lock.performTouchInput { up() }
+        // Basma ölçeği (0.96) merkez etrafında küçültür; düzen kayması merkezin yer değiştirmesiyle ölçülür.
+        assertEquals((before.top + before.bottom).value / 2, (during.top + during.bottom).value / 2, 0.5f)
+        assertEquals((before.left + before.right).value / 2, (during.left + during.right).value / 2, 0.5f)
     }
 
     @Test

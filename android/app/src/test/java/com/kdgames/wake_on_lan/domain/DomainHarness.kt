@@ -79,6 +79,7 @@ class EngineHarness(
     val seen = mutableListOf<DomainEvent>()
     var probes = 0
     var wifi = true
+    var wifiChangedAt = Long.MIN_VALUE / 2
     val engine = StatusEngine(
         store,
         SignalProber { d ->
@@ -90,6 +91,7 @@ class EngineHarness(
         fg,
         clock,
         test.backgroundScope,
+        { wifiChangedAt },
     )
 
     init {

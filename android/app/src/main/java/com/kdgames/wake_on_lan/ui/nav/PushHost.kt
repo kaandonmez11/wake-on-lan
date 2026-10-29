@@ -19,7 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import com.kdgames.wake_on_lan.ui.theme.LocalAnimationsActive
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,8 +30,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.kdgames.wake_on_lan.ui.background.LivingBackground
-import com.kdgames.wake_on_lan.ui.background.Scene
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.pressable
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
@@ -76,15 +76,35 @@ fun PushHost(
                 .graphicsLayer { translationX = -size.width * 0.30f * progress.value }
                 .drawWithContent {
                     drawContent()
+                    // Alttaki içerik (arka plan değil) kararır; üstteki saydam panelle karışıp okunmaz olmasın.
                     val p = progress.value
-                    if (p > 0f) drawRect(Color.Black.copy(alpha = 0.35f * p))
+                    if (p > 0f) drawRect(Color.Black.copy(alpha = 0.55f * p))
                 },
         ) {
             // Üst ekran tamamen örtünce alttaki sonsuz animasyonlar kare üretmez.
             CompositionLocalProvider(LocalAnimationsActive provides !covered) { base() }
         }
         if (topShown || open) {
-            Box(Modifier.fillMaxSize().graphicsLayer { translationX = size.width * (1f - progress.value) }) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { translationX = size.width * (1f - progress.value) }
+                    .drawBehind {
+                        // Arka plan sabit kaldığı için panelin kaydığını belli eden ince cam tabaka + sol kenar gölgesi.
+                        val p = progress.value
+                        drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f))
+                        val edge = 18.dp.toPx()
+                        val a = 0.35f * kotlin.math.sin(Math.PI.toFloat() * p.coerceIn(0f, 1f))
+                        if (a > 0.005f) {
+                            drawRect(
+                                Brush.horizontalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = a)), startX = -edge, endX = 0f),
+                                topLeft = androidx.compose.ui.geometry.Offset(-edge, 0f),
+                                size = androidx.compose.ui.geometry.Size(edge, size.height),
+                            )
+                        }
+                        drawRect(Color.White.copy(alpha = 0.10f), size = androidx.compose.ui.geometry.Size(1.dp.toPx(), size.height))
+                    },
+            ) {
                 top()
             }
         }
@@ -94,8 +114,8 @@ fun PushHost(
 /** Ayarlar ekranı yer tutucusu (içerik S10'da). */
 @Composable
 fun SettingsPlaceholder(onBack: () -> Unit) {
-    Box(Modifier.fillMaxSize().background(WolColors.Background)) {
-        LivingBackground(scene = Scene.Automation)
+    // Kendi arka planı yok: sabit duran canlı arka plan (AppNav) arkadan görünür.
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.statusBarsPadding().padding(horizontal = WolDimens.ScreenHorizontal, vertical = WolDimens.TopExtra)) {
             GlassSurface(shape = CircleShape, modifier = Modifier.size(44.dp).pressable(onClick = onBack, onClickLabel = "Geri")) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

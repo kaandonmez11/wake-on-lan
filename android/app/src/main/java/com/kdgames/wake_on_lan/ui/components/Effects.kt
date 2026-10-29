@@ -92,9 +92,13 @@ fun OpenCardOverlay(shape: Shape, beamColor: Color, strength: Float, modifier: M
         val sweepShader = android.graphics.SweepGradient(size.width / 2, size.height / 2, intArrayOf(0, beamArgb, 0, 0), floatArrayOf(0f, 0.12f, 0.24f, 1f))
         val sweepMatrix = android.graphics.Matrix()
         val sweepBrush = ShaderBrush(sweepShader)
-        val lightWidth = size.width * 0.5f
+        // Bant yönü sabit (hafif çapraz), genişliği kartın %35'i; tüm köşelerin dışından başlayıp dışında biter.
+        val dirX = 0.894f
+        val dirY = 0.447f
+        val band = size.width * 0.35f
+        val travelEnd = size.width * dirX + size.height * dirY
         val lightShader = android.graphics.LinearGradient(
-            0f, 0f, lightWidth, size.height,
+            0f, 0f, dirX * band, dirY * band,
             intArrayOf(0, Color.White.copy(alpha = 0.10f).toArgb(), 0), floatArrayOf(0f, 0.5f, 1f),
             android.graphics.Shader.TileMode.CLAMP,
         )
@@ -110,9 +114,12 @@ fun OpenCardOverlay(shape: Shape, beamColor: Color, strength: Float, modifier: M
             // Işık süpürmesi: periyodun ilk %22'sinde soldan sağa geçen çapraz parlama.
             val t = sweep.value / 0.22f
             if (t in 0f..1f) {
-                lightMatrix.setTranslate(-size.width * 0.6f + size.width * 2.2f * t, 0f)
+                val offset = -band + (travelEnd + band) * t
+                lightMatrix.setTranslate(dirX * offset, dirY * offset)
                 lightShader.setLocalMatrix(lightMatrix)
-                clipPath(path) { drawRect(lightBrush, alpha = s) }
+                // Giriş/çıkış yumuşak: zarf sin(πt).
+                val envelope = kotlin.math.sin(Math.PI.toFloat() * t)
+                clipPath(path) { drawRect(lightBrush, alpha = s * envelope) }
             }
         }
     })
@@ -130,23 +137,29 @@ fun GlowLayer(corner: Dp, color: Color, maxAlpha: Float, strength: () -> Float, 
 }
 
 private fun Modifier.breathingGlow(corner: Dp, color: Color, maxAlpha: Float, strength: () -> Float, breath: State<Float>): Modifier =
-    drawBehind {
-        val a = maxAlpha * strength() * breath.value
-        if (a <= 0.005f) return@drawBehind
+    drawWithCache {
+        // Geometri boyut başına bir kez; her karede yalnız saydamlık okunur (nesne üretimi yok).
         val c = corner.toPx()
         val spread = 22.dp.toPx()
         val dy = 8.dp.toPx()
         val ring = spread / GLOW_STEPS
-        for (i in 0 until GLOW_STEPS) {
-            val g = ring * (i + 0.5f)
-            drawRoundRect(
-                color = color,
-                topLeft = Offset(-g, -g + dy),
-                size = androidx.compose.ui.geometry.Size(size.width + 2 * g, size.height + 2 * g),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(c + g),
-                alpha = (a * (1f - i / GLOW_STEPS.toFloat()) * 0.55f).coerceIn(0f, 1f),
-                style = Stroke(ring),
-            )
+        val stroke = Stroke(ring)
+        val offsets = Array(GLOW_STEPS) { i -> val g = ring * (i + 0.5f); Offset(-g, -g + dy) }
+        val sizes = Array(GLOW_STEPS) { i -> val g = ring * (i + 0.5f); androidx.compose.ui.geometry.Size(size.width + 2 * g, size.height + 2 * g) }
+        val radii = Array(GLOW_STEPS) { i -> androidx.compose.ui.geometry.CornerRadius(c + ring * (i + 0.5f)) }
+        onDrawBehind {
+            val a = maxAlpha * strength() * breath.value
+            if (a <= 0.005f) return@onDrawBehind
+            for (i in 0 until GLOW_STEPS) {
+                drawRoundRect(
+                    color = color,
+                    topLeft = offsets[i],
+                    size = sizes[i],
+                    cornerRadius = radii[i],
+                    alpha = (a * (1f - i / GLOW_STEPS.toFloat()) * 0.55f).coerceIn(0f, 1f),
+                    style = stroke,
+                )
+            }
         }
     }
 

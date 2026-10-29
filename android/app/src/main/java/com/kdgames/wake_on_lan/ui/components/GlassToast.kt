@@ -1,6 +1,7 @@
 package com.kdgames.wake_on_lan.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -80,11 +81,12 @@ fun GlassToastHost(state: ToastHostState, modifier: Modifier = Modifier) {
             targetState = toast,
             contentKey = { it?.id },
             transitionSpec = {
-                if (reduceMotion) fadeIn(tween(REDUCED_CROSSFADE_MS)) togetherWith fadeOut(tween(REDUCED_CROSSFADE_MS))
+                // clip=false: varsayılan SizeTransform büyüme sırasında gölgeyi kırpıyordu (S06 cihaz testi).
+                (if (reduceMotion) fadeIn(tween(REDUCED_CROSSFADE_MS)) togetherWith fadeOut(tween(REDUCED_CROSSFADE_MS))
                 else (slideInVertically(SpringToken.Smooth.spec(IntOffset.VisibilityThreshold)) { -it } + fadeIn(SpringToken.Smooth.spec()) +
                     scaleIn(SpringToken.Bouncy.spec(), initialScale = 0.92f)) togetherWith
                     (slideOutVertically(SpringToken.Snappy.spec(IntOffset.VisibilityThreshold)) { -it / 2 } + fadeOut(SpringToken.Snappy.spec()) +
-                        scaleOut(SpringToken.Snappy.spec(), targetScale = 0.96f))
+                        scaleOut(SpringToken.Snappy.spec(), targetScale = 0.96f))) using SizeTransform(clip = false)
             },
             label = "toast",
         ) { t ->

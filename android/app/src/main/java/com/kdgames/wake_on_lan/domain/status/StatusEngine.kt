@@ -14,6 +14,7 @@ import com.kdgames.wake_on_lan.domain.model.Verdict
 import com.kdgames.wake_on_lan.net.AppScope
 import com.kdgames.wake_on_lan.net.Clock
 import com.kdgames.wake_on_lan.net.NoWifiException
+import com.kdgames.wake_on_lan.net.WifiChangeTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -82,6 +83,7 @@ class StatusEngine @Inject constructor(
     private val foreground: AppForeground,
     private val clock: Clock,
     @AppScope private val scope: CoroutineScope,
+    private val wifiChange: WifiChangeTime,
 ) {
     /** Debug için son turun ayrıntısı. */
     data class RoundInfo(val number: Long, val at: Long, val signals: RoundSignals, val verdict: Verdict, val negatives: Int)
@@ -180,6 +182,11 @@ class StatusEngine @Inject constructor(
         }
         val now = clock.nowMs()
         val verdict = StatusRules.decide(signals, device.mac, agentConfigured = device.agentId != null)
+        // Roaming toleransı: Wi-Fi ağı/erişim noktası yeni değiştiyse negatif tur sayılmaz (geçiş kesintisi).
+        if (verdict is Verdict.Negative && now - wifiChange.lastChangeMs() < ROAM_GRACE_MS) {
+            return RoundInfo(roundCounter.incrementAndGet(), now, signals, verdict, trackers.value[deviceId]?.negatives ?: 0)
+                .also { info -> _rounds.update { it + (deviceId to info) } }
+        }
         val previous = _states.value[deviceId]
         val threshold = if (overlays.value.containsKey(deviceId)) StatusRules.NEGATIVE_ROUNDS_TO_OFF_IN_TRANSITION
         else StatusRules.NEGATIVE_ROUNDS_TO_OFF
@@ -250,6 +257,9 @@ class StatusEngine @Inject constructor(
     companion object {
         const val INTERVAL_MS = 3_000L
         const val TRANSITION_INTERVAL_MS = 1_000L
+
+        /** Wi-Fi/erişim noktası değişiminden sonra negatif turların sayılmadığı süre. */
+        const val ROAM_GRACE_MS = 10_000L
         private const val TAG = "StatusEngine"
     }
 }

@@ -62,17 +62,25 @@ fun AppNav(
     val shiftPx = with(LocalDensity.current) { TabShift.roundToPx() }
 
     CompositionLocalProvider(LocalHazeState provides hazeState) {
+      Box(Modifier.fillMaxSize()) {
+        // Arka plan push'un dışında: Ayarlar açılınca yandan kaymaz, yerinde tam ekran sahnesine
+        // akarak dönüşür ve sürekli canlı moda geçer (S06 cihaz testi, spec 12.4).
+        LivingBackground(
+            scene = when {
+                settingsOpen -> Scene.FullScreen
+                tab == MainTab.Devices -> Scene.Devices
+                else -> Scene.Automation
+            },
+            continuous = settingsOpen,
+            modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
+            tint = if (!settingsOpen && tab == MainTab.Devices) devicesTint else Color.Unspecified,
+        )
       PushHost(
         open = settingsOpen,
         onClose = { settingsOpen = false },
         top = { SettingsPlaceholder(onBack = { settingsOpen = false }) },
         base = {
         Box(Modifier.fillMaxSize()) {
-            LivingBackground(
-                scene = if (tab == MainTab.Devices) Scene.Devices else Scene.Automation,
-                modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
-                tint = if (tab == MainTab.Devices) devicesTint else Color.Unspecified,
-            )
             // İki sekme de canlı tutulur: Cihazlar'a dönüş her seferinde grid ve kartları sıfırdan kurmaz
             // (S06: Otomasyon → Cihazlar gecikiyordu). Gizli sekmede sonsuz döngüler durur, dokunuş ve
             // erişilebilirlik ona ulaşmaz.
@@ -100,6 +108,7 @@ fun AppNav(
         }
         },
       )
+      }
     }
 }
 
