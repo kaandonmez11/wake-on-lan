@@ -11,7 +11,8 @@ object Canonical {
 
     fun status(nonce: String) = "status|$nonce"
 
-    fun statusOk(nonce: String, agentId: String, uptimeSec: Long) = "status-ok|$nonce|$agentId|$uptimeSec"
+    fun statusOk(nonce: String, agentId: String, uptimeSec: Long, display: String) =
+        "status-ok|$nonce|$agentId|$uptimeSec|$display"
 
     fun cmd(nonce: String, cmd: AgentCommand, force: Boolean) = "cmd|$nonce|${cmd.name}|$force"
 

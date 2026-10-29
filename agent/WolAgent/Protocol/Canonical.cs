@@ -9,8 +9,8 @@ public static class Canonical
 
     public static string Status(string nonce) => $"status|{nonce}";
 
-    public static string StatusOk(string nonce, string agentId, long uptimeSec) =>
-        $"status-ok|{nonce}|{agentId}|{uptimeSec.ToString(CultureInfo.InvariantCulture)}";
+    public static string StatusOk(string nonce, string agentId, long uptimeSec, string display) =>
+        $"status-ok|{nonce}|{agentId}|{uptimeSec.ToString(CultureInfo.InvariantCulture)}|{display}";
 
     public static string Cmd(string nonce, string cmd, bool force) =>
         $"cmd|{nonce}|{cmd}|{(force ? "true" : "false")}";

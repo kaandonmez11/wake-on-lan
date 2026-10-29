@@ -84,6 +84,7 @@ object AgentCodec {
                 put("hostname", message.hostname)
                 put("uptimeSec", message.uptimeSec)
                 put("hibernate", message.hibernate)
+                put("display", message.display)
                 putNics(message.nics)
                 put("sig", message.sig)
             }
@@ -122,7 +123,7 @@ object AgentCodec {
             "STATUS" -> AgentMessage.Status(rid, r.string("phoneId"), r.string("nonce"), r.string("sig"))
             "STATUS_OK" -> AgentMessage.StatusOk(
                 rid, r.string("agentId"), r.string("hostname"), r.long("uptimeSec"),
-                r.bool("hibernate"), r.nics(), r.string("sig"),
+                r.bool("hibernate"), r.string("display"), r.nics(), r.string("sig"),
             )
             "CMD" -> AgentMessage.Cmd(
                 rid, r.string("phoneId"), r.string("nonce"), r.command("cmd"), r.bool("force"), r.string("sig"),

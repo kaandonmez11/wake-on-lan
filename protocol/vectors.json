@@ -54,8 +54,13 @@
     },
     {
       "name": "STATUS_OK.sig",
-      "canonical": "status-ok|AAECAwQFBgcICQoLDA0ODw==|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478|86461",
-      "sig": "3YXQvC2cDXf8apY6bGso/Py5NbhzdD3hri+vGqBsjVE="
+      "canonical": "status-ok|AAECAwQFBgcICQoLDA0ODw==|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478|86461|on",
+      "sig": "hdYURj7fDt93UW2P3F/RhbjSg7tPqJBz0AD36nNKE38="
+    },
+    {
+      "name": "STATUS_OK.sig/display-off",
+      "canonical": "status-ok|AAECAwQFBgcICQoLDA0ODw==|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478|86461|off",
+      "sig": "3YEhFUjkx2pFSHDVOCjru+CBICm1+dYI43746ay/An4="
     },
     {
       "name": "CMD.sig/LOCK/graceful",
@@ -108,6 +113,16 @@
       "sig": "8nHf4pe55izz4m/OF4tfjIMEWEgEYQ6MelwlIH0yXCU="
     },
     {
+      "name": "CMD.sig/SCREEN_ON/graceful",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SCREEN_ON|false",
+      "sig": "kf+pN8OKcs3eD6ar32QBWxKNvUDnTf9aMdQv0jA9QZU="
+    },
+    {
+      "name": "CMD.sig/SCREEN_ON/force",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SCREEN_ON|true",
+      "sig": "dOxkDR+CQCWI0SQLCR30MLD3B9TJzJCdTKhlIegKcNw="
+    },
+    {
       "name": "ACK.sig/LOCK",
       "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|LOCK",
       "sig": "pV2XXojcWCNbSm5FFrYf3vE4OF+10YjHY9AA/m6aRQU="
@@ -131,6 +146,11 @@
       "name": "ACK.sig/RESTART",
       "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|RESTART",
       "sig": "/6EDCEtwXNE0+cUk+ef21OUPvKidKzdxViLAuWuhni8="
+    },
+    {
+      "name": "ACK.sig/SCREEN_ON",
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|SCREEN_ON",
+      "sig": "/jGlZ98rpmyq2ySBS4IwRMxQpP1hm/049RgCV78b8YE="
     }
   ],
   "messages": [
@@ -245,6 +265,7 @@
         "hostname": "OFIS-PC",
         "uptimeSec": 86461,
         "hibernate": true,
+        "display": "off",
         "nics": [
           {
             "mac": "D8:BB:C1:0A:2F:91",
@@ -259,10 +280,10 @@
             "ip": "192.168.1.57"
           }
         ],
-        "sig": "3YXQvC2cDXf8apY6bGso/Py5NbhzdD3hri+vGqBsjVE="
+        "sig": "3YEhFUjkx2pFSHDVOCjru+CBICm1+dYI43746ay/An4="
       },
-      "canonical": "status-ok|AAECAwQFBgcICQoLDA0ODw==|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478|86461",
-      "sig": "3YXQvC2cDXf8apY6bGso/Py5NbhzdD3hri+vGqBsjVE=",
+      "canonical": "status-ok|AAECAwQFBgcICQoLDA0ODw==|3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478|86461|off",
+      "sig": "3YEhFUjkx2pFSHDVOCjru+CBICm1+dYI43746ay/An4=",
       "context": {
         "nonce": "AAECAwQFBgcICQoLDA0ODw=="
       }
@@ -293,6 +314,36 @@
       },
       "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|SHUTDOWN",
       "sig": "Mdz81DUNnp3iNuj86rbdu2DG/YUgI5i0IMznxt/sZ0U=",
+      "context": {
+        "nonce": "8Oni29TNxr+4saqjnJWOhw=="
+      }
+    },
+    {
+      "name": "CMD",
+      "json": {
+        "v": 1,
+        "t": "CMD",
+        "rid": "0a0b0c0d0e0f1011",
+        "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34",
+        "nonce": "8Oni29TNxr+4saqjnJWOhw==",
+        "cmd": "SCREEN_ON",
+        "force": false,
+        "sig": "kf+pN8OKcs3eD6ar32QBWxKNvUDnTf9aMdQv0jA9QZU="
+      },
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|SCREEN_ON|false",
+      "sig": "kf+pN8OKcs3eD6ar32QBWxKNvUDnTf9aMdQv0jA9QZU="
+    },
+    {
+      "name": "ACK",
+      "json": {
+        "v": 1,
+        "t": "ACK",
+        "rid": "0a0b0c0d0e0f1011",
+        "cmd": "SCREEN_ON",
+        "sig": "/jGlZ98rpmyq2ySBS4IwRMxQpP1hm/049RgCV78b8YE="
+      },
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|SCREEN_ON",
+      "sig": "/jGlZ98rpmyq2ySBS4IwRMxQpP1hm/049RgCV78b8YE=",
       "context": {
         "nonce": "8Oni29TNxr+4saqjnJWOhw=="
       }

@@ -106,7 +106,7 @@ class VectorRunner(private val vectorsJson: String) {
             val canonical = when (message) {
                 is AgentMessage.PairOk -> Canonical.pairOk(context!!.str("phoneId"), message.agentId)
                 is AgentMessage.Status -> Canonical.status(message.nonce)
-                is AgentMessage.StatusOk -> Canonical.statusOk(context!!.str("nonce"), message.agentId, message.uptimeSec)
+                is AgentMessage.StatusOk -> Canonical.statusOk(context!!.str("nonce"), message.agentId, message.uptimeSec, message.display)
                 is AgentMessage.Cmd -> Canonical.cmd(message.nonce, message.cmd, message.force)
                 is AgentMessage.Ack -> Canonical.ack(context!!.str("nonce"), message.cmd)
                 else -> ""

@@ -130,7 +130,7 @@ public class ProtocolVectorTests
         "PAIR_OK" => Canonical.PairOk(Str(context!, "phoneId"), Str(msg, "agentId")),
         "STATUS" => Canonical.Status(Str(msg, "nonce")),
         "STATUS_OK" => Canonical.StatusOk(Str(context!, "nonce"), Str(msg, "agentId"),
-            msg["uptimeSec"]!.GetValue<long>()),
+            msg["uptimeSec"]!.GetValue<long>(), Str(msg, "display")),
         "CMD" => Canonical.Cmd(Str(msg, "nonce"), Str(msg, "cmd"), msg["force"]!.GetValue<bool>()),
         "ACK" => Canonical.Ack(Str(context!, "nonce"), Str(msg, "cmd")),
         var t => throw new InvalidOperationException($"İmzasız tip: {t}"),

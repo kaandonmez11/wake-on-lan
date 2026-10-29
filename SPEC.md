@@ -287,11 +287,11 @@ Liste satırı: ad · IP · MAC (yoksa "MAC bulunamadı") · rozet ("Agent" yeş
 
 **STATUS** (S1 sinyali)
 `{"t":"STATUS","rid","phoneId","nonce","sig"}`; `sig = HMAC(K, "status|"+nonce)`
-→ `{"t":"STATUS_OK","rid","agentId","hostname","uptimeSec","hibernate":bool,"nics":[...],"sig"}`; `sig = HMAC(K, "status-ok|"+nonce+"|"+agentId+"|"+uptimeSec)`.
+→ `{"t":"STATUS_OK","rid","agentId","hostname","uptimeSec","hibernate":bool,"display","nics":[...],"sig"}`; `sig = HMAC(K, "status-ok|"+nonce+"|"+agentId+"|"+uptimeSec+"|"+display)` (K22: `display` eklendi).
 
 **CMD**
 `{"t":"CMD","rid","phoneId","nonce","cmd","force":bool,"sig"}`
-- `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART}`
+- `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART}` (K22: + `SCREEN_ON`)
 - `sig = HMAC(K, "cmd|"+nonce+"|"+cmd+"|"+force)`
 → `{"t":"ACK","rid","cmd","sig"}`; `sig = HMAC(K, "ack|"+nonce+"|"+cmd)`. Agent ACK'i gönderdikten **300 ms sonra** komutu uygular.
 Hata kodları: `BAD_SIG`, `NONCE_EXPIRED`, `UNSUPPORTED` (ör. hibernate kapalı), `BUSY`.

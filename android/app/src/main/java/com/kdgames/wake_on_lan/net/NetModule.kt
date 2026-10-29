@@ -1,5 +1,7 @@
 package com.kdgames.wake_on_lan.net
 
+import com.kdgames.wake_on_lan.net.agent.AgentTransport
+import com.kdgames.wake_on_lan.net.agent.UdpAgentTransport
 import com.kdgames.wake_on_lan.net.probe.PingRunner
 import com.kdgames.wake_on_lan.net.probe.SystemPingRunner
 import dagger.Binds
@@ -57,4 +59,10 @@ abstract class NetBindings {
 
     @Binds
     abstract fun pingRunner(impl: SystemPingRunner): PingRunner
+
+    @Binds
+    abstract fun multicastGuard(impl: MulticastLockHolder): MulticastGuard
+
+    @Binds
+    abstract fun agentTransport(impl: UdpAgentTransport): AgentTransport
 }

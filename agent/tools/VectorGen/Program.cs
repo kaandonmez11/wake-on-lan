@@ -123,7 +123,8 @@ JsonArray Signatures()
     {
         SigCase("PAIR_OK.proof", Canonical.PairOk(phoneId, agentId)),
         SigCase("STATUS.sig", Canonical.Status(nonceA)),
-        SigCase("STATUS_OK.sig", Canonical.StatusOk(nonceA, agentId, uptimeSec)),
+        SigCase("STATUS_OK.sig", Canonical.StatusOk(nonceA, agentId, uptimeSec, "on")),
+        SigCase("STATUS_OK.sig/display-off", Canonical.StatusOk(nonceA, agentId, uptimeSec, "off")),
     };
     foreach (var cmd in AgentProtocol.Commands)
     foreach (var force in new[] { false, true })
@@ -136,7 +137,9 @@ JsonArray Signatures()
 JsonArray Messages()
 {
     var statusSig = AgentCrypto.Sign(key, Canonical.Status(nonceA));
-    var statusOkSig = AgentCrypto.Sign(key, Canonical.StatusOk(nonceA, agentId, uptimeSec));
+    var statusOkSig = AgentCrypto.Sign(key, Canonical.StatusOk(nonceA, agentId, uptimeSec, "off"));
+    var screenSig = AgentCrypto.Sign(key, Canonical.Cmd(nonceB, "SCREEN_ON", false));
+    var screenAckSig = AgentCrypto.Sign(key, Canonical.Ack(nonceB, "SCREEN_ON"));
     var cmdSig = AgentCrypto.Sign(key, Canonical.Cmd(nonceB, "SHUTDOWN", true));
     var ackSig = AgentCrypto.Sign(key, Canonical.Ack(nonceB, "SHUTDOWN"));
     var proof = AgentCrypto.Sign(key, Canonical.PairOk(phoneId, agentId));
@@ -167,8 +170,8 @@ JsonArray Messages()
         Msg("STATUS_OK", "99aabbccddeeff00", new JsonObject
         {
             ["agentId"] = agentId, ["hostname"] = hostname, ["uptimeSec"] = uptimeSec,
-            ["hibernate"] = true, ["nics"] = Nics(), ["sig"] = statusOkSig,
-        }, Canonical.StatusOk(nonceA, agentId, uptimeSec), statusOkSig, new JsonObject { ["nonce"] = nonceA }),
+            ["hibernate"] = true, ["display"] = "off", ["nics"] = Nics(), ["sig"] = statusOkSig,
+        }, Canonical.StatusOk(nonceA, agentId, uptimeSec, "off"), statusOkSig, new JsonObject { ["nonce"] = nonceA }),
         Msg("CMD", "0102030405060708", new JsonObject
         {
             ["phoneId"] = phoneId, ["nonce"] = nonceB, ["cmd"] = "SHUTDOWN", ["force"] = true, ["sig"] = cmdSig,
@@ -177,6 +180,14 @@ JsonArray Messages()
         {
             ["cmd"] = "SHUTDOWN", ["sig"] = ackSig,
         }, Canonical.Ack(nonceB, "SHUTDOWN"), ackSig, new JsonObject { ["nonce"] = nonceB }),
+        Msg("CMD", "0a0b0c0d0e0f1011", new JsonObject
+        {
+            ["phoneId"] = phoneId, ["nonce"] = nonceB, ["cmd"] = "SCREEN_ON", ["force"] = false, ["sig"] = screenSig,
+        }, Canonical.Cmd(nonceB, "SCREEN_ON", false), screenSig),
+        Msg("ACK", "0a0b0c0d0e0f1011", new JsonObject
+        {
+            ["cmd"] = "SCREEN_ON", ["sig"] = screenAckSig,
+        }, Canonical.Ack(nonceB, "SCREEN_ON"), screenAckSig, new JsonObject { ["nonce"] = nonceB }),
         Msg("ERR", "1122334455667788", new JsonObject { ["code"] = "UNKNOWN_PHONE" }),
         Msg("ERR", "0102030405060708", new JsonObject { ["code"] = "BAD_SIG" }),
         Msg("ERR", "0102030405060708", new JsonObject { ["code"] = "NONCE_EXPIRED" }),

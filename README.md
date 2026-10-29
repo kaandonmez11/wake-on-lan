@@ -62,7 +62,24 @@ dotnet test                                    # xUnit
 dotnet run --project tools/VectorGen           # protocol/vectors.json'u yeniden üret
 ```
 
-Tek dosya yayın, kurulum ve CLI (`install` / `uninstall` / `reset` / `status`) S04'te eklenecek.
+**Yayın** (self-contained tek dosya, ~40 MB, .NET kurulu olmayan PC'de de çalışır):
+
+```bash
+dotnet publish agent/WolAgent -c Release -r win-x64 -o agent/publish   # → agent/publish/WolAgent.exe
+```
+
+**Kurulum** — `WolAgent.exe`'yi PC'ye kopyala, **yönetici** Komut İstemi'nde:
+
+| Komut | Ne yapar |
+|---|---|
+| `WolAgent.exe install` | `C:\Program Files\WolAgent\`'a kopyalar, servisi kurar (Otomatik, LocalSystem, 3× yeniden başlatma), güvenlik duvarına UDP 40900 / yerel alt ağ kuralı ekler, ilk kurulumda kimlik + anahtar üretir, başlatır. Tekrar çalıştırmak = güncelleme (anahtarlar korunur). |
+| `WolAgent.exe status` | Servis durumu, agentId, eşleşme, hazırda bekletme, uyku türü (S3 / Modern Bekleme), ağ kartları |
+| `WolAgent.exe reset` | Eşleşmeyi siler (yeni telefon için) |
+| `WolAgent.exe uninstall [--purge]` | Servis, kural ve program klasörünü kaldırır; `--purge` yapılandırma ve logları da siler |
+
+Yapılandırma `%ProgramData%\WolAgent\config.json` (anahtarlar DPAPI ile şifreli, klasör yalnız SYSTEM + Administrators). Loglar `%ProgramData%\WolAgent\logs\agent-yyyyMMdd.log`, 7 gün; anahtar/imza/nonce yazılmaz.
+
+Hata ayıklama: `WolAgent.exe run` servisi konsolda çalıştırır; `WOLAGENT_HOME` ortam değişkeni yapılandırma klasörünü değiştirir.
 
 ## Test vektörleri
 

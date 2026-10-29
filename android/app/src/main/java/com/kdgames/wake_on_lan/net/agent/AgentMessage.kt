@@ -9,7 +9,16 @@ object AgentProtocol {
     const val SESSION_KEY_BYTES = 32
 }
 
-enum class AgentCommand { LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART }
+/** `SCREEN_ON` (K22): Modern Bekleme'deki PC'nin ekranını açma denemesi. */
+enum class AgentCommand { LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART, SCREEN_ON }
+
+/** STATUS_OK.display (K22, GUID_CONSOLE_DISPLAY_STATE). */
+object AgentDisplay {
+    const val ON = "on"
+    const val OFF = "off"
+    const val DIMMED = "dimmed"
+    const val UNKNOWN = "unknown"
+}
 
 data class AgentNic(val mac: String, val name: String, val wired: Boolean, val ip: String)
 
@@ -62,6 +71,8 @@ sealed interface AgentMessage {
         val hostname: String,
         val uptimeSec: Long,
         val hibernate: Boolean,
+        /** [AgentDisplay] değerlerinden biri; imzaya dahil. */
+        val display: String,
         val nics: List<AgentNic>,
         val sig: String,
     ) : AgentMessage

@@ -47,6 +47,6 @@ public class AgentCryptoTests
     {
         Assert.Equal("cmd|n|LOCK|false", Canonical.Cmd("n", "LOCK", false));
         Assert.Equal("cmd|n|RESTART|true", Canonical.Cmd("n", "RESTART", true));
-        Assert.Equal("status-ok|n|a|0", Canonical.StatusOk("n", "a", 0));
+        Assert.Equal("status-ok|n|a|0|off", Canonical.StatusOk("n", "a", 0, "off"));
     }
 }

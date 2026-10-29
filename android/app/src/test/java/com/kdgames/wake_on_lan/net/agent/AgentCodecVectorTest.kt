@@ -107,7 +107,7 @@ class AgentCodecVectorTest {
         is AgentMessage.PairOk -> Canonical.pairOk(context!!.str("phoneId"), message.agentId) to message.proof
         is AgentMessage.Status -> Canonical.status(message.nonce) to message.sig
         is AgentMessage.StatusOk ->
-            Canonical.statusOk(context!!.str("nonce"), message.agentId, message.uptimeSec) to message.sig
+            Canonical.statusOk(context!!.str("nonce"), message.agentId, message.uptimeSec, message.display) to message.sig
         is AgentMessage.Cmd -> Canonical.cmd(message.nonce, message.cmd, message.force) to message.sig
         is AgentMessage.Ack -> Canonical.ack(context!!.str("nonce"), message.cmd) to message.sig
         else -> error("İmzasız mesaj: $message")
