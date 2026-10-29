@@ -58,7 +58,7 @@ private class FakeAgent(val host: String = "192.168.1.26") : AgentTransport {
     private fun handle(target: String, payload: ByteArray) {
         val msg = AgentCodec.decode(payload)
         if (msg is AgentMessage.Discover) {
-            reply(AgentMessage.DiscoverReply(msg.rid, agentId, "OFIS-PC", "1.0.0", pairedPhone != null, hibernate,
+            reply(AgentMessage.DiscoverReply(msg.rid, agentId, "OFIS-PC", "1.0.0", pairedPhone != null, hibernate, false,
                 listOf(AgentNic("D8:BB:C1:0A:2F:91", "Ethernet", true, host))))
             extraAgents.forEach { (ip, r) -> reply(r.copy(rid = msg.rid), ip) }
             return
@@ -129,7 +129,7 @@ class AgentClientTest {
         @Test
         fun `subnet ve 255 e gider, agentId basina tek sonuc`() = runTest {
             val agent = FakeAgent()
-            val other = AgentMessage.DiscoverReply("0", "baska-agent", "SALON-PC", "1.0.0", true, false, emptyList())
+            val other = AgentMessage.DiscoverReply("0", "baska-agent", "SALON-PC", "1.0.0", true, false, true, emptyList())
             agent.extraAgents = listOf("192.168.1.40" to other, "192.168.1.40" to other)
             val found = client(agent).discover("192.168.1.255", windowMs = 500)
             assertEquals(listOf("192.168.1.255", "255.255.255.255"), agent.sent.map { it.first })
@@ -259,9 +259,8 @@ class AgentClientTest {
             val session = c.pairWith(agent)
             c.command(agent.host, session, AgentCommand.LOCK, force = true)
             c.command(agent.host, session, AgentCommand.RESTART, force = false)
-            c.command(agent.host, session, AgentCommand.SCREEN_ON, force = true)
             assertEquals(
-                listOf(AgentCommand.LOCK to false, AgentCommand.RESTART to false, AgentCommand.SCREEN_ON to false),
+                listOf(AgentCommand.LOCK to false, AgentCommand.RESTART to false),
                 agent.executed,
             )
         }

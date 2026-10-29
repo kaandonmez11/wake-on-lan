@@ -195,7 +195,8 @@ public static class AgentCli
         var caps = PowerCapabilities.Read();
         Console.WriteLine($"Port        : UDP {AgentProtocol.Port}");
         Console.WriteLine($"Hazırda bekl: {(caps.HibernateSupported ? "destekli" : "yok (powercfg /h on)")}");
-        Console.WriteLine($"Uyku        : {(caps.S3 ? "S3" : caps.ModernStandby ? "Modern Bekleme (S0)" : "yok")}");
+        Console.WriteLine($"Uyku        : {(caps.S3 ? "S3" : caps.ModernStandby ? "Modern Bekleme (S0)" : "yok")}"
+                          + (caps.SleepHibernates ? " → telefondan Uyku = Hazırda Beklet (K23)" : ""));
         Console.WriteLine("Ağ kartları :");
         foreach (var nic in WindowsSystemInfo.ListNics())
             Console.WriteLine($"  {(nic.Wired ? "kablolu " : "kablosuz")} {nic.Mac}  {(nic.Ip.Length > 0 ? nic.Ip : "IP yok"),-15}  {nic.Name}");

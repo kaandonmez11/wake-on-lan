@@ -12,6 +12,9 @@ public sealed record PowerCapabilities(bool S3, bool S4, bool HiberFilePresent, 
     /// <summary>HIBERNATE için: SystemS4 ve hiberfil.sys var (spec 13.4).</summary>
     public bool HibernateSupported => S4 && HiberFilePresent;
 
+    /// <summary>K23: S3 yok, Modern Bekleme var ve hazırda bekletme açık → telefondan Uyku = Hazırda Beklet.</summary>
+    public bool SleepHibernates => ModernStandby && !S3 && HibernateSupported;
+
     public static PowerCapabilities Read()
     {
         var buffer = new byte[Native.CapBufferSize];
@@ -39,6 +42,8 @@ public sealed class WindowsSystemInfo(DisplayStateMonitor display) : ISystemInfo
     public long UptimeSec => Environment.TickCount64 / 1000;
 
     public bool HibernateSupported => PowerCapabilities.Read().HibernateSupported;
+
+    public bool SleepHibernates => PowerCapabilities.Read().SleepHibernates;
 
     public string Display => display.Current;
 

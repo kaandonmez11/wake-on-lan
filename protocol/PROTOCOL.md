@@ -110,10 +110,11 @@ sig = Base64( HMAC-SHA256(K, UTF8(canonical)) )
 Yanıt (unicast, istek kaynağına):
 ```json
 {"v":1,"t":"DISCOVER_REPLY","rid":"…","agentId":"…","hostname":"OFIS-PC","agentVersion":"1.0.0",
- "paired":false,"hibernate":true,
+ "paired":false,"hibernate":true,"sleepHibernates":true,
  "nics":[{"mac":"D8:BB:C1:0A:2F:91","name":"Ethernet","wired":true,"ip":"192.168.1.24"}]}
 ```
 - `mac`: `AA:BB:CC:DD:EE:FF`, büyük harf.
+- `sleepHibernates` (K23): bu PC'de `SLEEP` komutu hazırda bekletme yapar (Modern Bekleme'den uzaktan uyandırma olmadığı için). Telefon son aksiyonu "Hazırda" olarak gösterir.
 - Telefon NIC seçimini K16'ya göre yapar: kablolu **ve** aynı alt ağda → ilk kablolu → MAC'i olan ilk NIC.
 
 ### 4.2 Eşleşme — TOFU
@@ -138,14 +139,14 @@ Sıfırlama yalnız PC'den yapılır: `wolagent reset`.
 
 - İstek: `{"t":"STATUS","rid","phoneId","nonce","sig"}`, burada `sig = sig(K, "status|{nonce}")`.
 - Yanıt: `{"t":"STATUS_OK","rid","agentId","hostname","uptimeSec","hibernate","display","nics":[…],"sig"}`, burada `sig = sig(K, "status-ok|{nonce}|{agentId}|{uptimeSec}|{display}")`.
-- `display` (K22): konsol ekranının durumu, `GUID_CONSOLE_DISPLAY_STATE`'ten: `on` | `off` | `dimmed` | `unknown`. İmzaya dahildir. Modern Bekleme'deki (S0 Low Power Idle) PC'de `off` = "Uyuyor" göstergesi için kullanılır.
+- `display` (K22): konsol ekranının durumu, `GUID_CONSOLE_DISPLAY_STATE`'ten: `on` | `off` | `dimmed` | `unknown`. İmzaya dahildir. Bilgi amaçlıdır; Modern Bekleme'de agent çoğu zaman cevap veremez (K22 sonucu).
 - Telefon yanıt imzasını doğrulamadan S1'i pozitif SAYMAZ.
 
 ### 4.5 CMD → ACK
 
 - İstek: `{"t":"CMD","rid","phoneId","nonce","cmd","force","sig"}`.
-  - `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART, SCREEN_ON}`.
-  - `SCREEN_ON` (K22): agent konsol oturumunda tek bir fare hareketi üretip ekranı açmayı dener (Modern Bekleme'den çıkış denemesi). `force` her zaman `false`.
+  - `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART}`.
+  - `SLEEP` (K23): `DISCOVER_REPLY.sleepHibernates=true` olan PC'de (Modern Bekleme, S3 yok, hazırda bekletme açık) agent hazırda bekletme uygular; aksi hâlde normal uyku.
   - `force`: SHUTDOWN/RESTART'ta cihazın kapatma şekline göre değişir (FORCE → `true`, GRACEFUL → `false`); diğer komutlarda `false`.
   - `sig = sig(K, "cmd|{nonce}|{cmd}|{force}")`.
 - Yanıt: `{"t":"ACK","rid","cmd","sig"}`, burada `sig = sig(K, "ack|{nonce}|{cmd}")`.
@@ -185,8 +186,8 @@ Sıfırlama yalnız PC'den yapılır: `wolagent reset`.
 | `x25519` | RFC 7748 §6.1 anahtar çiftleri ve ortak sır |
 | `hkdf` | RFC 5869 A.1 ve A.3 |
 | `pairing` | Sabit kimliklerle `sır` → `K` türetimi (telefon = RFC 7748 Alice, agent = Bob) |
-| `signatures` | Her imzalı mesaj için `canonical` + beklenen `sig` (6 komut × force/graceful, 6 ACK, STATUS_OK `display` = on/off dahil) |
-| `messages` | 12 mesaj tipinin tam JSON örneği (`SCREEN_ON` CMD/ACK dahil); imzalılar için `canonical`, `sig` ve gerekirse `context` (yanıtta taşınmayan nonce/phoneId) |
+| `signatures` | Her imzalı mesaj için `canonical` + beklenen `sig` (5 komut × force/graceful, 5 ACK, STATUS_OK `display` = on/off dahil) |
+| `messages` | 12 mesaj tipinin tam JSON örneği ; imzalılar için `canonical`, `sig` ve gerekirse `context` (yanıtta taşınmayan nonce/phoneId) |
 | `magicPackets` | MAC → 102 bayt (hex) |
 | `broadcast` | IP/prefix → broadcast; `/31`, `/32`, geçersiz girişler → `error` |
 | `macAddresses` | Girdi → geçerli mi + normalize biçimi |

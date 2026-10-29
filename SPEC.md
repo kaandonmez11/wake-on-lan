@@ -272,7 +272,7 @@ Liste satırı: ad · IP · MAC (yoksa "MAC bulunamadı") · rozet ("Agent" yeş
 ### 8.3 Mesajlar
 
 **DISCOVER** (broadcast, imzasız)
-`{"t":"DISCOVER","rid"}` → `{"t":"DISCOVER_REPLY","rid","agentId","hostname","agentVersion","paired":bool,"hibernate":bool,"nics":[{"mac","name","wired":bool,"ip"}]}`
+`{"t":"DISCOVER","rid"}` → `{"t":"DISCOVER_REPLY","rid","agentId","hostname","agentVersion","paired":bool,"hibernate":bool,"sleepHibernates":bool (K23),"nics":[{"mac","name","wired":bool,"ip"}]}`
 
 **Eşleşme — TOFU** (yalnız `paired=false` iken)
 1. `{"t":"PAIR_HELLO","rid","phoneId","phoneName","phonePub"}`
@@ -291,7 +291,7 @@ Liste satırı: ad · IP · MAC (yoksa "MAC bulunamadı") · rozet ("Agent" yeş
 
 **CMD**
 `{"t":"CMD","rid","phoneId","nonce","cmd","force":bool,"sig"}`
-- `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART}` (K22: + `SCREEN_ON`)
+- `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART}` (K23: Modern Beklemeli PC'de SLEEP = hazırda bekletme)
 - `sig = HMAC(K, "cmd|"+nonce+"|"+cmd+"|"+force)`
 → `{"t":"ACK","rid","cmd","sig"}`; `sig = HMAC(K, "ack|"+nonce+"|"+cmd)`. Agent ACK'i gönderdikten **300 ms sonra** komutu uygular.
 Hata kodları: `BAD_SIG`, `NONCE_EXPIRED`, `UNSUPPORTED` (ör. hibernate kapalı), `BUSY`.
@@ -800,3 +800,5 @@ Her fazın sonunda: derleme + testler yeşil, kabul kriterleri sağlandı, **UI 
 | K20 | Test sorumluluğu | Birim + Compose UI testleri (Robolectric, JVM) Claude tarafından koşturulur; her sprint sonunda "Kontrol raporu" ile "baktım, tamam; sen de kontrol et" listesi verilir. Gerçek cihaz/instrumented/Macrobenchmark testleri Kaan'dadır. |
 | K21 | Uygulama ikonu | Kaan'ın kaynakları (S00'da geldi): ön plan `APP_Icon.svg` → vector drawable, arka plan `Logo_Background.png`, nihai görünüm referansı `Logo_All.png`. Adaptive + monochrome olarak S00'da uygulandı. |
 | K22 | Modern Bekleme'den uyandırma (Kaan'ın PC'si yalnız S0 Low Power Idle, Network Connected destekliyor; S3 yok; magic packet uykudan uyandırmıyor, S03 #5) | PC ayarı değiştirilmez. Uykudan çıkış **agent üzerinden denenir** (S04): 1) yeni komut `SCREEN_ON` — agent konsol oturumunda (WTSQueryUserToken + CreateProcessAsUser) küçük bir yardımcı çalıştırıp tek bir sahte fare hareketi (SendInput) yaptırır → Windows bekleme modundan çıkar, kilit ekranı açılır; 2) `STATUS_OK`'a `display: "on"|"off"` alanı eklenir (GUID_CONSOLE_DISPLAY_STATE) → uykudaki PC "Açık" değil "Uyuyor" görünür (S05); 3) agent'lı cihazda "Uyandır" magic packet ile `SCREEN_ON`'u birlikte dener. Önce S04'te agent'ın uykudayken UDP 40900'e cevap verip vermediği cihazda doğrulanır; vermezse bu yol kapatılır ve uyandırılabilir uyku için Hazırda Beklet önerilir. Protokol değişikliği PROTOCOL.md v1'e eklenir, `vectors.json` yeniden üretilir. |
+| K22 sonuç | S04 cihaz testi (2026-10-29) | **Uyandırma kısmı kapandı.** Uykuya yeni giren PC bir kez STATUS'a cevap verdi; derin bekleme modunda hiç cevap vermedi. `SCREEN_ON` agent'a ulaştı ve uygulandı (log'da görünüyor) ama ekran açılmadı: Windows bekleme modunda masaüstü işlemlerine izin vermiyor (Microsoft: Session 0 servisleri 30 sn'de ~1 sn çalışır, yazılımla çıkış belgelenmemiş). `SCREEN_ON` protokolden ve koddan kaldırıldı. `STATUS_OK.display` (imzalı) bilgi amaçlı kaldı. |
+| K23 | Modern Beklemeli PC'de "Uyku" | Kaan seçti: telefondan **Uyku = Hazırda Beklet** (PC Modern Beklemeli, S3 yok ve hazırda bekletme açıksa). Böylece PC telefondan yeniden uyandırılabilir. Agent bunu `DISCOVER_REPLY.sleepHibernates=true` ile bildirir. Telefon bu cihazda Uyku sonrası son aksiyonu **"Hazırda"** gösterir (K9). Hazırda bekletme kapalıysa normal uyku denenir. |

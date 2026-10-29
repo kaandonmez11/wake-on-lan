@@ -5,8 +5,8 @@ using WolAgent.Core;
 namespace WolAgent.Windows;
 
 /// <summary>
-/// Spec 13.4: servis LocalSystem'da, Session 0'da çalışır. Masaüstüne dokunan işler (ekranı açma,
-/// Modern Bekleme'de uyku) aynı exe'nin konsol oturumunda başlatılan yardımcı moduyla yapılır.
+/// Spec 13.4: servis LocalSystem'da, Session 0'da çalışır. Masaüstüne dokunan iş (hazırda bekletmesi kapalı
+/// Modern Beklemeli PC'de ekranı kapatma) aynı exe'nin konsol oturumunda başlatılan yardımcı moduyla yapılır.
 /// </summary>
 public sealed class WindowsCommandExecutor(ILogger<WindowsCommandExecutor> logger) : ICommandExecutor
 {
@@ -37,12 +37,6 @@ public sealed class WindowsCommandExecutor(ILogger<WindowsCommandExecutor> logge
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "InitiateSystemShutdownEx");
                 break;
 
-            case "SCREEN_ON":
-                // Servis tarafında da ekran isteği; asıl iş konsol oturumundaki yardımcıda (sahte fare hareketi).
-                Native.SetThreadExecutionState(Native.ES_SYSTEM_REQUIRED | Native.ES_DISPLAY_REQUIRED);
-                SessionHelper.Run(Helper.ScreenOnArg, logger);
-                break;
-
             default:
                 throw new NotSupportedException(cmd);
         }
@@ -53,6 +47,14 @@ public sealed class WindowsCommandExecutor(ILogger<WindowsCommandExecutor> logge
     {
         var caps = PowerCapabilities.Read();
         Privileges.EnableShutdown();
+        if (caps.SleepHibernates)
+        {
+            // K23: Modern Bekleme'den uzaktan uyandırma yok (K22 denemesi); hazırda bekletme WoL ile uyanır.
+            logger.LogInformation("SLEEP → hazırda bekletme (Modern Bekleme, K23)");
+            if (!Native.SetSuspendState(true, false, false))
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "SetSuspendState(hibernate)");
+            return;
+        }
         if (Native.SetSuspendState(false, false, false))
         {
             logger.LogInformation("SLEEP: SetSuspendState tamam (S3={S3}, ModernStandby={Aoac})", caps.S3, caps.ModernStandby);
@@ -60,7 +62,7 @@ public sealed class WindowsCommandExecutor(ILogger<WindowsCommandExecutor> logge
         }
         var error = Marshal.GetLastWin32Error();
         if (!caps.ModernStandby) throw new Win32Exception(error, "SetSuspendState(sleep)");
-        // Modern Bekleme'de S3 yok: ekranı kapatmak bekleme moduna geçişi başlatır.
+        // Modern Bekleme + hazırda bekletme kapalı: ekranı kapatmak bekleme moduna geçişi başlatır.
         logger.LogWarning("SLEEP: SetSuspendState başarısız ({Error}); Modern Bekleme için ekran kapatılıyor", error);
         SessionHelper.Run(Helper.MonitorOffArg, logger);
     }
@@ -127,36 +129,22 @@ internal static class SessionHelper
     }
 }
 
-/// <summary>Konsol oturumunda çalışan yardımcı modlar (`WolAgent.exe screen-on` / `monitor-off`).</summary>
+/// <summary>Konsol oturumunda çalışan yardımcı mod (`WolAgent.exe monitor-off`).</summary>
 public static class Helper
 {
-    public const string ScreenOnArg = "screen-on";
     public const string MonitorOffArg = "monitor-off";
 
     public static int Run(string arg)
     {
-        // Kilit/giriş ekranı açıksa giriş masaüstü Winlogon'dur; SendInput yalnız giriş masaüstünde etkili.
+        if (arg != MonitorOffArg) return 1;
+        // Kilit/giriş ekranı açıksa giriş masaüstü Winlogon'dur; mesaj oraya da gitsin.
         var desk = Native.OpenInputDesktop(0, false, Native.GENERIC_ALL);
         if (desk != IntPtr.Zero) Native.SetThreadDesktop(desk);
         try
         {
-            switch (arg)
-            {
-                case ScreenOnArg:
-                    Native.SetThreadExecutionState(Native.ES_DISPLAY_REQUIRED);
-                    var size = Marshal.SizeOf<Native.Input>();
-                    Native.Input Move(int dx) => new() { type = Native.INPUT_MOUSE, mi = new Native.MouseInput { dx = dx, dwFlags = Native.MOUSEEVENTF_MOVE } };
-                    var sent = Native.SendInput(2, [Move(1), Move(-1)], size);
-                    Native.SendMessageTimeout(Native.HWND_BROADCAST, Native.WM_SYSCOMMAND, Native.SC_MONITORPOWER, -1,
-                        Native.SMTO_ABORTIFHUNG, 1000, out _);
-                    return sent == 2 ? 0 : 2;
-                case MonitorOffArg:
-                    Native.SendMessageTimeout(Native.HWND_BROADCAST, Native.WM_SYSCOMMAND, Native.SC_MONITORPOWER, 2,
-                        Native.SMTO_ABORTIFHUNG, 1000, out _);
-                    return 0;
-                default:
-                    return 1;
-            }
+            Native.SendMessageTimeout(Native.HWND_BROADCAST, Native.WM_SYSCOMMAND, Native.SC_MONITORPOWER, 2,
+                Native.SMTO_ABORTIFHUNG, 1000, out _);
+            return 0;
         }
         finally
         {

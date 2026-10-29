@@ -103,7 +103,8 @@ public sealed partial class AgentCore(
         var cfg = config.Load();
         return Envelope("DISCOVER_REPLY", rid,
             ("agentId", cfg.AgentId), ("hostname", system.Hostname), ("agentVersion", system.AgentVersion),
-            ("paired", cfg.Pairing is not null), ("hibernate", system.HibernateSupported), ("nics", NicsJson()));
+            ("paired", cfg.Pairing is not null), ("hibernate", system.HibernateSupported),
+            ("sleepHibernates", system.SleepHibernates), ("nics", NicsJson()));
     }
 
     private JsonObject? PairHello(string rid, JsonObject msg, DateTimeOffset now)

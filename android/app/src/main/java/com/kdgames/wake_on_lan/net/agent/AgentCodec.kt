@@ -60,6 +60,7 @@ object AgentCodec {
                 put("agentVersion", message.agentVersion)
                 put("paired", message.paired)
                 put("hibernate", message.hibernate)
+                put("sleepHibernates", message.sleepHibernates)
                 putNics(message.nics)
             }
             is AgentMessage.PairHello -> {
@@ -113,7 +114,7 @@ object AgentCodec {
             "DISCOVER" -> AgentMessage.Discover(rid)
             "DISCOVER_REPLY" -> AgentMessage.DiscoverReply(
                 rid, r.string("agentId"), r.string("hostname"), r.string("agentVersion"),
-                r.bool("paired"), r.bool("hibernate"), r.nics(),
+                r.bool("paired"), r.bool("hibernate"), r.bool("sleepHibernates"), r.nics(),
             )
             "PAIR_HELLO" -> AgentMessage.PairHello(rid, r.string("phoneId"), r.string("phoneName"), r.string("phonePub"))
             "PAIR_OK" -> AgentMessage.PairOk(rid, r.string("agentId"), r.string("agentPub"), r.string("proof"))

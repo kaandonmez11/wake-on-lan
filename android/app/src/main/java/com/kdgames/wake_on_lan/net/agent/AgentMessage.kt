@@ -9,8 +9,7 @@ object AgentProtocol {
     const val SESSION_KEY_BYTES = 32
 }
 
-/** `SCREEN_ON` (K22): Modern Bekleme'deki PC'nin ekranını açma denemesi. */
-enum class AgentCommand { LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART, SCREEN_ON }
+enum class AgentCommand { LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART }
 
 /** STATUS_OK.display (K22, GUID_CONSOLE_DISPLAY_STATE). */
 object AgentDisplay {
@@ -35,6 +34,8 @@ sealed interface AgentMessage {
         val agentVersion: String,
         val paired: Boolean,
         val hibernate: Boolean,
+        /** K23: bu PC'de SLEEP hazırda bekletme yapar (Modern Bekleme); UI "Hazırda" gösterir. */
+        val sleepHibernates: Boolean,
         val nics: List<AgentNic>,
     ) : AgentMessage
 

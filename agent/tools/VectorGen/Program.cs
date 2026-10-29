@@ -138,8 +138,6 @@ JsonArray Messages()
 {
     var statusSig = AgentCrypto.Sign(key, Canonical.Status(nonceA));
     var statusOkSig = AgentCrypto.Sign(key, Canonical.StatusOk(nonceA, agentId, uptimeSec, "off"));
-    var screenSig = AgentCrypto.Sign(key, Canonical.Cmd(nonceB, "SCREEN_ON", false));
-    var screenAckSig = AgentCrypto.Sign(key, Canonical.Ack(nonceB, "SCREEN_ON"));
     var cmdSig = AgentCrypto.Sign(key, Canonical.Cmd(nonceB, "SHUTDOWN", true));
     var ackSig = AgentCrypto.Sign(key, Canonical.Ack(nonceB, "SHUTDOWN"));
     var proof = AgentCrypto.Sign(key, Canonical.PairOk(phoneId, agentId));
@@ -150,7 +148,7 @@ JsonArray Messages()
         Msg("DISCOVER_REPLY", "a1b2c3d4e5f60718", new JsonObject
         {
             ["agentId"] = agentId, ["hostname"] = hostname, ["agentVersion"] = agentVersion,
-            ["paired"] = false, ["hibernate"] = true, ["nics"] = Nics(),
+            ["paired"] = false, ["hibernate"] = true, ["sleepHibernates"] = true, ["nics"] = Nics(),
         }),
         Msg("PAIR_HELLO", "0f1e2d3c4b5a6978", new JsonObject
         {
@@ -180,14 +178,6 @@ JsonArray Messages()
         {
             ["cmd"] = "SHUTDOWN", ["sig"] = ackSig,
         }, Canonical.Ack(nonceB, "SHUTDOWN"), ackSig, new JsonObject { ["nonce"] = nonceB }),
-        Msg("CMD", "0a0b0c0d0e0f1011", new JsonObject
-        {
-            ["phoneId"] = phoneId, ["nonce"] = nonceB, ["cmd"] = "SCREEN_ON", ["force"] = false, ["sig"] = screenSig,
-        }, Canonical.Cmd(nonceB, "SCREEN_ON", false), screenSig),
-        Msg("ACK", "0a0b0c0d0e0f1011", new JsonObject
-        {
-            ["cmd"] = "SCREEN_ON", ["sig"] = screenAckSig,
-        }, Canonical.Ack(nonceB, "SCREEN_ON"), screenAckSig, new JsonObject { ["nonce"] = nonceB }),
         Msg("ERR", "1122334455667788", new JsonObject { ["code"] = "UNKNOWN_PHONE" }),
         Msg("ERR", "0102030405060708", new JsonObject { ["code"] = "BAD_SIG" }),
         Msg("ERR", "0102030405060708", new JsonObject { ["code"] = "NONCE_EXPIRED" }),

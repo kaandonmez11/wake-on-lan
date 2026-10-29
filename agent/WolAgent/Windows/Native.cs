@@ -165,28 +165,6 @@ internal static partial class Native
 
     public const uint GENERIC_ALL = 0x10000000;
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MouseInput
-    {
-        public int dx, dy;
-        public uint mouseData, dwFlags, time;
-        public IntPtr dwExtraInfo;
-    }
-
-    /// <summary>INPUT; x64'te birleşimin en büyüğü MOUSEINPUT olduğundan yalnız o tanımlı (40 bayt).</summary>
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Input
-    {
-        public uint type;
-        public MouseInput mi;
-    }
-
-    public const uint INPUT_MOUSE = 0;
-    public const uint MOUSEEVENTF_MOVE = 0x0001;
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    public static partial uint SendInput(uint count, [In] Input[] inputs, int size);
-
     public static readonly IntPtr HWND_BROADCAST = 0xFFFF;
     public const uint WM_SYSCOMMAND = 0x0112;
     public const int SC_MONITORPOWER = 0xF170;

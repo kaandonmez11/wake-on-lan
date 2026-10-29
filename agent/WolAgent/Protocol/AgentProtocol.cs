@@ -12,7 +12,7 @@ public static class AgentProtocol
     public static readonly TimeSpan NonceLifetime = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan ResponseCacheLifetime = TimeSpan.FromSeconds(10);
 
-    public static readonly IReadOnlyList<string> Commands = ["LOCK", "SLEEP", "HIBERNATE", "SHUTDOWN", "RESTART", "SCREEN_ON"];
+    public static readonly IReadOnlyList<string> Commands = ["LOCK", "SLEEP", "HIBERNATE", "SHUTDOWN", "RESTART"];
 
     /// <summary>STATUS_OK.display değerleri (K22, GUID_CONSOLE_DISPLAY_STATE).</summary>
     public static readonly IReadOnlyList<string> DisplayStates = ["on", "off", "dimmed", "unknown"];

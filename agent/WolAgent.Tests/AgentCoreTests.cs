@@ -23,6 +23,7 @@ internal sealed class FakeSystem : ISystemInfo
     public string AgentVersion => "1.0.0";
     public long UptimeSec { get; set; } = 3600;
     public bool HibernateSupported { get; set; } = true;
+    public bool SleepHibernates { get; set; }
     public string Display { get; set; } = "on";
 
     public IReadOnlyList<AgentNic> Nics() => [new("D8:BB:C1:0A:2F:91", "Ethernet", true, "192.168.1.26")];
@@ -180,6 +181,9 @@ public class AgentCoreTests
         Assert.Equal("OFIS-PC", reply["hostname"]!.GetValue<string>());
         Assert.False(reply["paired"]!.GetValue<bool>());
         Assert.True(reply["hibernate"]!.GetValue<bool>());
+        Assert.False(reply["sleepHibernates"]!.GetValue<bool>());
+        _system.SleepHibernates = true;
+        Assert.True(Send(TestPhone.Msg("DISCOVER", "a1b2c3d4e5f6071a"))!["sleepHibernates"]!.GetValue<bool>());
         Assert.Equal("D8:BB:C1:0A:2F:91", reply["nics"]![0]!["mac"]!.GetValue<string>());
         Assert.True(Encoding.UTF8.GetByteCount(reply.ToJsonString()) <= AgentProtocol.MaxDatagramBytes);
     }
@@ -356,16 +360,11 @@ public class AgentCoreTests
     }
 
     [Fact]
-    public async Task Cmd_ScreenOn_K22()
+    public void Cmd_ScreenOnArtikYok_K22Kapandi()
     {
         Pair();
-        var nonce = Nonce();
-        var reply = Send(_phone.Cmd(_phone.NextRid(), nonce, "SCREEN_ON"))!;
-        Assert.Equal("ACK", T(reply));
-        Assert.True(AgentCrypto.Verify(_phone.Key!, Canonical.Ack(nonce, "SCREEN_ON"), reply["sig"]!.GetValue<string>()));
-        _time.Advance(AgentCore.CommandDelay);
-        await _core.PendingCommand!.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Equal([("SCREEN_ON", false)], _executor.Calls);
+        Assert.Equal("UNSUPPORTED", Code(Send(_phone.Cmd(_phone.NextRid(), Nonce(), "SCREEN_ON"))));
+        Assert.Empty(_executor.Calls);
     }
 
     [Fact]

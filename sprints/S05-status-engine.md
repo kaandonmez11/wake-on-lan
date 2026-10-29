@@ -20,7 +20,9 @@ Cihaz durumu tek kaynaktan, çoklu sinyalle, titremeden hesaplanıyor. Uyandırm
    - olay günlüğü (zaman damgalı durum geçişleri, uyarılar).
    - Cihazlar S02'deki Debug › Veri'den eklenir (gerçek PC'yi IP+MAC ile ekle).
 
-**S03 notu (Kaan'ın PC'si):** Kaan'ın PC'si yalnız Modern Bekleme (S0 Low Power Idle, Network Connected) destekliyor. Uykuda ağ açık kalıyor: S3 TCP ve S4 ping cevap veriyor, magic packet ise uyandırmıyor. StatusEngine bu PC'yi uykudayken "Açık" saymamalı. K22'ye göre agent `STATUS_OK.display=off` ise durum "Uyuyor" (Off(lastAction=SLEEP) gibi gösterilir, Uyandır = magic packet + `SCREEN_ON`). Agent'sız cihazda yalnız `lastAction=SLEEP` (K9) kullanılır. S04 #8a başarısızsa bu madde düşer.
+**S03/S04 notu (Kaan'ın PC'si, K22 sonuç + K23):** PC yalnız Modern Bekleme destekliyor. Uykudayken ağ açık kalıyor: S3 TCP ve S4 ping cevap verebiliyor. Agent (S1) ise uykuda neredeyse hiç cevap vermiyor; `SCREEN_ON` kaldırıldı.
+- Telefondan "Uyku" bu PC'de hazırda bekletme yapar (K23, `sleepHibernates`). Bu yüzden telefondan uyutulan PC gerçekten kapalıdır; durum `Off(lastAction=HIBERNATE)` → "Hazırda" gösterilir.
+- Kalan belirsizlik: PC'nin başından elle uyutulursa agent'lı cihazda S1 sessiz + S3/S4 pozitif olabilir. Bunun için kural: `On(verified=false, agentReachable=false)`, UI "Agent cevap vermiyor". Daha iyisi bulunursa S05'te önerilir.
 
 ## Otomatik testler (Claude koşturur)
 Bölüm 16'daki tamamı: StatusEngine (S1 tek başına açık; S2 MAC uyuşmazlığı açık saymaz **ve S3'ü de geçersiz kılar** — K8; tek negatif tur kapalı yapmaz, iki tur yapar; stale 15 sn; geçişlerde 3 tur), WakeCoordinator (3. sn yanıt → `durationSec=3`; 60 sn → başarısız; ikinci tetikleme yok sayılır; MAC yoksa başlamaz), PowerCoordinator (ACK → transition → Off; 90 sn; RESTART; `UNSUPPORTED`, `BUSY`; Off cihaza komut reddi). K9 lastAction metinleri.

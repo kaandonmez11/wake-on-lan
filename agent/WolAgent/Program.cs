@@ -5,7 +5,7 @@ using WolAgent.Storage;
 using WolAgent.Windows;
 
 // Tek exe (spec 13.1): argümansız = servis; install/uninstall/reset/status = CLI;
-// screen-on/monitor-off = servisin konsol oturumunda başlattığı yardımcı (K22).
+// monitor-off = servisin konsol oturumunda başlattığı yardımcı.
 var command = args.FirstOrDefault()?.ToLowerInvariant();
 try
 {
@@ -17,7 +17,7 @@ catch (IOException)
 }
 switch (command)
 {
-    case Helper.ScreenOnArg or Helper.MonitorOffArg:
+    case Helper.MonitorOffArg:
         return Helper.Run(command);
     case "install" or "uninstall" or "reset" or "status":
         return AgentCli.Run(command, args);

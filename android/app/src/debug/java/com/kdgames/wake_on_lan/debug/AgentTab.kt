@@ -97,7 +97,6 @@ private enum class DebugCommand(val label: String, val cmd: AgentCommand) {
     Hibernate("Hazırda", AgentCommand.HIBERNATE),
     Restart("Yeniden", AgentCommand.RESTART),
     Shutdown("Kapat", AgentCommand.SHUTDOWN),
-    ScreenOn("Ekranı aç (K22)", AgentCommand.SCREEN_ON),
 }
 
 /** S04: agent keşfi, TOFU eşleşme, imzalı durum, 6 komut ve NetBIOS (S2). */
@@ -118,7 +117,6 @@ fun AgentTab(client: AgentClient, netBios: NetBiosProbe, monitor: NetworkMonitor
     var commandText by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var netBiosText by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var force by remember { mutableStateOf(true) }
-    var patient by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf<DebugCommand?>(null) }
 
     val hostValid = runCatching { BroadcastResolver.parse(host.trim()) }.isSuccess
@@ -212,18 +210,12 @@ fun AgentTab(client: AgentClient, netBios: NetBiosProbe, monitor: NetworkMonitor
 
         HorizontalDivider()
         Text("Durum (S1)", style = MaterialTheme.typography.titleMedium)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Uzun bekle (uykudaki PC için, K22)", modifier = Modifier.weight(1f))
-            Switch(checked = patient, onCheckedChange = { patient = it })
-        }
         Button(enabled = hostValid && pairedId != null, onClick = {
             scope.launch {
                 val s = session() ?: return@launch
                 statusText = "Soruluyor…" to true
                 statusText = try {
-                    val r = if (patient) client.status(host.trim(), s, budgetMs = 12_000, attemptMs = 4_000)
-                    else client.status(host.trim(), s)
-                    when (r) {
+                    when (val r = client.status(host.trim(), s)) {
                         is AgentResult.Ok -> {
                             val v = r.value
                             val display = when (v.display) {
@@ -318,7 +310,8 @@ private fun AgentCard(agent: DiscoveredAgent, phoneIp: String?, prefix: Int?, se
             Text("${if (selected) "▶ " else ""}${r.hostname} · ${agent.host}", fontWeight = FontWeight.SemiBold)
             Mono("agent ${r.agentId.take(8)}… · v${r.agentVersion}")
             Text(
-                "paired=${r.paired} · hazırda ${if (r.hibernate) "var" else "yok"}",
+                "paired=${r.paired} · hazırda ${if (r.hibernate) "var" else "yok"}" +
+                    if (r.sleepHibernates) " · Uyku = Hazırda (K23)" else "",
                 color = if (r.paired) Muted else Pass, style = MaterialTheme.typography.bodySmall,
             )
             r.nics.forEach { nic ->

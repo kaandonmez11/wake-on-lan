@@ -25,6 +25,9 @@ public interface ISystemInfo
     long UptimeSec { get; }
     bool HibernateSupported { get; }
 
+    /// <summary>K23: Modern Beklemeli PC'de telefondan Uyku = Hazırda Beklet (uzaktan uyandırılabilsin).</summary>
+    bool SleepHibernates { get; }
+
     /// <summary>"on" | "off" | "dimmed" | "unknown" (K22).</summary>
     string Display { get; }
 

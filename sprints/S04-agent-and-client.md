@@ -1,6 +1,6 @@
 # S04 — Windows agent v1 + AgentClient + NetBIOS
 
-**Spec:** 7.3 (S1, S2), 8 (tamamı), 13, 16 (C#), 17 faz 4 · **Kararlar:** K3, K4, K5, K6, K16, K19, K22
+**Spec:** 7.3 (S1, S2), 8 (tamamı), 13, 16 (C#), 17 faz 4 · **Kararlar:** K3, K4, K5, K6, K16, K19, K22, K23
 
 ## Amaç
 PC'de servis olarak çalışan agent kurulur. Telefon agent'ı bulur, eşleşir, imzalı STATUS alır ve 5 güç komutunu gönderir. NetBIOS (S2) hostname + MAC getirir.
@@ -187,9 +187,27 @@ _2026-10-29 · Claude_
 - [x] Nonce tek kullanım / 10 sn, `BAD_SIG`, TOFU, `BUSY`, K4 tek yürütme testte → #5, #14, #15.
 - [x] Güç yeteneği ofsetleri gerçek makinede `powercfg /a` ile tutuyor → #2, #9.
 - [x] Log'a gizli bilgi yazılmıyor (testte) → #16.
-- [ ] Gerçek kurulum, güvenlik duvarı ve 5 güç komutu, K22 denemesi sende → #1–#3, #7–#13, #17.
+- [x] **Kaan: #1–#7 ve #9–#17 geçti** (2026-10-29). #13 NetBIOS: PC açıkken 7 ms; kapalı PC'de "Yanıt yok" beklenen davranış.
+- [x] **#8 Uyku:** Kaan'ın PC'sinde (Modern Bekleme) `SetSuspendState(false)` PC'yi **hazırda bekletti**. Log: ACK 14:55:16, "SLEEP uygulandı" 14:56:58; çağrı PC uyanınca dönüyor. Ağ sekmesindeki "Uyandır" ile açıldı.
+- [x] **#8a–#8c (K22) tutmadı:**
+  - Elle uyutulan PC bir kez STATUS'a cevap verdi; derin beklemede hiç cevap vermedi.
+  - `SCREEN_ON` 3 kez ACK aldı, "uygulandı" log'a düştü, ama ekran açılmadı.
+  - Sonuç: K22'nin uyandırma kısmı kapandı, `SCREEN_ON` kaldırıldı.
+- [x] **K23 (Kaan'ın kararı):** Modern Beklemeli PC'de telefondan Uyku = Hazırda Beklet. Aşağıdaki K23 eklerine bak.
+
+### Cihaz testi sonrası (K22 sonuç, K23)
+- **Kaldırıldı:**
+  - `SCREEN_ON` komutu: protokol, agent yürütücüsü ve yardımcı modu, Android enum'u, Debug butonu, vektörler.
+  - Debug'daki "Uzun bekle" anahtarı.
+- **Eklendi:**
+  - `DISCOVER_REPLY.sleepHibernates` (Modern Bekleme + S3 yok + hazırda bekletme açık).
+  - Agent bu PC'de SLEEP'i doğrudan `SetSuspendState(true,…)` ile uyguluyor; artık Windows'un yorumuna kalmıyor.
+  - `status` çıktısında "→ telefondan Uyku = Hazırda Beklet (K23)" satırı; Debug kartında "Uyku = Hazırda (K23)".
+- **Kaldı:** `STATUS_OK.display` (imzalı, bilgi amaçlı).
+- **Testler:** `dotnet test` **65/65** (SCREEN_ON vektörleri çıktı; `SCREEN_ON` artık `UNSUPPORTED` testi var). Android **166/166**.
 
 ### Açık kalanlar
-- **K22 sonucu (8a–8c):** cevap gelmezse `SCREEN_ON` ve "Uyuyor" göstergesi S05'te düşer, Hazırda Beklet önerilir.
+- **K23 doğrulaması:** agent'ı yeni exe ile güncelle; Uyku → hazırda bekletme → Ağ › Uyandır (sohbetteki kısa liste).
+- **"Hazırda" gösterimi** (lastAction, K9 + K23): S05/S06.
 - **Asıl eşleşmenin Device'a yazılması** (agentId, KeyVault alias, hazırda bekletme, MAC'in K16 ile doldurulması): S07 (cihaz paneli). Debug şimdilik tek eşleşmeyi kendi tercihlerinde tutuyor.
 - S1/S2'nin tur içinde birleştirilmesi: S05 (StatusEngine).

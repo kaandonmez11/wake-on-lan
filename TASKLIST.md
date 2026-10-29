@@ -8,7 +8,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S01 | 1 | Android iskeleti + tasarım sistemi | ✅ |
 | S02 | 2 | Veri katmanı | ✅ |
 | S03 | 3 | Ağ çekirdeği | ✅ |
-| S04 | 4 | Windows agent + AgentClient + NetBIOS | 🧪 cihaz testi bekliyor |
+| S04 | 4 | Windows agent + AgentClient + NetBIOS | ✅ |
 | S05 | 5 | StatusEngine + koordinatörler | ☐ |
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ☐ |
 | S07 | 7 | Cihaz paneli + tarama | ☐ |
@@ -73,7 +73,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Agent: Worker + CLI (install/uninstall/reset/status)
 - [x] Config (DPAPI, ACL) + log
 - [x] UDP sunucu, kaynak filtresi, tüm mesajlar, rid önbelleği (K4)
-- [x] K22: `SCREEN_ON` komutu + `STATUS.display`, Modern Bekleme'de agent denemesi
+- [x] K22: `STATUS.display` + Modern Bekleme denemesi (uyandırma tutmadı, `SCREEN_ON` kaldırıldı) · K23: Uyku = Hazırda Beklet
 - [x] Komut yürütücü (5 komut, 300 ms, BUSY, UNSUPPORTED)
 - [x] Firewall kuralı, servis recovery, güncelleme modu
 - [x] xUnit testleri + `dotnet publish` tek exe
@@ -81,7 +81,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] NetBiosProbe (S2), NIC seçimi (K16)
 - [x] Debug › Agent sekmesi
 - [x] Doğrulanacaklar raporu · testler yeşil · commit
-- [ ] **Cihaz testi (Kaan)** (PC + telefon)
+- [x] **Cihaz testi (Kaan)** (PC + telefon) — 8a–8c (K22) tutmadı, K23 ile kapatıldı
 
 ## S05 — StatusEngine + koordinatörler
 - [ ] Domain modelleri (K9 dahil)
