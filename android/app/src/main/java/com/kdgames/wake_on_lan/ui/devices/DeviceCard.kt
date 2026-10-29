@@ -1,0 +1,205 @@
+package com.kdgames.wake_on_lan.ui.devices
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
+import com.kdgames.wake_on_lan.domain.model.DeviceState
+import com.kdgames.wake_on_lan.domain.model.PowerAction
+import com.kdgames.wake_on_lan.ui.components.AnimatedText
+import com.kdgames.wake_on_lan.ui.components.GlassSurface
+import com.kdgames.wake_on_lan.ui.components.breathing
+import com.kdgames.wake_on_lan.ui.components.holdToConfirm
+import com.kdgames.wake_on_lan.ui.components.loopProgress
+import com.kdgames.wake_on_lan.ui.components.openCardEffects
+import com.kdgames.wake_on_lan.ui.components.pressable
+import com.kdgames.wake_on_lan.ui.components.rememberHoldState
+import com.kdgames.wake_on_lan.ui.theme.LocalHaptics
+import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
+import com.kdgames.wake_on_lan.ui.theme.SpringToken
+import com.kdgames.wake_on_lan.ui.theme.Sym
+import com.kdgames.wake_on_lan.ui.theme.SymbolIcon
+import com.kdgames.wake_on_lan.ui.theme.WolColors
+import com.kdgames.wake_on_lan.ui.theme.WolDimens
+import com.kdgames.wake_on_lan.ui.theme.WolType
+import com.kdgames.wake_on_lan.ui.theme.cssLinearGradient
+import com.kdgames.wake_on_lan.ui.theme.motionSpec
+
+/**
+ * Cihaz kartı (spec 10.2, 11.3, 12.5): 150 yükseklik, köşe 32. Kapalı = cam; açık = cihaz renginde
+ * 145° gradient, c1 %60 çerçeve, nefes alan c2 gölgesi, dönen hüzme ve ışık süpürmesi. Geçiş akar.
+ */
+@Composable
+fun DeviceCard(
+    ui: DeviceUi,
+    onSelect: () -> Unit,
+    onWake: () -> Unit,
+    onShutdown: () -> Unit,
+    onAccessibilityShutdown: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val reduceMotion = LocalReduceMotion.current
+    val haptics = LocalHaptics.current
+    val shape = RoundedCornerShape(WolDimens.CornerCard)
+    val palette = ui.palette
+    val openness by animateFloatAsState(if (ui.isOn) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cardOpen")
+    val breath by breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "cardBreath")
+    GlassSurface(
+        shape = shape,
+        modifier = modifier
+            .height(150.dp)
+            .dropShadow(shape, Shadow(radius = 40.dp * breath, color = palette.end.copy(alpha = 0.40f * openness), offset = DpOffset(0.dp, 10.dp)))
+            .openCardEffects(shape, palette.start, openness)
+            .semantics { contentDescription = "${ui.device.name}, ${DeviceLabels.card(ui.state, ui.history)}" }
+            .pressable(onClick = { haptics.tick(); onSelect() }, onClickLabel = "Seç"),
+    ) {
+        // Açık kart gradient'i + çerçeve, açıklık oranıyla akarak gelir.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    if (openness > 0f) {
+                        drawRect(cssLinearGradient(145f, size, 0f to palette.openCardStart.copy(alpha = openness), 1f to palette.openCardEnd.copy(alpha = openness)))
+                    }
+                }
+                .border(1.dp, palette.start.copy(alpha = 0.60f * openness), shape),
+        )
+        Column(Modifier.fillMaxSize().padding(14.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                IconBubble(ui, size = 44.dp)
+                Spacer(Modifier.weight(1f))
+                CardPowerButton(ui, onWake, onShutdown, onAccessibilityShutdown)
+            }
+            Spacer(Modifier.weight(1f))
+            Text(ui.device.name, style = WolType.CardName, color = WolColors.TextPrimary, maxLines = 1)
+            AnimatedText(
+                DeviceLabels.card(ui.state, ui.history),
+                style = WolType.BodySmall,
+                color = if (ui.isOn) WolColors.TextOnCard else WolColors.TextSecondaryAlt,
+            )
+            Spacer(Modifier.height(10.dp))
+            StatusBar(ui)
+        }
+    }
+}
+
+/**
+ * Kart çubuğu (4 yükseklik): kapalı = güvenilirlik oranı, açık = tam gradient,
+ * uyanıyor = amber ilerleme, kapanıyor = kırmızı ilerleme. Uzunluk ve renk spring ile akar.
+ */
+@Composable
+private fun StatusBar(ui: DeviceUi) {
+    val reduceMotion = LocalReduceMotion.current
+    val state = ui.state
+    val fraction = when (state) {
+        is DeviceState.On -> 1f
+        is DeviceState.Waking -> (state.elapsedSec / 60f).coerceIn(0.05f, 1f)
+        is DeviceState.PowerTransition -> (state.elapsedSec / if (state.action == PowerAction.RESTART) 180f else 90f).coerceIn(0.05f, 1f)
+        else -> if (ui.history.total == 0) 0f else ui.history.successes.toFloat() / ui.history.total
+    }
+    val width by animateFloatAsState(fraction, motionSpec(SpringToken.Smooth, reduceMotion), label = "barWidth")
+    val c1 by animateColorAsState(
+        when (state) {
+            is DeviceState.On -> ui.palette.start
+            is DeviceState.Waking -> WolColors.Amber
+            is DeviceState.PowerTransition -> WolColors.Danger
+            else -> Color.White.copy(alpha = 0.6f)
+        }, motionSpec(SpringToken.Snappy, reduceMotion), label = "barC1",
+    )
+    val c2 by animateColorAsState(
+        when (state) {
+            is DeviceState.On -> ui.palette.end
+            is DeviceState.Waking -> WolColors.Amber
+            is DeviceState.PowerTransition -> WolColors.Danger
+            else -> Color.White.copy(alpha = 0.6f)
+        }, motionSpec(SpringToken.Snappy, reduceMotion), label = "barC2",
+    )
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(Color.White.copy(alpha = 0.10f))
+            .drawBehind {
+                if (width > 0f) drawRect(Brush.horizontalGradient(listOf(c1, c2), endX = size.width * width), size = size.copy(width = size.width * width))
+            },
+    )
+}
+
+/** Kart güç butonu (44): kapalı = dokun uyandır; açık = basılı tut Kapat, halka dolumu kartta görünür. */
+@Composable
+private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> Unit, onAccessibilityShutdown: () -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    val haptics = LocalHaptics.current
+    val hold = rememberHoldState()
+    val canWake = ui.state is DeviceState.Off && ui.device.mac != null
+    val canHold = powerAvailability(ui, PowerAction.SHUTDOWN) == PowerAvailability.Available
+    val on = ui.isOn
+    val bg1 by animateColorAsState(if (on) ui.palette.start else Color.White.copy(alpha = 0.10f), motionSpec(SpringToken.Smooth, reduceMotion), label = "cpb1")
+    val bg2 by animateColorAsState(if (on) ui.palette.end else Color.White.copy(alpha = 0.06f), motionSpec(SpringToken.Smooth, reduceMotion), label = "cpb2")
+    val icon by animateColorAsState(if (on) WolColors.OnGradient else Color.White, motionSpec(SpringToken.Smooth, reduceMotion), label = "cpbIcon")
+    val spin by loopProgress(1_000, running = ui.isBusy, label = "cpbSpin")
+    val press by animateFloatAsState(if (hold.pressed) 0.96f else 1f, motionSpec(if (hold.pressed) SpringToken.Quick else SpringToken.Snappy, reduceMotion), label = "cpbPress")
+    val gesture = when {
+        canWake -> Modifier.pressable(onClick = { haptics.click(); onWake() }, onClickLabel = "Uyandır")
+        canHold -> Modifier.holdToConfirm(hold, true, "Kapat", onShutdown, onAccessibilityShutdown)
+        else -> Modifier
+    }
+    Box(
+        Modifier
+            .size(44.dp)
+            .graphicsLayer {
+                val s = press * hold.commit.value
+                scaleX = s
+                scaleY = s
+            }
+            .semantics { contentDescription = if (canWake) "${ui.device.name} uyandır" else if (canHold) "${ui.device.name} kapat · basılı tut" else "Güç" }
+            .then(gesture),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawCircle(Brush.linearGradient(listOf(bg1, bg2), start = Offset.Zero, end = Offset(size.width, size.height)))
+            if (on) drawCircle(ui.palette.start.copy(alpha = 0.55f), radius = size.minDimension / 2 + 2.dp.toPx(), style = Stroke(1.dp.toPx()))
+            val stroke = 3.dp.toPx()
+            if (ui.isBusy) {
+                val color = if (ui.isWaking) WolColors.Amber else WolColors.Danger
+                drawArc(color, -90f + spin * 360f, 90f, false, topLeft = Offset(stroke / 2, stroke / 2), size = size.copy(size.width - stroke, size.height - stroke), style = Stroke(stroke, cap = StrokeCap.Round))
+            }
+            val p = hold.progress.value
+            if (p > 0f) {
+                drawArc(WolColors.Danger, -90f, 360f * p, false, topLeft = Offset(stroke / 2, stroke / 2), size = size.copy(size.width - stroke, size.height - stroke), style = Stroke(stroke, cap = StrokeCap.Round))
+            }
+        }
+        SymbolIcon(Sym.power_settings_new, contentDescription = null, size = 22.dp, tint = icon)
+    }
+}

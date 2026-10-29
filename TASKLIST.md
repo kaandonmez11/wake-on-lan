@@ -10,7 +10,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S03 | 3 | Ağ çekirdeği | ✅ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ✅ |
 | S05 | 5 | StatusEngine + koordinatörler | ✅ |
-| S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ☐ |
+| S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | 🧪 cihaz testi bekliyor |
 | S07 | 7 | Cihaz paneli + tarama | ☐ |
 | S08 | 8a | Otomasyon 1: zaman tetikli | ☐ |
 | S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ☐ |
@@ -95,15 +95,15 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)**
 
 ## S06 — Cihazlar ekranı
-- [ ] Windows güç ikonları (SegoeIcons.ttf → vector) + önizleme PNG → **Kaan onayı**
-- [ ] Başlık: WifiPill + ayarlar balonu
-- [ ] Hero kart + çipler
-- [ ] PowerOrb + HoldButton + haptikler
-- [ ] Güç satırı (K12)
-- [ ] Adım kartları, geçmiş çubukları
-- [ ] Cihaz kartları + sürekli efektler + shared-element + seçim halkası
-- [ ] Boş durum, olay toast'ları, arka plan tonu
-- [ ] Compose UI testleri yeşil · animasyon denetimi · rapor · commit
+- [x] Windows güç ikonları (SegoeIcons.ttf → vector) + önizleme PNG → **Kaan onayı**
+- [x] Başlık: WifiPill + ayarlar balonu
+- [x] Hero kart + çipler
+- [x] PowerOrb + HoldButton + haptikler
+- [x] Güç satırı (K12)
+- [x] Adım kartları, geçmiş çubukları
+- [x] Cihaz kartları + sürekli efektler + shared-element + seçim halkası
+- [x] Boş durum, olay toast'ları, arka plan tonu
+- [x] Compose UI testleri yeşil · animasyon denetimi · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S07 — Cihaz paneli + tarama

@@ -1,0 +1,14 @@
+Windows güç ikonları (drawable win_*)
+
+Kaynak sırası (README › "Windows güç ikonları"):
+  1. android/app/winicons/custom/*.svg — kullanıcının kendi ikonları (git'e girmez)
+  2. Microsoft Segoe Fluent Icons (C:\Windows\Fonts\SegoeIcons.ttf), derlemede build/ altına üretilir:
+       win_lock      U+E72E Lock
+       win_sleep     U+E708 QuietHours
+       win_hibernate U+E823 Recent
+       win_restart   U+E777 UpdateRestore
+       win_shutdown  U+E7E8 PowerButton
+  3. Fluent UI System Icons (MIT, Microsoft) yedekleri — bkz. FluentUI-System-Icons-MIT.txt
+
+Segoe Fluent Icons lisansı glifin Windows dışında dağıtılmasına izin vermez. Glifler repoya
+konmaz; bu derleme yalnız kişisel kullanım içindir (sideload), APK paylaşılmaz (SPEC K17).

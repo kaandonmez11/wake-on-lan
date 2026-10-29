@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -27,7 +28,7 @@ import com.kdgames.wake_on_lan.ui.automation.AutomationScreen
 import com.kdgames.wake_on_lan.ui.background.LivingBackground
 import com.kdgames.wake_on_lan.ui.background.Scene
 import com.kdgames.wake_on_lan.ui.components.LocalHazeState
-import com.kdgames.wake_on_lan.ui.devices.DevicesScreen
+import com.kdgames.wake_on_lan.ui.components.TabScaffold
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
 import com.kdgames.wake_on_lan.ui.theme.REDUCED_CROSSFADE_MS
 import com.kdgames.wake_on_lan.ui.theme.SpringToken
@@ -38,19 +39,35 @@ private val TabShift = 12.dp
 private val TopCenter = TransformOrigin(0.5f, 0f)
 private const val TAB_ENTER_SCALE = 0.98f
 
-/** Uygulama kökü: canlı arka plan + sekmeler + yüzen nav (spec 10, 12.2). */
+/**
+ * Uygulama kökü: canlı arka plan + sekmeler + yüzen nav (spec 10, 12.2).
+ *
+ * @param devices Cihazlar sekmesi içeriği; parametresi Ayarlar'ı açar. Varsayılan boş iskelet (testler).
+ * @param devicesTint Cihazlar sahnesinde arka plan tonu (seçili cihaz / uyanma amber'i / kapanma kırmızısı).
+ */
 @Composable
-fun AppNav(onAddDevice: () -> Unit = {}) {
+fun AppNav(
+    onAddDevice: () -> Unit = {},
+    devicesTint: Color = Color.Unspecified,
+    devices: @Composable (openSettings: () -> Unit) -> Unit = { DevicesPlaceholder() },
+) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Devices) }
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
     val hazeState = rememberHazeState()
     val reduceMotion = LocalReduceMotion.current
     val shiftPx = with(LocalDensity.current) { TabShift.roundToPx() }
 
     CompositionLocalProvider(LocalHazeState provides hazeState) {
+      PushHost(
+        open = settingsOpen,
+        onClose = { settingsOpen = false },
+        top = { SettingsPlaceholder(onBack = { settingsOpen = false }) },
+        base = {
         Box(Modifier.fillMaxSize()) {
             LivingBackground(
                 scene = if (tab == MainTab.Devices) Scene.Devices else Scene.Automation,
                 modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
+                tint = if (tab == MainTab.Devices) devicesTint else Color.Unspecified,
             )
             AnimatedContent(
                 targetState = tab,
@@ -73,7 +90,7 @@ fun AppNav(onAddDevice: () -> Unit = {}) {
                 label = "tabContent",
             ) { target ->
                 when (target) {
-                    MainTab.Devices -> DevicesScreen()
+                    MainTab.Devices -> devices { settingsOpen = true }
                     MainTab.Automation -> AutomationScreen()
                 }
             }
@@ -84,5 +101,11 @@ fun AppNav(onAddDevice: () -> Unit = {}) {
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+        },
+      )
     }
 }
+
+/** Testler ve önizleme için Cihazlar iskeleti. */
+@Composable
+private fun DevicesPlaceholder() = TabScaffold(title = "Cihazlar")

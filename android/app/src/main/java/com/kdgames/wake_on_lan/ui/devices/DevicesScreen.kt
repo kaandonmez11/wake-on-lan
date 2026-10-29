@@ -1,10 +1,305 @@
 package com.kdgames.wake_on_lan.ui.devices
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import com.kdgames.wake_on_lan.ui.components.TabScaffold
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.kdgames.wake_on_lan.domain.DomainEvent
+import com.kdgames.wake_on_lan.domain.model.PowerAction
+import com.kdgames.wake_on_lan.net.WifiState
+import com.kdgames.wake_on_lan.ui.components.AnimatedText
+import com.kdgames.wake_on_lan.ui.components.GlassSurface
+import com.kdgames.wake_on_lan.ui.components.GlassToastHost
+import com.kdgames.wake_on_lan.ui.components.RollingNumber
+import com.kdgames.wake_on_lan.ui.components.ToastHostState
+import com.kdgames.wake_on_lan.ui.components.ToastKind
+import com.kdgames.wake_on_lan.ui.components.pressable
+import com.kdgames.wake_on_lan.ui.theme.LocalHaptics
+import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
+import com.kdgames.wake_on_lan.ui.theme.SpringToken
+import com.kdgames.wake_on_lan.ui.theme.Sym
+import com.kdgames.wake_on_lan.ui.theme.SymbolIcon
+import com.kdgames.wake_on_lan.ui.theme.WolColors
+import com.kdgames.wake_on_lan.ui.theme.WolDimens
+import com.kdgames.wake_on_lan.ui.theme.WolType
+import com.kdgames.wake_on_lan.ui.theme.motionSpec
+import kotlinx.coroutines.flow.Flow
 
-/** Cihazlar sekmesi. S01'de boş; içerik S06'da. */
+/**
+ * Cihazlar sekmesi (spec 10.1, 10.2). Durumsuz: her şey [state]'ten gelir, aksiyonlar geri çağrılarla çıkar.
+ * Tüm ekran tek bir [LazyVerticalGrid]: başlık ve hero tam genişlik; kartların eklenmesi/çıkması ve yer
+ * değiştirmesi `animateItem` ile spring'li.
+ */
 @Composable
-fun DevicesScreen() {
-    TabScaffold(title = "Cihazlar")
+fun DevicesScreen(
+    state: DevicesUiState,
+    onSelect: (Long) -> Unit,
+    onWake: (Long) -> Unit,
+    onPower: (Long, PowerAction) -> Unit,
+    onAdd: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+    events: Flow<DomainEvent>? = null,
+    toasts: ToastHostState = remember { ToastHostState() },
+) {
+    val haptics = LocalHaptics.current
+    val reduceMotion = LocalReduceMotion.current
+    val selected = state.selected
+    val cardRects = remember { mutableStateMapOf<Long, Rect>() }
+    var gridOrigin by remember { mutableStateOf(Offset.Zero) }
+    var confirmCard by remember { mutableStateOf<DeviceUi?>(null) }
+    val currentDevices by rememberUpdatedState(state.devices)
+
+    LaunchedEffect(events) {
+        events?.collect { e ->
+            val name = currentDevices.firstOrNull { it.id == e.deviceId }?.device?.name
+            val (kind, symbol) = when (e) {
+                is DomainEvent.WakeSucceeded, is DomainEvent.Locked, is DomainEvent.PowerDone -> ToastKind.Success to Sym.check
+                is DomainEvent.AgentInfo -> ToastKind.Info to Sym.info
+                else -> ToastKind.Warning to Sym.warning
+            }
+            when (e) {
+                is DomainEvent.WakeFailed, is DomainEvent.PowerTimedOut, is DomainEvent.AgentFailed,
+                is DomainEvent.CommandRejected, is DomainEvent.NoWifi, is DomainEvent.NoMac -> haptics.error()
+                is DomainEvent.Locked -> haptics.click()
+                else -> Unit // uyanma başarısı haptiği orb bloom'u ile senkron çalar
+            }
+            toasts.show(if (name != null && e !is DomainEvent.AgentInfo) "$name · ${e.text}" else e.text, kind, symbol)
+        }
+    }
+
+    Box(modifier.fillMaxSize().onGloballyPositioned { gridOrigin = it.positionInRoot() }) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = WolDimens.ScreenHorizontal,
+                end = WolDimens.ScreenHorizontal,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + WolDimens.TopExtra,
+                bottom = WolDimens.NavContentPadding,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WifiPill(state.wifi, Modifier.weight(1f, fill = false))
+                        Spacer(Modifier.weight(1f))
+                        SettingsBubble(onOpenSettings)
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    Text("Cihazlar", style = WolType.PageTitle, color = WolColors.TextPrimary, modifier = Modifier.semantics { heading() })
+                    Spacer(Modifier.height(2.dp))
+                }
+            }
+            if (selected != null) {
+                item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
+                    HeroCard(
+                        ui = selected,
+                        onWake = { onWake(selected.id) },
+                        onPower = { onPower(selected.id, it) },
+                        onEdit = { toasts.show("Düzenleme bir sonraki güncellemede", ToastKind.Info, Sym.edit) },
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion),
+                            placementSpec = motionSpec(SpringToken.Smooth, reduceMotion),
+                            fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion),
+                        ),
+                    )
+                }
+            } else {
+                item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
+                    EmptyState(onAdd, Modifier.animateItem(fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion), fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion)))
+                }
+            }
+            items(state.devices, key = { it.id }) { ui ->
+                DeviceCard(
+                    ui = ui,
+                    onSelect = { onSelect(ui.id) },
+                    onWake = { onWake(ui.id) },
+                    onShutdown = { onPower(ui.id, PowerAction.SHUTDOWN) },
+                    onAccessibilityShutdown = { confirmCard = ui },
+                    modifier = Modifier
+                        .animateItem(
+                            fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion),
+                            placementSpec = motionSpec(SpringToken.Smooth, reduceMotion),
+                            fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion),
+                        )
+                        .onGloballyPositioned { coords ->
+                            val b = coords.boundsInRoot()
+                            cardRects[ui.id] = b.translate(-gridOrigin)
+                        },
+                )
+            }
+        }
+        SelectionRing(selectedId = selected?.id, rects = cardRects, visible = state.devices.size > 1)
+        GlassToastHost(toasts, Modifier.align(Alignment.TopCenter))
+    }
+
+    confirmCard?.let { ui ->
+        AlertDialog(
+            onDismissRequest = { confirmCard = null },
+            title = { Text("Kapat · ${ui.device.name}") },
+            text = { Text("Bu komut PC'ye gönderilsin mi?") },
+            confirmButton = { TextButton(onClick = { confirmCard = null; onPower(ui.id, PowerAction.SHUTDOWN) }) { Text("Kapat") } },
+            dismissButton = { TextButton(onClick = { confirmCard = null }) { Text("Vazgeç") } },
+        )
+    }
+}
+
+/**
+ * Seçili kartın etrafında 2 beyaz halka (spec 10.2). Seçim değişince yeni karta `bouncy` ile kayar;
+ * kaydırmada (aynı seçim) karta yapışık kalır.
+ */
+@Composable
+private fun SelectionRing(selectedId: Long?, rects: Map<Long, Rect>, visible: Boolean) {
+    val reduceMotion = LocalReduceMotion.current
+    val target = selectedId?.let(rects::get)
+    val anim = remember { Animatable(Rect.Zero, Rect.VectorConverter) }
+    val lastId = remember { longArrayOf(Long.MIN_VALUE) }
+    val alpha by animateFloatAsState(if (visible && target != null) 1f else 0f, motionSpec(SpringToken.Snappy, reduceMotion), label = "ringAlpha")
+    LaunchedEffect(selectedId, target) {
+        if (target == null) return@LaunchedEffect
+        if (lastId[0] == Long.MIN_VALUE || anim.value == Rect.Zero) {
+            anim.snapTo(target)
+        } else if (lastId[0] != selectedId) {
+            anim.animateTo(target, motionSpec(SpringToken.Bouncy, reduceMotion))
+        } else if (!anim.isRunning) {
+            anim.snapTo(target)
+        }
+        lastId[0] = selectedId ?: Long.MIN_VALUE
+    }
+    if (alpha <= 0.01f) return
+    Canvas(Modifier.fillMaxSize()) {
+        val r = anim.value
+        if (r == Rect.Zero) return@Canvas
+        val corner = WolDimens.CornerCard.toPx()
+        listOf(3.dp to 0.95f, 7.dp to 0.35f).forEach { (gap, a) ->
+            val g = gap.toPx()
+            drawRoundRect(
+                color = Color.White.copy(alpha = a * alpha),
+                topLeft = Offset(r.left - g, r.top - g),
+                size = Size(r.width + 2 * g, r.height + 2 * g),
+                cornerRadius = CornerRadius(corner + g),
+                style = Stroke(1.5.dp.toPx()),
+            )
+        }
+    }
+}
+
+/** Spec 10.1 Wi-Fi pill: seviye ikonu (crossfade + 0.9→1), SSID · Mbps · IP (sayılar mono). */
+@Composable
+fun WifiPill(wifi: WifiState, modifier: Modifier = Modifier) {
+    val reduceMotion = LocalReduceMotion.current
+    GlassSurface(shape = RoundedCornerShape(50), modifier = modifier.height(44.dp)) {
+        Row(Modifier.padding(horizontal = 14.dp).height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+            AnimatedContent(
+                targetState = if (wifi.connected) wifiSymbol(wifi.signalLevel) else Sym.wifi_off,
+                transitionSpec = {
+                    (fadeIn(motionSpec(SpringToken.Snappy, reduceMotion)) + scaleIn(motionSpec(SpringToken.Snappy, reduceMotion), initialScale = 0.9f)) togetherWith
+                        fadeOut(motionSpec(SpringToken.Snappy, reduceMotion))
+                },
+                label = "wifiIcon",
+            ) { sym -> SymbolIcon(sym, contentDescription = "Wi-Fi sinyali", size = 18.dp, filled = true) }
+            Spacer(Modifier.width(8.dp))
+            if (!wifi.connected) {
+                AnimatedText("Wi-Fi yok", style = WolType.Chip, color = WolColors.TextSecondary)
+            } else {
+                AnimatedText(wifi.ssid ?: "Wi-Fi", style = if (wifi.ssid != null) WolType.Technical else WolType.Chip, color = WolColors.TextPrimary)
+                wifi.linkSpeedMbps?.let { mbps ->
+                    Dot()
+                    RollingNumber(mbps.toLong(), style = WolType.Technical, color = WolColors.TextSecondary)
+                    Text(" Mbps", style = WolType.Chip, color = WolColors.TextSecondary)
+                }
+                wifi.phoneIp?.let { ip ->
+                    Dot()
+                    AnimatedText(ip, style = WolType.Technical, color = WolColors.TextSecondary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Dot() = Text(" · ", style = WolType.Chip, color = WolColors.TextTertiary)
+
+@Composable
+private fun SettingsBubble(onClick: () -> Unit) {
+    GlassSurface(shape = CircleShape, modifier = Modifier.size(44.dp).pressable(onClick = onClick, onClickLabel = "Ayarlar")) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            SymbolIcon(Sym.settings, contentDescription = "Ayarlar", size = 20.dp)
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(onAdd: () -> Unit, modifier: Modifier = Modifier) {
+    GlassSurface(shape = RoundedCornerShape(WolDimens.CornerHero), modifier = modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            SymbolIcon(Sym.desktop_windows, contentDescription = null, size = 40.dp, tint = WolColors.TextSecondary)
+            Spacer(Modifier.height(12.dp))
+            Text("Henüz cihaz yok", style = WolType.CardName, color = WolColors.TextPrimary)
+            Spacer(Modifier.height(4.dp))
+            Text("Uyandırmak istediğin PC'yi ekle", style = WolType.BodySmall, color = WolColors.TextTertiary)
+            Spacer(Modifier.height(16.dp))
+            GlassSurface(shape = RoundedCornerShape(50), modifier = Modifier.pressable(onClick = onAdd, onClickLabel = "Cihaz ekle")) {
+                Row(Modifier.padding(horizontal = 18.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SymbolIcon(Sym.add, contentDescription = null, size = 18.dp)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Cihaz ekle", style = WolType.BodyLarge, color = WolColors.TextPrimary)
+                }
+            }
+        }
+    }
 }

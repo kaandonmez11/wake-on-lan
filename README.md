@@ -81,6 +81,33 @@ Yapılandırma `%ProgramData%\WolAgent\config.json` (anahtarlar DPAPI ile şifre
 
 Hata ayıklama: `WolAgent.exe run` servisi konsolda çalıştırır; `WOLAGENT_HOME` ortam değişkeni yapılandırma klasörünü değiştirir.
 
+## Windows güç ikonları
+
+Güç butonları (Kilitle, Uyku, Hazırda, Yeniden, Kapat) Windows 11'in Başlat › Güç menüsündeki ikonlarla birebir aynı olsun diye Microsoft'un **Segoe Fluent Icons** fontundaki glifler kullanılır:
+
+| Buton | Glif | Kod |
+|---|---|---|
+| Kilitle | Lock | U+E72E |
+| Uyku | QuietHours | U+E708 |
+| Hazırda | Recent | U+E823 |
+| Yeniden | UpdateRestore | U+E777 |
+| Kapat | PowerButton | U+E7E8 |
+
+**Lisans:** Segoe Fluent Icons yalnız Windows içinde kullanılabilir; glifler başka platformda dağıtılamaz. Bu yüzden ikon dosyaları **repoda yok**. Her derlemede Gradle'ın `generateWinIcons` görevi onları `android/app/build/generated/winicons/` altına kendisi üretir. `build/` git'e girmez, glifler de hiçbir zaman repoya gitmez.
+
+İkon başına kaynak, öncelik sırasıyla:
+
+1. **Kendi SVG'n:** `android/app/winicons/custom/` klasörüne `lock.svg`, `sleep.svg`, `hibernate.svg`, `restart.svg`, `shutdown.svg` adlarıyla koy. Bir sonraki derlemede o buton bu ikonu kullanır. Bu klasördeki SVG'ler git'e girmez (lisansı belirsiz bir ikon yanlışlıkla paylaşılmasın diye).
+2. **Windows fontu:** Windows'ta derliyorsan `C:\Windows\Fonts\SegoeIcons.ttf` otomatik okunur; hiçbir şey yapman gerekmez. Başka bir konum için: `./gradlew assembleDebug -Pwol.segoeIcons=<yol>`.
+3. **Yedek:** Font yoksa (macOS/Linux ya da eski Windows) repodaki `android/app/winicons/fallback/` kullanılır. Bunlar Microsoft'un **Fluent UI System Icons** setinden (MIT lisanslı, paylaşılabilir) en yakın eşdeğerler.
+
+**SVG ekleme kuralları** (dönüştürücü bilerek basit tutuldu):
+- `viewBox` olmalı (ör. `0 0 24 24`). Yoksa `width`/`height` kullanılır.
+- Şekil `<path d="...">` olmalı. Birden fazla path olabilir; `fill-rule="evenodd"` korunur.
+- `transform`, `stroke`, `<circle>`/`<rect>`/`<g transform>` desteklenmez. Inkscape'te **Yol › Nesneyi Yola Çevir** ve **Çizgiyi Yola Çevir**, ya da Figma'da **Outline stroke + Flatten** ile tek dolgu yoluna indir.
+- Renk önemsiz: uygulama ikonu duruma göre boyar.
+- Derleme çıktısında `Windows ikonu: lock.svg (custom)` satırı, dosyanın alındığını gösterir. Hatalı SVG'de görev neyin eksik olduğunu yazarak durur.
+
 ## Test vektörleri
 
 `protocol/vectors.json` **elle düzenlenmez**. Protokol değişirse:
