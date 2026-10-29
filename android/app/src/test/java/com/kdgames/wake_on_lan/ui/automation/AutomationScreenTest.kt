@@ -35,6 +35,7 @@ import com.kdgames.wake_on_lan.ui.theme.WolTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -90,6 +91,27 @@ class AutomationScreenTest {
         compose.onNodeWithText("Henüz zamanlayıcı yok").assertExists()
         compose.onNodeWithText("Sağ alttaki + ile PC'ni belirli saatlerde aç, kapat ya da uyut").assertExists()
         compose.onNode(hasText("Zamanlayıcı ekle") and hasClickAction()).assertDoesNotExist()
+    }
+
+    @Test
+    fun `menu konumu - sagda basilinca parmagin solunda, solda basilinca saginda, ekrana sigar`() {
+        val window = androidx.compose.ui.unit.IntSize(1080, 2400)
+        val content = androidx.compose.ui.unit.IntSize(400, 200) // gölge payı 48 px dahil
+        val pad = 48
+        val gap = 18
+        fun at(x: Float, y: Float) = com.kdgames.wake_on_lan.ui.components.menuPosition(androidx.compose.ui.geometry.Offset(x, y), window, content, pad, gap)
+        // Sağda (x=900): görünen panelin sağ kenarı = x + 400 - 48 = parmak - gap.
+        val r = at(900f, 1000f)
+        assertEquals(900 - gap, r.x + content.width - pad)
+        assertEquals(1000 - 100, r.y)
+        // Solda (x=150): görünen sol kenar = parmak + gap.
+        val l = at(150f, 1000f)
+        assertEquals(150 + gap, l.x + pad)
+        // Ekran kenarında taşmaz.
+        assertEquals(0, at(150f, 20f).y)
+        assertEquals(2400 - 200, at(150f, 2390f).y)
+        assertTrue(at(1079f, 1000f).x in 0..(1080 - 400))
+        assertTrue(at(1f, 1000f).x in 0..(1080 - 400))
     }
 
     @Test

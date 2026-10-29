@@ -147,5 +147,11 @@ _2026-10-30 · Claude_
 - Zamanlayıcı kartında, adın yanında düzenle (kalem) ikonu.
 - Testler 276/276 (boş panel, zamanlayıcıda yalnız Sil, cihaz kartında Düzenle/Sil).
 
+**Tur 3:** 1–7 geçti. Menü notları:
+- Panel gereksiz genişti → içerik kadar (~140 dp, ekranın yaklaşık 3'te 1'i).
+- Ekranın sağ yarısında basılınca parmağın soluna, sol yarısında sağına açılıyor; dikeyde parmak hizasında, ekrana sığdırılıyor. Parmağın olduğu kenardan büyüyor.
+- Parmak kalkınca yukarı kayıyordu: menü kartın ortasına bağlıydı, kartın 0.96 → 1 basma yayı onu oynatıyordu. Artık uzun basma anındaki ekran noktasına sabit (`TouchAnchor`).
+- Konum hesabı saf fonksiyon (`menuPosition`) ve testli (Robolectric popup'ı kendi penceresinde ölçtüğü için gerçek yerleşim orada ölçülemiyor). 277/277.
+
 ### Cihaz testi
 _(Kaan)_

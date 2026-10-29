@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.kdgames.wake_on_lan.ui.components.trackTouch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,15 +89,17 @@ fun DeviceCard(
     val breath = breathing(3_000, 0.85f, 1.15f, running = ui.isOn, label = "cardBreath")
     val hold = rememberHoldState()
     var menu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val anchor = com.kdgames.wake_on_lan.ui.components.rememberTouchAnchor()
     Box(
         modifier
             .height(150.dp)
+            .trackTouch(anchor)
             .semantics { contentDescription = "${ui.device.name}, ${DeviceLabels.card(ui.state, ui.history)}" }
             .pressable(
                 onClick = { haptics.tick(); onSelect() },
                 onClickLabel = "Seç",
                 // S08 (Kaan): basılı tutunca Düzenle / Sil.
-                onLongClick = { haptics.click(); menu = true },
+                onLongClick = { haptics.click(); anchor.capture(); menu = true },
                 onLongClickLabel = "Seçenekler",
             ),
     ) {
@@ -107,6 +110,7 @@ fun DeviceCard(
             com.kdgames.wake_on_lan.ui.components.MenuItem("Düzenle", com.kdgames.wake_on_lan.ui.theme.Sym.edit, onClick = onEdit),
             com.kdgames.wake_on_lan.ui.components.MenuItem("Sil", com.kdgames.wake_on_lan.ui.theme.Sym.delete, destructive = true, onClick = onDelete),
         ),
+        anchor = anchor,
     )
     GlowLayer(WolDimens.CornerCard, palette.end, maxAlpha = 0.40f, strength = { openness }, breath = breath, modifier = Modifier.matchParentSize())
     GlassSurface(shape = shape, modifier = Modifier.fillMaxSize()) {

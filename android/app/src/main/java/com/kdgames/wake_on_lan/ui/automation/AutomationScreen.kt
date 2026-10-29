@@ -59,6 +59,7 @@ import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.WinPowerIcon
 import com.kdgames.wake_on_lan.ui.components.pressable
+import com.kdgames.wake_on_lan.ui.components.trackTouch
 import com.kdgames.wake_on_lan.ui.devices.iconSymbol
 import com.kdgames.wake_on_lan.ui.theme.DevicePalette
 import com.kdgames.wake_on_lan.ui.theme.LocalHaptics
@@ -237,17 +238,19 @@ fun ScheduleCard(
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHaptics.current
     var menu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val anchor = com.kdgames.wake_on_lan.ui.components.rememberTouchAnchor()
     val alpha by animateFloatAsState(if (card.enabled) 1f else 0.7f, motionSpec(SpringToken.Smooth, reduceMotion), label = "cardAlpha")
     GlassSurface(
         shape = RoundedCornerShape(WolDimens.CornerSchedule),
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha }
+            .trackTouch(anchor)
             .pressable(
                 onClick = onClick,
                 onClickLabel = "Düzenle",
                 // S08 (Kaan): basılı tutunca yalnız Sil.
-                onLongClick = { haptics.click(); menu = true },
+                onLongClick = { haptics.click(); anchor.capture(); menu = true },
                 onLongClickLabel = "Sil",
             ),
     ) {
@@ -255,6 +258,7 @@ fun ScheduleCard(
             expanded = menu,
             onDismiss = { menu = false },
             items = listOf(com.kdgames.wake_on_lan.ui.components.MenuItem("Sil", Sym.delete, destructive = true, onClick = onDelete)),
+            anchor = anchor,
         )
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
