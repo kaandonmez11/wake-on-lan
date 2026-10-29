@@ -69,9 +69,16 @@ class TouchAnchor {
     var window by mutableStateOf(Offset.Zero)
         private set
 
+    /** Basılan kartın sağ yarısında mı (S08, Kaan: karar ekranın değil kartın ortasına göre). */
+    var onRightHalf by mutableStateOf(false)
+        private set
+
     /** Uzun basma anında: son dokunuşu pencere koordinatına çevirip sabitler. */
     fun capture() {
-        coords?.takeIf { it.isAttached }?.let { window = it.localToWindow(down) }
+        coords?.takeIf { it.isAttached }?.let {
+            window = it.localToWindow(down)
+            onRightHalf = down.x > it.size.width / 2f
+        }
     }
 }
 
@@ -93,11 +100,11 @@ fun Modifier.trackTouch(anchor: TouchAnchor): Modifier = this
 private val SHADOW_PAD = 16.dp
 
 /**
- * Menünün pencere konumu (saf; testli). Sağ yarıda basıldıysa görünen panel parmağın [gap] soluna, sol yarıda
- * sağına; dikeyde parmak hizasında ortalanır ve ekrana sığdırılır. [shadowPad] panelin dışındaki gölge payı.
+ * Menünün pencere konumu (saf; testli). Kartın sağ yarısında basıldıysa ([opensLeft]) görünen panel parmağın
+ * [gap] soluna, sol yarısında sağına; dikeyde parmak hizasında ortalanır ve ekrana sığdırılır.
+ * [shadowPad] panelin dışındaki gölge payı.
  */
-fun menuPosition(point: Offset, windowSize: IntSize, contentSize: IntSize, shadowPad: Int, gap: Int): IntOffset {
-    val opensLeft = point.x > windowSize.width / 2f
+fun menuPosition(point: Offset, opensLeft: Boolean, windowSize: IntSize, contentSize: IntSize, shadowPad: Int, gap: Int): IntOffset {
     val x = if (opensLeft) point.x.toInt() - contentSize.width + shadowPad - gap else point.x.toInt() - shadowPad + gap
     val y = point.y.toInt() - contentSize.height / 2
     return IntOffset(
@@ -107,7 +114,7 @@ fun menuPosition(point: Offset, windowSize: IntSize, contentSize: IntSize, shado
 }
 
 /**
- * Basılı tutunca açılan bağlam menüsü (S08, Kaan): içerik kadar geniş cam panel. Ekranın sağ yarısında
+ * Basılı tutunca açılan bağlam menüsü (S08, Kaan): içerik kadar geniş cam panel. Kartın sağ yarısında
  * basıldıysa parmağın soluna, sol yarısında sağına açılır; dikeyde parmak hizasında, ekrana sığacak şekilde.
  * Parmağın olduğu kenardan `bouncy` ile büyür, solarak kapanır; dışarı dokununca kapanır.
  */
@@ -120,14 +127,13 @@ fun ContextMenu(expanded: Boolean, onDismiss: () -> Unit, items: List<MenuItem>,
 
     val point = anchor.window
     val density = LocalDensity.current
-    val screenWidthPx = with(density) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
-    val opensLeft = point.x > screenWidthPx / 2f
+    val opensLeft = anchor.onRightHalf
     val shadowPad = with(density) { SHADOW_PAD.roundToPx() }
     val gap = with(density) { 6.dp.roundToPx() }
     val provider = remember(point, opensLeft) {
         object : PopupPositionProvider {
             override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset =
-                menuPosition(point, windowSize, popupContentSize, shadowPad, gap)
+                menuPosition(point, opensLeft, windowSize, popupContentSize, shadowPad, gap)
         }
     }
     val origin = TransformOrigin(if (opensLeft) 1f else 0f, 0.5f)

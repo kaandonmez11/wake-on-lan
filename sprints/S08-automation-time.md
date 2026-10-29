@@ -153,5 +153,7 @@ _2026-10-30 · Claude_
 - Parmak kalkınca yukarı kayıyordu: menü kartın ortasına bağlıydı, kartın 0.96 → 1 basma yayı onu oynatıyordu. Artık uzun basma anındaki ekran noktasına sabit (`TouchAnchor`).
 - Konum hesabı saf fonksiyon (`menuPosition`) ve testli (Robolectric popup'ı kendi penceresinde ölçtüğü için gerçek yerleşim orada ölçülemiyor). 277/277.
 
+**Tur 4:** menü testleri geçti. Kaan'ın UX notu: sağ el başparmağıyla ekranın solundaki kartın sağına basılıyor. Bu yüzden karar ekranın değil **kartın** ortasına göre veriliyor (kartın sağ yarısı → parmağın soluna).
+
 ### Cihaz testi
-_(Kaan)_
+✅ 2026-10-30, Kaan: #1–3, 5–8, 10, 11 ve tüm düzeltme turları geçti. #4 (Kapat) ve #9 (telefonu yeniden başlatma) denenmedi; Kaan diğerlerine dayanarak geçti saydı.

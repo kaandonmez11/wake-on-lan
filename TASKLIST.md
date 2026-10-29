@@ -12,7 +12,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S05 | 5 | StatusEngine + koordinatörler | ✅ |
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ✅ |
 | S07 | 7 | Cihaz paneli + tarama | ✅ |
-| S08 | 8a | Otomasyon 1: zaman tetikli | ☐ |
+| S08 | 8a | Otomasyon 1: zaman tetikli | ✅ |
 | S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ☐ |
 | S10 | 9 | Ayarlar | ☐ |
 | S11 | 10 | Tam ekran kapılar + onboarding | ☐ |
@@ -125,7 +125,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] ScheduleEditorSheet (TIME)
 - [x] Debug › Zamanlayıcı sekmesi
 - [x] Testler yeşil · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)** (4 tur; bildirim ayarı, bağlam menüleri, sekmeye göre + eklendi)
 
 ## S09 — Otomasyon 2
 - [ ] Retry zinciri (K13) + attemptsJson + NO_WIFI

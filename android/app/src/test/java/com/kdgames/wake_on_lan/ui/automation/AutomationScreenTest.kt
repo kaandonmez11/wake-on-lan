@@ -94,12 +94,13 @@ class AutomationScreenTest {
     }
 
     @Test
-    fun `menu konumu - sagda basilinca parmagin solunda, solda basilinca saginda, ekrana sigar`() {
+    fun `menu konumu - kartin saginda basilinca parmagin solunda, solunda basilinca saginda, ekrana sigar`() {
         val window = androidx.compose.ui.unit.IntSize(1080, 2400)
         val content = androidx.compose.ui.unit.IntSize(400, 200) // gölge payı 48 px dahil
         val pad = 48
         val gap = 18
-        fun at(x: Float, y: Float) = com.kdgames.wake_on_lan.ui.components.menuPosition(androidx.compose.ui.geometry.Offset(x, y), window, content, pad, gap)
+        fun at(x: Float, y: Float, opensLeft: Boolean = x > 540f) =
+            com.kdgames.wake_on_lan.ui.components.menuPosition(androidx.compose.ui.geometry.Offset(x, y), opensLeft, window, content, pad, gap)
         // Sağda (x=900): görünen panelin sağ kenarı = x + 400 - 48 = parmak - gap.
         val r = at(900f, 1000f)
         assertEquals(900 - gap, r.x + content.width - pad)
@@ -107,6 +108,11 @@ class AutomationScreenTest {
         // Solda (x=150): görünen sol kenar = parmak + gap.
         val l = at(150f, 1000f)
         assertEquals(150 + gap, l.x + pad)
+        // Ekranın solundaki kartın sağ yarısı (x=450 < ekran ortası): yine parmağın soluna.
+        val leftCardRightHalf = at(450f, 1000f, opensLeft = true)
+        assertEquals(450 - gap, leftCardRightHalf.x + content.width - pad)
+        // Ekranın sağındaki kartın sol yarısı (x=600): parmağın sağına.
+        assertEquals(600 + gap, at(600f, 1000f, opensLeft = false).x + pad)
         // Ekran kenarında taşmaz.
         assertEquals(0, at(150f, 20f).y)
         assertEquals(2400 - 200, at(150f, 2390f).y)
