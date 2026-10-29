@@ -141,6 +141,10 @@ class DeviceRepository @Inject constructor(
     /** Agent/ağ katmanından gelen alan güncellemeleri (IP değişimi, hostname, agent eşleşmesi…). */
     suspend fun updateDevice(device: Device) = devices.update(device)
 
+    /** MAC başka bir cihazda kayıtlı mı (unique index; otomatik doldurmada çakışmayı önler). */
+    suspend fun macInUse(mac: String, exceptId: Long): Boolean =
+        devices.findByMac(mac)?.let { it.id != exceptId } ?: false
+
     /** Cihazı, denemelerini, zamanlayıcılarını (cascade) ve agent anahtarını siler. */
     suspend fun delete(id: Long) {
         val device = devices.getById(id) ?: return

@@ -1,13 +1,15 @@
 package com.kdgames.wake_on_lan.data.db
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
     entities = [Device::class, WakeAttempt::class, Schedule::class, ScheduleRun::class, DeviceStateCache::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)], // S05: Device.sleepHibernates (K23)
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

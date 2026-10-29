@@ -9,7 +9,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S02 | 2 | Veri katmanı | ✅ |
 | S03 | 3 | Ağ çekirdeği | ✅ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ✅ |
-| S05 | 5 | StatusEngine + koordinatörler | ☐ |
+| S05 | 5 | StatusEngine + koordinatörler | 🧪 cihaz testi bekliyor |
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ☐ |
 | S07 | 7 | Cihaz paneli + tarama | ☐ |
 | S08 | 8a | Otomasyon 1: zaman tetikli | ☐ |
@@ -84,14 +84,14 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)** (PC + telefon) — 8a–8c (K22) tutmadı, K23 ile kapatıldı
 
 ## S05 — StatusEngine + koordinatörler
-- [ ] Domain modelleri (K9 dahil)
-- [ ] StatusEngine (kurallar 1–6, K8, tur sıklıkları, yaşam döngüsü)
-- [ ] DeviceStateCache yazma/okuma (K7)
-- [ ] WakeCoordinator
-- [ ] PowerCoordinator (K12)
-- [ ] IP yeniden çözümleme + agent bağlantı denemesi + MAC doldurma
-- [ ] Debug › Durum sekmesi
-- [ ] Domain testleri yeşil · rapor · commit
+- [x] Domain modelleri (K9 dahil)
+- [x] StatusEngine (kurallar 1–6, K8, tur sıklıkları, yaşam döngüsü)
+- [x] DeviceStateCache yazma/okuma (K7)
+- [x] WakeCoordinator
+- [x] PowerCoordinator (K12)
+- [x] IP yeniden çözümleme + agent bağlantı denemesi + MAC doldurma
+- [x] Debug › Durum sekmesi
+- [x] Domain testleri yeşil · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S06 — Cihazlar ekranı

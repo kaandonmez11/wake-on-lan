@@ -35,6 +35,8 @@ android {
     sourceSets {
         getByName("debug") {
             assets.directories.add(protocolDir.asFile.path)
+            // Room göç testleri (MigrationTestHelper, Robolectric) şema JSON'larını debug asset'inden okur.
+            assets.directories.add("$projectDir/schemas")
         }
     }
 
@@ -76,6 +78,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.process)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)

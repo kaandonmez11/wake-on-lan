@@ -22,6 +22,11 @@ import androidx.compose.ui.Modifier
 import com.kdgames.wake_on_lan.data.crypto.KeyVault
 import com.kdgames.wake_on_lan.data.prefs.SettingsStore
 import com.kdgames.wake_on_lan.data.repo.DeviceRepository
+import com.kdgames.wake_on_lan.domain.DomainEvents
+import com.kdgames.wake_on_lan.domain.agent.AgentLinker
+import com.kdgames.wake_on_lan.domain.power.PowerCoordinator
+import com.kdgames.wake_on_lan.domain.status.StatusEngine
+import com.kdgames.wake_on_lan.domain.wake.WakeCoordinator
 import com.kdgames.wake_on_lan.net.NetworkMonitor
 import com.kdgames.wake_on_lan.net.WolSender
 import com.kdgames.wake_on_lan.net.agent.AgentClient
@@ -46,11 +51,17 @@ class DebugActivity : ComponentActivity() {
     @Inject lateinit var icmpProbe: IcmpProbe
     @Inject lateinit var agentClient: AgentClient
     @Inject lateinit var netBiosProbe: NetBiosProbe
+    @Inject lateinit var statusEngine: StatusEngine
+    @Inject lateinit var wakeCoordinator: WakeCoordinator
+    @Inject lateinit var powerCoordinator: PowerCoordinator
+    @Inject lateinit var agentLinker: AgentLinker
+    @Inject lateinit var domainEvents: DomainEvents
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val deps = DebugDeps(deviceRepository, settingsStore, keyVault, networkMonitor, wolSender, tcpProbe, icmpProbe, agentClient, netBiosProbe)
+        val deps = DebugDeps(deviceRepository, settingsStore, keyVault, networkMonitor, wolSender, tcpProbe, icmpProbe, agentClient, netBiosProbe,
+            statusEngine, wakeCoordinator, powerCoordinator, agentLinker, domainEvents)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 DebugRoot(deps)
@@ -70,6 +81,11 @@ class DebugDeps(
     val icmp: IcmpProbe,
     val agent: AgentClient,
     val netBios: NetBiosProbe,
+    val engine: StatusEngine,
+    val wake: WakeCoordinator,
+    val power: PowerCoordinator,
+    val linker: AgentLinker,
+    val events: DomainEvents,
 )
 
 private enum class DebugTab(val title: String) {
@@ -78,6 +94,7 @@ private enum class DebugTab(val title: String) {
     Data("Veri"),
     Network("Ağ"),
     Agent("Agent"),
+    Status("Durum"),
 }
 
 @Composable
@@ -96,6 +113,7 @@ private fun DebugRoot(deps: DebugDeps) {
                 DebugTab.Data -> DataTab(deps.devices, deps.settings, deps.vault)
                 DebugTab.Network -> NetworkTab(deps.network, deps.wol, deps.tcp, deps.icmp)
                 DebugTab.Agent -> AgentTab(deps.agent, deps.netBios, deps.network, deps.settings, deps.vault)
+                DebugTab.Status -> StatusTab(deps.devices, deps.engine, deps.wake, deps.power, deps.linker, deps.events)
             }
         }
     }

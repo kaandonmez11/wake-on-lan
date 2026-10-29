@@ -99,6 +99,7 @@ fun DataTab(devices: DeviceRepository, settings: SettingsStore, vault: KeyVault)
                 ) { Text("Aynı MAC ile ekle") }
             }
             message?.let { (text, ok) -> Text(text, color = if (ok) Pass else Fail) }
+            RealDeviceForm(devices) { text, ok -> show(text, ok) }
         }
 
         items(list, key = { it.id }) { device -> DeviceRow(device, devices) { text, ok -> show(text, ok) } }
@@ -231,4 +232,37 @@ private fun sampleInput(existing: List<Device>): DeviceInput {
         iconKey = "pc",
         colorIndex = Random.nextInt(DevicePalette.entries.size),
     )
+}
+
+/** S05: gerçek PC'yi ad + IP + (isteğe bağlı) MAC ile ekle. MAC boş bırakılırsa PC açıkken otomatik dolar. */
+@Composable
+private fun RealDeviceForm(devices: DeviceRepository, onMessage: (String, Boolean) -> Unit) {
+    val scope = rememberCoroutineScope()
+    var name by remember { mutableStateOf("") }
+    var ip by remember { mutableStateOf("") }
+    var mac by remember { mutableStateOf("") }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Gerçek cihaz ekle", fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Ad") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = ip, onValueChange = { ip = it }, label = { Text("IP") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(value = mac, onValueChange = { mac = it }, label = { Text("MAC (boş olabilir)") }, singleLine = true, modifier = Modifier.weight(1f))
+            }
+            Button(onClick = {
+                scope.launch {
+                    when (val r = devices.add(DeviceInput(name, ip, mac.ifBlank { null }, iconKey = "pc", colorIndex = 0))) {
+                        is SaveResult.Saved -> {
+                            onMessage("Eklendi: ${name.trim()}", true)
+                            name = ""; ip = ""; mac = ""
+                        }
+                        is SaveResult.Invalid -> onMessage(r.errors.joinToString { it.message }, false)
+                    }
+                }
+            }) { Text("Ekle") }
+        }
+    }
 }

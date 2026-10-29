@@ -1,5 +1,6 @@
 package com.kdgames.wake_on_lan.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -37,6 +38,9 @@ data class Device(
     val agentKeyAlias: String? = null,
     val agentPort: Int = 40900,
     val hibernateAvailable: Boolean = false,
+    /** K23: agent'a göre bu PC'de SLEEP hazırda bekletme yapar (Modern Bekleme). */
+    @ColumnInfo(defaultValue = "0")
+    val sleepHibernates: Boolean = false,
     val shutdownMode: ShutdownMode = ShutdownMode.FORCE,
 ) {
     companion object {
