@@ -12,6 +12,17 @@ speaker
 photo_camera
 memory
 lightbulb
+# S07: ikon seçimi 2 katına (Kaan)
+computer
+monitor
+storage
+router
+smartphone
+tablet
+headphones
+watch
+videocam
+thermostat
 
 # Arayüz
 bolt

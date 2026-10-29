@@ -93,10 +93,12 @@ import com.kdgames.wake_on_lan.ui.theme.WolType
 import com.kdgames.wake_on_lan.ui.theme.cssLinearGradient
 import com.kdgames.wake_on_lan.ui.theme.motionSpec
 
-/** Spec 11.6 ikon anahtarları, 5×2 grid sırasıyla. */
+/** Spec 11.6 ikon anahtarları + S07'de Kaan'ın isteğiyle 10 ek; 5×4 grid sırasıyla. */
 val DeviceIcons = listOf(
-    "pc" to "PC", "laptop" to "Dizüstü", "nas" to "NAS", "tv" to "TV", "console" to "Konsol",
-    "printer" to "Yazıcı", "speaker" to "Hoparlör", "camera" to "Kamera", "chip" to "Kart", "bulb" to "Lamba",
+    "pc" to "PC", "laptop" to "Dizüstü", "computer" to "Bilgisayar", "monitor" to "Monitör", "server" to "Sunucu",
+    "nas" to "NAS", "router" to "Modem", "tv" to "TV", "console" to "Konsol", "phone" to "Telefon",
+    "tablet" to "Tablet", "printer" to "Yazıcı", "speaker" to "Hoparlör", "headphones" to "Kulaklık", "camera" to "Kamera",
+    "videocam" to "Güvenlik kamerası", "watch" to "Saat", "chip" to "Kart", "bulb" to "Lamba", "thermostat" to "Termostat",
 )
 
 /** Panelden ekrana olan çağrılar. */

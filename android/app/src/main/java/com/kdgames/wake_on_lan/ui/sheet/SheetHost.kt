@@ -21,6 +21,8 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -39,6 +41,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
@@ -182,7 +185,24 @@ fun SheetHost(
     }
 
     val shown by remember { derivedStateOf { motion.enter.value > 0.001f } }
-    if (!open && !shown) return
+    // Isınma: içerik uygulama açılışında görünmez olarak birkaç kare kurulur ve çizilir; ilk "+" basışında
+    // sınıf yükleme, ilk kompozisyon ve font hazırlığı panelin giriş animasyonunu takıltmasın (S07 cihaz testi).
+    var warmed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        repeat(WARMUP_FRAMES) { withFrameNanos { } }
+        warmed = true
+    }
+    if (!open && !shown) {
+        if (!warmed) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = 0.001f }
+                    .clearAndSetSemantics { },
+            ) { content(Modifier, bodyScroll) }
+        }
+        return
+    }
 
     val shape = RoundedCornerShape(topStart = WolDimens.CornerSheet, topEnd = WolDimens.CornerSheet)
     Box(Modifier.fillMaxSize()) {
@@ -220,6 +240,7 @@ fun SheetHost(
 }
 
 const val SHEET_HEIGHT_FRACTION = 0.84f
+private const val WARMUP_FRAMES = 3
 
 object SheetColors {
     val Surface = Color(0xFF15161D)

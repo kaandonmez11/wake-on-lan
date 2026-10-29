@@ -31,11 +31,12 @@ class DesignTokensTest {
     }
 
     @Test
-    fun `cihaz paleti 8 renk ve sirasi spec ile ayni`() {
-        assertEquals(8, DevicePalette.entries.size)
+    fun `cihaz paleti 16 renk, ilk 8 sirasi spec ile ayni`() {
+        assertEquals(16, DevicePalette.entries.size)
         assertEquals(Color(0xFF5EE7FF), DevicePalette.of(0).start)
         assertEquals(Color(0xFF9CA3AF), DevicePalette.of(7).end)
-        assertEquals(DevicePalette.Ice, DevicePalette.of(8))
+        assertEquals(DevicePalette.Lavender, DevicePalette.of(8))
+        assertEquals(DevicePalette.Ice, DevicePalette.of(16))
     }
 
     @Test

@@ -31,7 +31,17 @@ enum class DevicePalette(val title: String, val start: Color, val end: Color) {
     Pink("Pembe", Color(0xFFFF8AD8), Color(0xFF8B5CF6)),
     Ocean("Okyanus", Color(0xFF60A5FA), Color(0xFF22D3EE)),
     Coral("Mercan", Color(0xFFFF8F85), Color(0xFFFFB36B)),
-    Silver("Gümüş", Color(0xFFE5E7EB), Color(0xFF9CA3AF));
+    Silver("Gümüş", Color(0xFFE5E7EB), Color(0xFF9CA3AF)),
+
+    // S07: Kaan'ın isteğiyle 8 ek renk (sıra korunur: eski colorIndex'ler değişmez).
+    Lavender("Lavanta", Color(0xFFC4B5FD), Color(0xFF818CF8)),
+    Lime("Limon", Color(0xFFD9F99D), Color(0xFF4ADE80)),
+    Ruby("Yakut", Color(0xFFFDA4AF), Color(0xFFE11D48)),
+    Sky("Gök", Color(0xFF7DD3FC), Color(0xFF6366F1)),
+    Forest("Orman", Color(0xFF6EE7B7), Color(0xFF059669)),
+    Rose("Gül", Color(0xFFFBCFE8), Color(0xFFEC4899)),
+    Copper("Bakır", Color(0xFFFDBA74), Color(0xFFC2410C)),
+    Night("Gece", Color(0xFFA5B4FC), Color(0xFF4338CA));
 
     /** Açık cihaz kartı 145° gradient: mix(c1, #0B0B1A, %42) → mix(c2, #0B0B1A, %50). */
     val openCardStart: Color get() = lerp(start, WolColors.OnGradient, 0.42f)

@@ -46,6 +46,16 @@ fun iconSymbol(key: String): String = when (key) {
     "camera" -> Sym.photo_camera
     "chip" -> Sym.memory
     "bulb" -> Sym.lightbulb
+    "computer" -> Sym.computer
+    "monitor" -> Sym.monitor
+    "server" -> Sym.storage
+    "router" -> Sym.router
+    "phone" -> Sym.smartphone
+    "tablet" -> Sym.tablet
+    "headphones" -> Sym.headphones
+    "watch" -> Sym.watch
+    "videocam" -> Sym.videocam
+    "thermostat" -> Sym.thermostat
     else -> Sym.desktop_windows
 }
 

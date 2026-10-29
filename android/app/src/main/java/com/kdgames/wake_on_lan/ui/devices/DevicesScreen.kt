@@ -168,7 +168,7 @@ fun DevicesScreen(
                 }
             } else {
                 item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
-                    EmptyState(onAdd, Modifier.animateItem(fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion), fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion)))
+                    EmptyState(Modifier.animateItem(fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion), fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion)))
                 }
             }
             items(state.devices, key = { it.id }) { ui ->
@@ -354,22 +354,15 @@ private fun SettingsBubble(onClick: () -> Unit) {
 }
 
 @Composable
-private fun EmptyState(onAdd: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyState(modifier: Modifier = Modifier) {
     GlassSurface(shape = RoundedCornerShape(WolDimens.CornerHero), modifier = modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             SymbolIcon(Sym.desktop_windows, contentDescription = null, size = 40.dp, tint = WolColors.TextSecondary)
             Spacer(Modifier.height(12.dp))
             Text("Henüz cihaz yok", style = WolType.CardName, color = WolColors.TextPrimary)
             Spacer(Modifier.height(4.dp))
-            Text("Uyandırmak istediğin PC'yi ekle", style = WolType.BodySmall, color = WolColors.TextTertiary)
-            Spacer(Modifier.height(16.dp))
-            GlassSurface(shape = RoundedCornerShape(50), modifier = Modifier.pressable(onClick = onAdd, onClickLabel = "Cihaz ekle")) {
-                Row(Modifier.padding(horizontal = 18.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    SymbolIcon(Sym.add, contentDescription = null, size = 18.dp)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Cihaz ekle", style = WolType.BodyLarge, color = WolColors.TextPrimary)
-                }
-            }
+            // Ayrı buton yok: sağ alttaki + zaten ekliyor (S07 cihaz testi, Kaan).
+            Text("Sağ alttaki + ile uyandırmak istediğin PC'yi ekle", style = WolType.BodySmall, color = WolColors.TextTertiary, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }

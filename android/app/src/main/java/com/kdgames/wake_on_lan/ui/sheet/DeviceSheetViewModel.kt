@@ -18,6 +18,7 @@ import com.kdgames.wake_on_lan.net.scan.ScanEntry
 import com.kdgames.wake_on_lan.net.scan.ScanSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
@@ -238,7 +240,9 @@ class DeviceSheetViewModel @Inject constructor(
         val current = session
         _state.update { it.copy(scan = it.scan.copy(running = true)) }
         scanJob = viewModelScope.launch {
+            // 253 host'luk boru hattı ve birleştirme ana iş parçacığında koşmasın (S07: panel ilk açılışta takılıyordu).
             scanner.scan(wifi.state.value) { devices }
+                .flowOn(Dispatchers.Default)
                 .conflate()
                 .catch { e -> if (e is CancellationException) throw e else emit(_state.value.scan.copy(running = false)) }
                 .collect { snap -> if (current == session) _state.update { it.copy(scan = snap) } }
