@@ -1,6 +1,6 @@
 # S04 — Windows agent v1 + AgentClient + NetBIOS
 
-**Spec:** 7.3 (S1, S2), 8 (tamamı), 13, 16 (C#), 17 faz 4 · **Kararlar:** K3, K4, K5, K6, K16, K19
+**Spec:** 7.3 (S1, S2), 8 (tamamı), 13, 16 (C#), 17 faz 4 · **Kararlar:** K3, K4, K5, K6, K16, K19, K22
 
 ## Amaç
 PC'de servis olarak çalışan agent kurulur. Telefon agent'ı bulur, eşleşir, imzalı STATUS alır ve 5 güç komutunu gönderir. NetBIOS (S2) hostname + MAC getirir.
@@ -11,6 +11,7 @@ PC'de servis olarak çalışan agent kurulur. Telefon agent'ı bulur, eşleşir,
 - `GetPwrCapabilities` ile hibernate tespiti.
 - Firewall kuralının (`remoteip=LocalSubnet`) programatik eklenmesi (netsh veya COM `INetFwPolicy2`).
 - Self-contained tek dosya `win-x64` yayın komutu (.NET 10).
+- **K22:** Modern Bekleme'de (S0ix) servis UDP paketi alabiliyor mu; Session 0'dan konsol oturumunda yardımcı süreç başlatma (`WTSQueryUserToken` + `CreateProcessAsUser`) ve `SendInput`'un bekleme modundan çıkarması; `GUID_CONSOLE_DISPLAY_STATE` bildirimi.
 
 ## Görevler — agent (C#)
 1. **WolAgent** Worker Service (`UseWindowsService`), tek exe; `Program` CLI ayrıştırma: `install`, `uninstall [--purge]`, `reset`, `status`, (argümansız = servis modu).
@@ -21,6 +22,7 @@ PC'de servis olarak çalışan agent kurulur. Telefon agent'ı bulur, eşleşir,
 6. **Komut yürütücü** (`ICommandExecutor` arayüzü): LOCK, SLEEP, HIBERNATE (`UNSUPPORTED` kontrolü), SHUTDOWN, RESTART (force/graceful); ACK'ten 300 ms sonra uygula; aynı anda tek komut → `BUSY`.
 7. **NIC listesi:** MAC, ad, kablolu mu, IPv4.
 8. **install/uninstall/reset/status** bölüm 13.2'deki gibi (recovery 3× 5 sn, açıklama, Automatic, firewall kuralı, güncelleme modunda anahtarları koruma).
+6b. **K22 — `SCREEN_ON` + `display`:** yeni komut `SCREEN_ON` (imzalı CMD, ACK) → konsol oturumunda tek fare hareketi; `STATUS_OK`'a `display: on|off`. PROTOCOL.md + VectorGen + `vectors.json` güncellenir, iki tarafın vektör testleri genişler.
 9. **xUnit:** vektörler, nonce tek kullanım + 10 sn `NONCE_EXPIRED`, `BAD_SIG`, TOFU (ilk kabul, ikinci `PAIR_DENIED`, reset sonrası kabul), kaynak IP filtresi, sahte yürütücüyle 300 ms gecikme + `BUSY`, rid önbelleği (aynı rid → aynı yanıt, komut bir kez).
 10. **Yayın:** `dotnet publish` profili → `agent/publish/WolAgent.exe`; README'de kurulum adımları.
 
@@ -33,6 +35,7 @@ PC'de servis olarak çalışan agent kurulur. Telefon agent'ı bulur, eşleşir,
     - "Eşleş" → sonuç (Eşleşti ✓ / Başka telefona eşli / proof hatası);
     - "Durum" → STATUS_OK (uptime, hostname, imza ✓);
     - 5 komut butonu (bu ekranda **basılı tut değil**, onay iletişim kutulu) + Zorla/Nazik anahtarı; sonuç (ACK ✓ / hata kodu);
+    - **"Ekranı aç" (`SCREEN_ON`, K22)** butonu; "Durum" sonucunda `display` (açık/kapalı);
     - "NetBIOS" → hostname + MAC + ms.
 
 ## Otomatik testler (Claude koşturur)
@@ -51,7 +54,10 @@ Hazırlık: `agent/publish/WolAgent.exe`'yi PC'ye kopyala.
 | 5 | "Eşleş" | "Eşleşti ✓". `wolagent status` artık telefonun adını/eşleşmiş gösterir. |
 | 6 | "Durum" | Uptime ve hostname gelir, "imza ✓". |
 | 7 | "Kilitle" | PC kilit ekranına düşer; telefonda "ACK ✓". |
-| 8 | "Uyku" | PC uykuya geçer (fanlar durur/ışık yanıp söner). Sonra Ağ sekmesinden uyandır. |
+| 8 | "Uyku" | PC uykuya (Modern Bekleme) geçer, ekran kapanır. Telefonda "ACK ✓". |
+| 8a | PC uykudayken (30 sn bekle) "Durum" | **K22 denemesi:** cevap gelir ve `display: kapalı` görünür. Gelmezse bana yaz (bu yol kapanır). |
+| 8b | PC uykudayken "Ekranı aç" | PC uykudan çıkar, kilit ekranı görünür; "Durum" artık `display: açık`. |
+| 8c | PC'yi Başlat › Uyku ile uyut, 2 dk bekle → "Durum", sonra "Ekranı aç" | 8a ve 8b'deki gibi (uzun beklemede de agent ulaşılabilir). |
 | 9 | "Hazırda" | Hibernate açıksa PC hazırda bekletmeye geçer; kapalıysa telefonda `UNSUPPORTED` mesajı. |
 | 10 | PC'de Not Defteri'ne kaydetmeden yazı yaz → **Nazik** + "Kapat" | Windows kapanmayı bekletir/engeller ("Kaydet?" ekranı); PC açık kalır. |
 | 11 | Aynı durumda **Zorla** + "Kapat" | PC kaydetmeden kapanır. |
@@ -63,7 +69,7 @@ Hazırlık: `agent/publish/WolAgent.exe`'yi PC'ye kopyala.
 | 17 | `wolagent uninstall --purge` | Servis, firewall kuralı, `Program Files\WolAgent` ve `ProgramData\WolAgent` silinmiş. Sonra tekrar `install` + eşleş (sonraki sprintler için). |
 
 ## Bitti tanımı
-İki tarafın testleri yeşil; doğrulanacaklar raporlandı; cihaz testi #1–17 geçti.
+İki tarafın testleri yeşil; doğrulanacaklar raporlandı; cihaz testi #1–17 geçti (8a–8c K22 denemesi: sonucu ne olursa olsun raporlanır).
 
 ## Sprint sonu raporu
 _(Claude doldurur)_

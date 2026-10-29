@@ -73,6 +73,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [ ] Agent: Worker + CLI (install/uninstall/reset/status)
 - [ ] Config (DPAPI, ACL) + log
 - [ ] UDP sunucu, kaynak filtresi, tüm mesajlar, rid önbelleği (K4)
+- [ ] K22: `SCREEN_ON` komutu + `STATUS.display`, Modern Bekleme'de agent denemesi
 - [ ] Komut yürütücü (5 komut, 300 ms, BUSY, UNSUPPORTED)
 - [ ] Firewall kuralı, servis recovery, güncelleme modu
 - [ ] xUnit testleri + `dotnet publish` tek exe
