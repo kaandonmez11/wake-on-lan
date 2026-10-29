@@ -11,7 +11,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ✅ |
 | S05 | 5 | StatusEngine + koordinatörler | ✅ |
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ✅ |
-| S07 | 7 | Cihaz paneli + tarama | ☐ |
+| S07 | 7 | Cihaz paneli + tarama | ✅ |
 | S08 | 8a | Otomasyon 1: zaman tetikli | ☐ |
 | S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ☐ |
 | S10 | 9 | Ayarlar | ☐ |
@@ -114,7 +114,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Kaydet akışı + otomatik eşleşme
 - [x] "+", boş durum, kalem bağlantıları
 - [x] Testler yeşil · animasyon denetimi · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)** (3 tur; K25 agent tanıma + UNPAIR eklendi)
 
 ## S08 — Otomasyon 1
 - [ ] ScheduleEngine (saf) + metinler

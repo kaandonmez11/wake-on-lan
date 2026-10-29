@@ -254,19 +254,19 @@ private fun PreviewCard(state: SheetUiState) {
     val edge by animateColorAsState(palette.start, spec, label = "previewEdge")
     val b1 by animateColorAsState(palette.start, spec, label = "previewB1")
     val b2 by animateColorAsState(palette.end, spec, label = "previewB2")
-    val shape = RoundedCornerShape(WolDimens.CornerCard)
+    // Kompakt (S07 cihaz testi: "aşağı doğru uzun"): içerik kadar yüksek, ~72 dp.
+    val shape = RoundedCornerShape(24.dp)
     Box(
         Modifier
             .fillMaxWidth()
-            .height(116.dp)
             .clip(shape)
             .drawBehind { drawRect(cssLinearGradient(145f, size, 0f to c1, 1f to c2)) }
             .border(1.dp, edge.copy(alpha = 0.6f), shape)
-            .padding(16.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(52.dp).clip(CircleShape).drawBehind { drawRect(Brush.linearGradient(listOf(b1, b2))) },
+                Modifier.size(44.dp).clip(CircleShape).drawBehind { drawRect(Brush.linearGradient(listOf(b1, b2))) },
                 contentAlignment = Alignment.Center,
             ) {
                 AnimatedContent(
@@ -276,9 +276,9 @@ private fun PreviewCard(state: SheetUiState) {
                             fadeOut(motionSpec(SpringToken.Snappy, reduceMotion))
                     },
                     label = "previewIcon",
-                ) { k -> SymbolIcon(iconSymbol(k), contentDescription = null, size = 26.dp, tint = WolColors.OnGradient, filled = true) }
+                ) { k -> SymbolIcon(iconSymbol(k), contentDescription = null, size = 22.dp, tint = WolColors.OnGradient, filled = true) }
             }
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     state.form.name.trim().ifEmpty { "Yeni cihaz" },
@@ -288,7 +288,7 @@ private fun PreviewCard(state: SheetUiState) {
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.testTag("preview_name"),
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(state.form.ip.trim().ifEmpty { "IP yok" }, style = WolType.Technical, color = WolColors.TextOnCard, maxLines = 1)
                     Text("  ·  ", style = WolType.BodySmall, color = WolColors.TextOnCard)

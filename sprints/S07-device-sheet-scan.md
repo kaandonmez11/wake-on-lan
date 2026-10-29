@@ -129,5 +129,7 @@ _2026-10-29 · Claude_
   - Cihaz silinince `UNPAIR` (Debug › Veri'deki silme de). PC kapalıysa bekleyen UNPAIR, PC görülünce sessizce gönderiliyor.
   - Agent 73/73, Android 246/246.
 
+**Tur 3:** İlk "+" akıcı. K25 testleri geçti: yeniden kurulumda reset'siz tanıma, açıkken silince UNPAIR, kapalıyken silip açınca sessiz UNPAIR, kapalıyken silip yeniden ekleyince eşleşmenin korunması. Arkadaş telefonu testi (10) yapılamadı, Kaan geçti saydı. Son not: önizleme kartı "aşağı doğru uzun" → 116 dp sabit yükseklik yerine içerik kadar (~72 dp, köşe 24, balon 44); ekleme ve düzenleme aynı kartı kullanıyor.
+
 ### Cihaz testi
-_(Kaan)_
+✅ 2026-10-30, Kaan: #1–12 ve K25 testleri geçti (3 tur).
