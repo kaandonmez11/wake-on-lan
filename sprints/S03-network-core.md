@@ -124,9 +124,13 @@ _2026-10-29 · Claude_
 - [x] Refused = canlı, timeout = yanıt yok testte → #3, #8.
 - [x] Wi-Fi yokken `NoWifiException` → Debug "Wi-Fi yok" → #9.
 - [x] Ping uygulama UID'siyle çalışıyor, ICMP yerel ağ iznine bağlı (telefonda) → #4.
-- [ ] Gerçek uyandırma, mobil veri, SSID gizleme sende → #1, #2, #5–#7.
+- [x] **Kaan: #1–#4, #6–#9 geçti** (2026-10-29). #7 kapalı PC ile yapıldı (mobil veri açıkken uyandı).
+- [~] **#5 (uykudan uyandırma) PC kaynaklı olarak olmadı.** Kaan'ın PC'si yalnız **Modern Bekleme (S0 Low Power Idle, Network Connected)** destekliyor; S3 yok (`powercfg /a`).
+  - Uykuda ağ bağlı kaldığı için TCP probe ve Ping "canlı" dedi; magic packet S0ix'ten uyandırmadı. Kaan'ın eski WoL uygulaması da uyandıramadı.
+  - Uygulamanın paketi doğru: kapalı PC'yi açıyor (#6, #7).
 
 ### Açık kalanlar
+- **Modern Bekleme (S05/S06'ya not):** Böyle bir PC uykudayken S3/S4'e cevap verebilir. Bu yüzden agent'sız "Açık" görünebilir. Agent'lı cihazda S1 ve `lastAction=SLEEP` (K9) ile ayrım S05'te ele alınacak. Uyandırılabilir "uyku" için Hazırda Beklet önerilir.
 - Tam ekran `NoWifiScreen` / `NoPermissionScreen` ve onboarding: S11.
 - `MulticastLockHolder` tarama ile birlikte S07'de kullanılacak.
 - PendingIntent tabanlı Wi-Fi callback'inin One UI 9 güvenilirliği: S09 ("eve gelince").

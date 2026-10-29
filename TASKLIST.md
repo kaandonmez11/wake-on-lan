@@ -7,7 +7,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S00 | 0 | Monorepo, protokol, vektörler, saf kripto | ✅ |
 | S01 | 1 | Android iskeleti + tasarım sistemi | ✅ |
 | S02 | 2 | Veri katmanı | ✅ |
-| S03 | 3 | Ağ çekirdeği | 🧪 cihaz testi bekliyor |
+| S03 | 3 | Ağ çekirdeği | ✅ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ☐ |
 | S05 | 5 | StatusEngine + koordinatörler | ☐ |
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ☐ |
@@ -67,7 +67,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Yerel ağ + konum izin akışı
 - [x] Debug › Ağ sekmesi (Wi-Fi kartı, Uyandır, probe'lar)
 - [x] Doğrulanacaklar raporu · testler yeşil · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)** (#5 PC'nin Modern Bekleme'si yüzünden olmadı, uygulama kaynaklı değil)
 
 ## S04 — Agent + AgentClient
 - [ ] Agent: Worker + CLI (install/uninstall/reset/status)
