@@ -7,7 +7,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S00 | 0 | Monorepo, protokol, vektörler, saf kripto | ✅ |
 | S01 | 1 | Android iskeleti + tasarım sistemi | ✅ |
 | S02 | 2 | Veri katmanı | ✅ |
-| S03 | 3 | Ağ çekirdeği | ☐ |
+| S03 | 3 | Ağ çekirdeği | 🧪 cihaz testi bekliyor |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ☐ |
 | S05 | 5 | StatusEngine + koordinatörler | ☐ |
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ☐ |
@@ -59,14 +59,14 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)**
 
 ## S03 — Ağ çekirdeği
-- [ ] Manifest izinleri
-- [ ] NetworkMonitor + WifiState
-- [ ] Wi-Fi'a bind eden SocketFactory, MulticastLock
-- [ ] WolSender (0/2/5 sn, broadcast hedefleri)
-- [ ] TcpProbe (S3), IcmpProbe (S4)
-- [ ] Yerel ağ + konum izin akışı
-- [ ] Debug › Ağ sekmesi (Wi-Fi kartı, Uyandır, probe'lar)
-- [ ] Doğrulanacaklar raporu · testler yeşil · commit
+- [x] Manifest izinleri
+- [x] NetworkMonitor + WifiState
+- [x] Wi-Fi'a bind eden SocketFactory, MulticastLock
+- [x] WolSender (0/2/5 sn, broadcast hedefleri)
+- [x] TcpProbe (S3), IcmpProbe (S4)
+- [x] Yerel ağ + konum izin akışı
+- [x] Debug › Ağ sekmesi (Wi-Fi kartı, Uyandır, probe'lar)
+- [x] Doğrulanacaklar raporu · testler yeşil · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S04 — Agent + AgentClient

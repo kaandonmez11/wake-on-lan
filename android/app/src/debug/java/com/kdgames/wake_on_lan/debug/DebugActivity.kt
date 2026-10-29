@@ -22,6 +22,10 @@ import androidx.compose.ui.Modifier
 import com.kdgames.wake_on_lan.data.crypto.KeyVault
 import com.kdgames.wake_on_lan.data.prefs.SettingsStore
 import com.kdgames.wake_on_lan.data.repo.DeviceRepository
+import com.kdgames.wake_on_lan.net.NetworkMonitor
+import com.kdgames.wake_on_lan.net.WolSender
+import com.kdgames.wake_on_lan.net.probe.IcmpProbe
+import com.kdgames.wake_on_lan.net.probe.TcpProbe
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -34,11 +38,15 @@ class DebugActivity : ComponentActivity() {
     @Inject lateinit var deviceRepository: DeviceRepository
     @Inject lateinit var settingsStore: SettingsStore
     @Inject lateinit var keyVault: KeyVault
+    @Inject lateinit var networkMonitor: NetworkMonitor
+    @Inject lateinit var wolSender: WolSender
+    @Inject lateinit var tcpProbe: TcpProbe
+    @Inject lateinit var icmpProbe: IcmpProbe
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val deps = DebugDeps(deviceRepository, settingsStore, keyVault)
+        val deps = DebugDeps(deviceRepository, settingsStore, keyVault, networkMonitor, wolSender, tcpProbe, icmpProbe)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 DebugRoot(deps)
@@ -52,12 +60,17 @@ class DebugDeps(
     val devices: DeviceRepository,
     val settings: SettingsStore,
     val vault: KeyVault,
+    val network: NetworkMonitor,
+    val wol: WolSender,
+    val tcp: TcpProbe,
+    val icmp: IcmpProbe,
 )
 
 private enum class DebugTab(val title: String) {
     Vectors("Vektörler"),
     Design("Tasarım"),
     Data("Veri"),
+    Network("Ağ"),
 }
 
 @Composable
@@ -74,6 +87,7 @@ private fun DebugRoot(deps: DebugDeps) {
                 DebugTab.Vectors -> VectorsTab()
                 DebugTab.Design -> DesignTab()
                 DebugTab.Data -> DataTab(deps.devices, deps.settings, deps.vault)
+                DebugTab.Network -> NetworkTab(deps.network, deps.wol, deps.tcp, deps.icmp)
             }
         }
     }

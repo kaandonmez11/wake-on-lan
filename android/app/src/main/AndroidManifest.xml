@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Haptikler (spec 12.7, 14). Diğer izinler ilgili sprintlerde eklenir. -->
+    <!-- Haptikler (spec 12.7, 14). -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Ağ (spec 7, 14). Bildirim, alarm ve açılış izinleri ilgili sprintlerde eklenir. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Android 17: yerel ağ erişimi runtime izni (targetSdk 37). -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <!-- SSID okumak için (Wi-Fi pill, "eve gelince"). Kesin konum yaklaşıkla birlikte istenir. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".WolApp"

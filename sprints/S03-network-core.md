@@ -50,4 +50,83 @@ Hazırlık: PC'de BIOS WoL açık, ağ kartında "Magic Packet ile uyandır" aç
 Testler yeşil; doğrulanacaklar raporlandı; cihaz testi #1–9 geçti (özellikle #5–#7).
 
 ## Sprint sonu raporu
-_(Claude doldurur)_
+_2026-10-29 · Claude_
+
+### Doğrulananlar
+- **`ACCESS_LOCAL_NETWORK`** (developer.android.com › local-network-permission, Android 17 davranış değişiklikleri; SDK 37 `android.jar`'da sabit mevcut):
+  - Tam ad `android.permission.ACCESS_LOCAL_NETWORK`. Runtime izin, **NEARBY_DEVICES** grubunda.
+  - Yalnız targetSdk ≥ 37'de zorunlu (bizde 37).
+  - Kapsamı: giden/gelen TCP, UDP unicast/multicast/broadcast, `NsdManager` dahil tüm ağ API'leri, `.local` çözümleme.
+  - İzin yokken TCP genelde zaman aşımına düşer, UDP `EPERM` verir.
+  - İstek: tek runtime diyaloğu; aynı gruptaki başka izin önceden verildiyse yeniden sorulmaz.
+- **ICMP de bu izne bağlı** (telefonda doğrulandı; doküman ICMP'den hiç bahsetmiyor):
+  - Uygulama UID'siyle (`run-as`) izin yokken `ping: sendmsg: Operation not permitted`.
+  - İzin geçici verilince `time=7.67 ms`; ardından izin eski hâline döndürüldü.
+- **`/system/bin/ping`** uygulama sürecinden çalıştırılabiliyor (Android 17 / One UI, SM-S921B) → S4 açık.
+  - `available=false` yalnız ping ikilisi yoksa ya da ICMP soketi açılamıyorsa.
+- **SSID:**
+  - `NetworkCallback(FLAG_INCLUDE_LOCATION_INFO)` + `ACCESS_FINE_LOCATION` (Android 12+ yaklaşık konumla birlikte istenir) + konum servisi açık olmalı.
+  - Biri eksikse Android `<unknown ssid>` döndürür → `ssid=null` → UI "Wi-Fi" yazar; RSSI, hız ve IP gelmeye devam eder.
+  - Bu kısım resmi sayfadan birebir okunamadı (referans sayfası index olarak geldi); bilinen platform davranışına göre uygulandı, cihaz testi #1/#2 doğrular.
+
+### Yapılanlar
+- **Manifest:** `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `ACCESS_LOCAL_NETWORK`, `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION`. `ManifestPermissionsTest` hepsini kontrol ediyor.
+- **`WifiState`** (spec 7.1 alanları) + saf `WifiState.from(...)`:
+  - SSID temizleme (tırnak, `<unknown ssid>`);
+  - sinyal seviyesini cihaz ölçeğinden 0–4'e çevirme;
+  - broadcast `BroadcastResolver` ile (/31, /32 → null).
+- **`NetworkMonitor`** (Hilt singleton, `StateFlow<WifiState>`, uygulama ömrü boyunca):
+  - `TRANSPORT_WIFI`, INTERNET yeteneği aranmıyor (internetsiz ev ağı da sayılır).
+  - `refresh()` callback'i yeniden kaydeder (izin/konum değişince SSID için).
+- **`SocketFactory` / `WifiSocketFactory`:** her UDP/TCP soketi `network.bindSocket` ile Wi-Fi'a bağlı. Wi-Fi yoksa `NoWifiException("Wi-Fi yok")`; mobil veriye düşülmez.
+- **`MulticastLockHolder`:** referans sayımlı `withLock { }` (S07 taraması kullanacak).
+- **`WolSender`:**
+  - hedefler subnet broadcast :9, :7 ve 255.255.255.255:9;
+  - turlar t=0/2/5 sn (başlangıca göre mutlak), tur başına sonuç ve hedef hatası;
+  - broadcast yoksa ya da Wi-Fi giderse `NoWifiException`.
+- **`TcpProbe` (S3):**
+  - paralel connect, bağlandı **veya** refused = canlı, 400 ms;
+  - ilk canlı portta bekleyen soketler kapatılıp hemen dönülüyor;
+  - "No route to host" canlı sayılmıyor.
+- **`IcmpProbe` (S4):**
+  - `/system/bin/ping -c 1 -W 1 <ip>`, 1000 ms; yalnız IPv4 argüman kabul;
+  - sonuç `Reply(ms)` / `NoReply(blocked?)` / `Unavailable`; `available` bayrağı.
+- **`NetPermissions`:** izin/konum servisi durumları ve istek dizileri. Tam ekran kapılar S11'de.
+- **Hilt `NetModule`:** `@IoDispatcher`, `@AppScope`, `Clock`, SocketFactory ve PingRunner bağlamaları.
+- **WoL Debug › Ağ sekmesi:**
+  - canlı Wi-Fi kartı: SSID / "Wi-Fi", sinyal 0–4 + dBm, Mbps, telefon IP/prefix, broadcast;
+  - izin satırları + "İzin iste"; konum servisi durumu;
+  - IP + MAC (son girilen hatırlanır), **Uyandır** (tur günlüğü t=0.00/2.00/5.00 sn);
+  - TCP probe, Ping.
+
+### Sapmalar / notlar
+- **Ping çıktısında `sendmsg: Operation not permitted`** (izin yok) S4'ü kalıcı kapatmıyor.
+  - Sonuç `NoReply(blocked=true)`; Debug'da "Engellendi (yerel ağ izni?)".
+  - İlk yazdığım hâli bunu "kullanılamıyor" sayardı; telefonda görülünce düzeltildi ve gerçek çıktıyla test eklendi.
+- **Ping süreci `bindSocket` ile Wi-Fi'a sabitlenemiyor** (ayrı süreç); varsayılan ağın yönlendirmesini kullanır.
+  - Wi-Fi bağlıyken LAN alt ağ rotası wlan0'dadır; mobil veri açıkken de normalde sorun olmaz.
+  - S4 zaten yalnız pozitif kanıt, tek başına "kapalı" kararı vermez. 7.1'deki "istisnasız" kuralın tek bilinen istisnası budur.
+- **İzin yokken WoL gönderimi** hedef başına `EPERM` hatası olarak günlüğe düşer, çökmez.
+
+### Otomatik test sonuçları
+- `./gradlew :app:testDebugUnitTest` → **142/142** yeşil (S03 ile +25). Yeniler (`NetCoreTest`):
+  - **WolSender** (sanal zaman): 0/2/5 sn × 3 hedef sırası, paket baytları, tur bildirimi, broadcast yok → hiç gönderim yok, Wi-Fi turlar arasında gidince hata, tek hedef hatası diğerlerini durdurmaz, geçersiz MAC.
+  - **TcpProbe** (sahte soket): refused = canlı, kabul = canlı + accepted, timeout = yanıt yok, EHOSTUNREACH = yanıt yok, ilk canlıda bekleyen connect'ler kapatılıp hızlı dönüş, Wi-Fi yok.
+  - **IcmpProbe:** başarılı çıktıdan ms, kayıp = yanıt yok, EPERM = engellendi (kullanılabilir kalır), soket açılamıyor = kullanılamaz, ping yok → `available=false` ve süreç bir daha açılmaz, argüman listesi, IPv4 dışı argüman reddi.
+  - **WifiState:** broadcast (/24, /22, /31, /32, IP yok), SSID temizleme, 0–4 ölçek, link hızı.
+  - **ManifestPermissionsTest:** 8 izin.
+- `assembleDebug` + `assembleRelease` yeşil.
+- Son derleme telefona kuruldu: WoL Debug açılıyor, `NetworkMonitor` callback'i kaydoluyor, crash log temiz.
+
+### Kontrol raporu — "baktım, tamam; sen de kontrol et"
+- [x] Tüm soketler `SocketFactory`'den geliyor; kodda `DatagramSocket()`/`Socket()` doğrudan açılan başka yer yok.
+- [x] 0/2/5 sn zamanlaması ve 3 hedef sanal zamanla testte doğrulandı → #5.
+- [x] Refused = canlı, timeout = yanıt yok testte → #3, #8.
+- [x] Wi-Fi yokken `NoWifiException` → Debug "Wi-Fi yok" → #9.
+- [x] Ping uygulama UID'siyle çalışıyor, ICMP yerel ağ iznine bağlı (telefonda) → #4.
+- [ ] Gerçek uyandırma, mobil veri, SSID gizleme sende → #1, #2, #5–#7.
+
+### Açık kalanlar
+- Tam ekran `NoWifiScreen` / `NoPermissionScreen` ve onboarding: S11.
+- `MulticastLockHolder` tarama ile birlikte S07'de kullanılacak.
+- PendingIntent tabanlı Wi-Fi callback'inin One UI 9 güvenilirliği: S09 ("eve gelince").

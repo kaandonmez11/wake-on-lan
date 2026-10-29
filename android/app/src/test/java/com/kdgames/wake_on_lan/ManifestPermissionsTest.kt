@@ -18,7 +18,16 @@ class ManifestPermissionsTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val info = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
         val requested = info.requestedPermissions.orEmpty().toSet()
-        listOf(android.Manifest.permission.VIBRATE).forEach {
+        listOf(
+            android.Manifest.permission.VIBRATE,
+            android.Manifest.permission.INTERNET,
+            android.Manifest.permission.ACCESS_NETWORK_STATE,
+            android.Manifest.permission.ACCESS_WIFI_STATE,
+            android.Manifest.permission.CHANGE_WIFI_MULTICAST_STATE,
+            android.Manifest.permission.ACCESS_LOCAL_NETWORK,
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+        ).forEach {
             assertTrue("$it manifestte yok", it in requested)
         }
     }
