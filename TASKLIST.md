@@ -10,7 +10,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S03 | 3 | Ağ çekirdeği | ✅ |
 | S04 | 4 | Windows agent + AgentClient + NetBIOS | ✅ |
 | S05 | 5 | StatusEngine + koordinatörler | ✅ |
-| S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | 🧪 cihaz testi bekliyor |
+| S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ✅ |
 | S07 | 7 | Cihaz paneli + tarama | ☐ |
 | S08 | 8a | Otomasyon 1: zaman tetikli | ☐ |
 | S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ☐ |
@@ -104,7 +104,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Cihaz kartları + sürekli efektler + shared-element + seçim halkası
 - [x] Boş durum, olay toast'ları, arka plan tonu
 - [x] Compose UI testleri yeşil · animasyon denetimi · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)** (6 tur düzeltmeyle)
 
 ## S07 — Cihaz paneli + tarama
 - [ ] NetworkScanner + MdnsResolver + ikon tahmini

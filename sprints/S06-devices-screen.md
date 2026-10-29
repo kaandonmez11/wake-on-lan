@@ -147,7 +147,7 @@ _2026-10-29 · Claude_
 - [x] İkon seti Kaan'ın Windows 11 menüsüyle eşleşti ve onaylandı; glifler repoda değil, derlemede üretiliyor → #1, #5.
 - [x] Basılı tut 1.5 / 0.8 sn, dokun = uyandır, Off'ta güç satırı yok, TalkBack onayı testte → #6–#11, #17.
 - [x] Animasyon maddeleri yukarıdaki listede tek tek işaretlendi → #3, #4, #9, #11, #13, #19.
-- [ ] Gerçek cihazda görünüm, akıcılık ve haptikler sende → #1–#19.
+- [x] **Kaan: cihaz testi geçti** (2026-10-29, 6 tur düzeltmeden sonra).
 
 ### Cihaz testi 1. tur düzeltmeleri (Kaan, 2026-10-29)
 - **Kapalı PC'de güç satırı görünmüyordu:** artık görünür ama pasif (yeni karar **K24**). Büyük kartın modu "uyanıyor / normal" olarak ikiye indi; PC açılıp kapanırken kartın boyutu değişmiyor.
