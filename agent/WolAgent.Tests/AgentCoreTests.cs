@@ -52,9 +52,10 @@ internal sealed class ListLog : IRequestLog
 }
 
 /// <summary>Testte telefon rolü: anahtar üretir, mesaj kurar, yanıt imzalarını doğrular.</summary>
-internal sealed class TestPhone(string phoneId = "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34")
+internal sealed class TestPhone(string phoneId = "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34", byte[]? privateKey = null)
 {
-    private readonly byte[] _priv = X25519Keys.GeneratePrivateKey();
+    private readonly byte[] _priv = privateKey ?? X25519Keys.GeneratePrivateKey();
+    public byte[] PrivateKey => _priv;
     private int _rid;
 
     public string PhoneId { get; } = phoneId;
@@ -206,6 +207,82 @@ public class AgentCoreTests
         var reply = Send(other.Hello("00000000000000ab"));
         Assert.Equal("PAIR_OK", T(reply));
         other.AcceptPairOk(reply!);
+    }
+
+    // --- K25: telefonu tanıma + UNPAIR ----------------------------------------------------------
+
+    [Fact]
+    public void K25_AyniTelefonYenidenKurulunca_TaninirVeAnahtarAyniKalir()
+    {
+        Pair();
+        var before = _config.Config.Pairing!;
+        // Uygulama silinip kuruldu: anahtarı unutan ama kalıcı kimliği aynı telefon.
+        var reinstalled = new TestPhone(_phone.PhoneId, _phone.PrivateKey);
+        var reply = Send(TestPhone.Msg("PAIR_HELLO", "00000000000000c1",
+            ("phoneId", reinstalled.PhoneId), ("phoneName", "Galaxy S24 Ultra"),
+            ("phonePub", Convert.ToBase64String(X25519Keys.PublicKey(reinstalled.PrivateKey)))));
+        Assert.Equal("PAIR_OK", T(reply));
+        reinstalled.AcceptPairOk(reply!);
+        Assert.Equal(_phone.Key, reinstalled.Key);
+        Assert.Equal(before.SessionKey, _config.Config.Pairing!.SessionKey);
+        Assert.Equal(before.PairedAt, _config.Config.Pairing!.PairedAt);
+        Assert.Equal("Galaxy S24 Ultra", _config.Config.Pairing!.PhoneName);
+        // Yeni kurulumdaki telefon hemen komut verebilir.
+        var nonce = Send(reinstalled.Challenge("00000000000000c3"))!["nonce"]!.GetValue<string>();
+        Assert.Equal("STATUS_OK", T(Send(reinstalled.Status("00000000000000c4", nonce))));
+    }
+
+    [Fact]
+    public void K25_AyniPhoneIdFarkliAnahtar_Reddedilir_KayitBozulmaz()
+    {
+        Pair();
+        var impostor = new TestPhone(_phone.PhoneId); // kimliği kopyalamış ama özel anahtarı yok
+        Assert.Equal("PAIR_DENIED", T(Send(impostor.Hello("00000000000000c2"))));
+        Assert.Equal(_phone.Key, _config.Config.Pairing!.SessionKey);
+    }
+
+    [Fact]
+    public void K25_DiscoverPairedToYou()
+    {
+        bool PairedToYou(string? phoneId, string rid)
+        {
+            var msg = phoneId is null ? TestPhone.Msg("DISCOVER", rid) : TestPhone.Msg("DISCOVER", rid, ("phoneId", phoneId));
+            return Send(msg)!["pairedToYou"]!.GetValue<bool>();
+        }
+        Assert.False(PairedToYou(_phone.PhoneId, "00000000000000d1"));
+        Pair();
+        Assert.True(PairedToYou(_phone.PhoneId, "00000000000000d2"));
+        Assert.False(PairedToYou("baska", "00000000000000d3"));
+        Assert.False(PairedToYou(null, "00000000000000d4"));
+    }
+
+    [Fact]
+    public void K25_Unpair_EslesmeyiSiler_ImzaliAck_KomutCalistirmaz()
+    {
+        Pair();
+        var nonce = Nonce();
+        var reply = Send(_phone.Cmd(_phone.NextRid(), nonce, "UNPAIR"));
+        Assert.Equal("ACK", T(reply));
+        Assert.True(AgentCrypto.Verify(_phone.Key!, Canonical.Ack(nonce, "UNPAIR"), reply!["sig"]!.GetValue<string>()));
+        Assert.Null(_config.Config.Pairing);
+        Assert.Null(_core.PendingCommand);
+        Assert.False(Send(TestPhone.Msg("DISCOVER", "00000000000000d5"))!["paired"]!.GetValue<bool>());
+        // Arkadaşın telefonu artık reset olmadan eşleşir.
+        var friend = new TestPhone("arkadas");
+        Assert.Equal("PAIR_OK", T(Send(friend.Hello("00000000000000d6"))));
+    }
+
+    [Fact]
+    public void K25_Unpair_ImzasizKabulEdilmez()
+    {
+        Pair();
+        var bad = TestPhone.Msg("CMD", "00000000000000d7", ("phoneId", _phone.PhoneId), ("nonce", Nonce()), ("cmd", "UNPAIR"),
+            ("force", false), ("sig", AgentCrypto.Sign(new byte[32], Canonical.Cmd("n", "UNPAIR", false))));
+        Assert.Equal("BAD_SIG", Code(Send(bad)));
+        Assert.NotNull(_config.Config.Pairing);
+        var stranger = TestPhone.Msg("CMD", "00000000000000d8", ("phoneId", "x"), ("nonce", "n"), ("cmd", "UNPAIR"),
+            ("force", false), ("sig", "AAAA"));
+        Assert.Equal("UNKNOWN_PHONE", Code(Send(stranger)));
     }
 
     [Fact]

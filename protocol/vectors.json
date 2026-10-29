@@ -113,6 +113,16 @@
       "sig": "8nHf4pe55izz4m/OF4tfjIMEWEgEYQ6MelwlIH0yXCU="
     },
     {
+      "name": "CMD.sig/UNPAIR/graceful",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|UNPAIR|false",
+      "sig": "jvEbe53c+Dc9dX6bAdXSUO1AGAKdYO+9GLRg8mF9yrg="
+    },
+    {
+      "name": "CMD.sig/UNPAIR/force",
+      "canonical": "cmd|8Oni29TNxr+4saqjnJWOhw==|UNPAIR|true",
+      "sig": "ctLVjyZAuPOyLlWKvE3chaeCAB5iNMcf8/rotXipVsI="
+    },
+    {
       "name": "ACK.sig/LOCK",
       "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|LOCK",
       "sig": "pV2XXojcWCNbSm5FFrYf3vE4OF+10YjHY9AA/m6aRQU="
@@ -136,6 +146,11 @@
       "name": "ACK.sig/RESTART",
       "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|RESTART",
       "sig": "/6EDCEtwXNE0+cUk+ef21OUPvKidKzdxViLAuWuhni8="
+    },
+    {
+      "name": "ACK.sig/UNPAIR",
+      "canonical": "ack|8Oni29TNxr+4saqjnJWOhw==|UNPAIR",
+      "sig": "rePCLeLpnRGTpuN/gvhGMse1a5WHtATjm1/hSvx5V5I="
     }
   ],
   "messages": [
@@ -144,7 +159,8 @@
       "json": {
         "v": 1,
         "t": "DISCOVER",
-        "rid": "a1b2c3d4e5f60718"
+        "rid": "a1b2c3d4e5f60718",
+        "phoneId": "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34"
       }
     },
     {
@@ -157,6 +173,7 @@
         "hostname": "OFIS-PC",
         "agentVersion": "1.0.0",
         "paired": false,
+        "pairedToYou": false,
         "hibernate": true,
         "sleepHibernates": true,
         "nics": [

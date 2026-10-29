@@ -146,10 +146,11 @@ class DeviceRepository @Inject constructor(
         devices.findByMac(mac)?.let { it.id != exceptId } ?: false
 
     /** Cihazı, denemelerini, zamanlayıcılarını (cascade) ve agent anahtarını siler. */
-    suspend fun delete(id: Long) {
+    suspend fun delete(id: Long, keepAgentKey: Boolean = false) {
         val device = devices.getById(id) ?: return
         devices.delete(id)
-        device.agentKeyAlias?.let(keyVault::delete)
+        // K25: agent'a UNPAIR gönderilecekse anahtarı AgentLinker siler.
+        if (!keepAgentKey) device.agentKeyAlias?.let(keyVault::delete)
     }
 
     suspend fun recordWakeAttempt(

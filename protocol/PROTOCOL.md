@@ -105,29 +105,34 @@ sig = Base64( HMAC-SHA256(K, UTF8(canonical)) )
 
 ### 4.1 DISCOVER (broadcast, imzasız)
 
-İstek: `{"v":1,"t":"DISCOVER","rid":"…"}`. Subnet broadcast adresine ve `255.255.255.255`'e gönderilir.
+İstek: `{"v":1,"t":"DISCOVER","rid":"…","phoneId":"…"}`. Subnet broadcast adresine ve `255.255.255.255`'e gönderilir. `phoneId` isteğe bağlıdır (K25); agent onu yalnız `pairedToYou` için kullanır.
 
 Yanıt (unicast, istek kaynağına):
 ```json
 {"v":1,"t":"DISCOVER_REPLY","rid":"…","agentId":"…","hostname":"OFIS-PC","agentVersion":"1.0.0",
- "paired":false,"hibernate":true,"sleepHibernates":true,
+ "paired":false,"pairedToYou":false,"hibernate":true,"sleepHibernates":true,
  "nics":[{"mac":"D8:BB:C1:0A:2F:91","name":"Ethernet","wired":true,"ip":"192.168.1.24"}]}
 ```
+- `pairedToYou` (K25): agent, istekteki `phoneId`'ye eşli. Yalnız gösterim ve karar ipucudur (imzasız); asıl kanıt PAIR_HELLO'daki anahtardır. Eski agent göndermez → `false`.
 - `mac`: `AA:BB:CC:DD:EE:FF`, büyük harf.
 - `sleepHibernates` (K23): bu PC'de `SLEEP` komutu hazırda bekletme yapar (Modern Bekleme'den uzaktan uyandırma olmadığı için). Telefon son aksiyonu "Hazırda" olarak gösterir.
 - Telefon NIC seçimini K16'ya göre yapar: kablolu **ve** aynı alt ağda → ilk kablolu → MAC'i olan ilk NIC.
 
 ### 4.2 Eşleşme — TOFU
 
-Yalnız agent eşleşmemişken (`paired=false`) mümkündür.
+Agent eşleşmemişken (`paired=false`) ya da **zaten bu telefona eşliyken** (K25) mümkündür.
+
+**Telefonun kalıcı anahtarı (K25):** `phonePub` her eşleşmede rastgele değildir. Telefon `ANDROID_ID`'den (uygulama imzası + cihaz başına sabit; uygulama silinip kurulunca değişmez, fabrika ayarında değişir) HKDF-SHA256 ile türetir: `salt = "wol-phone-v1"`, `phoneId = hex(HKDF(info="phone-id", L=16))`, X25519 özel anahtarı `HKDF(info="phone-x25519", L=32)`. `ANDROID_ID` ağa gönderilmez. Agent'ın anahtarı da sabit olduğundan aynı telefon her seferinde aynı `K`'yı türetir.
 
 1. Telefon → `{"t":"PAIR_HELLO","rid","phoneId","phoneName","phonePub"}`
 2. Agent eşleşmemişse: `K`'yı türetir, `phoneId` + `phonePub` + `K`'yı kalıcı yazar, `paired=true` olur ve yanıt verir:
    `{"t":"PAIR_OK","rid","agentId","agentPub","proof"}`, burada `proof = sig(K, "pair-ok|{phoneId}|{agentId}")`.
 3. Telefon `K`'yı kendi tarafında türetir, `proof`'u doğrular. Doğrulanırsa `K`'yı saklar. Doğrulanmazsa eşleşmeyi atar ve "Eşleşme doğrulanamadı" gösterir.
-4. Agent zaten eşleşmişse: `{"t":"PAIR_DENIED","rid"}`.
+4. Agent zaten eşleşmişse:
+   - aynı `phoneId` **ve** kayıtlı `phonePub` ile birebir aynı → kayıt değişmeden (yalnız `phoneName` güncellenir) aynı `K` ile `PAIR_OK` (uygulama yeniden kurulmuş). Açık anahtarı kopyalayan biri `K`'yı hesaplayamaz, kayıt değişmediği için eşleşmeyi de bozamaz;
+   - aksi hâlde `{"t":"PAIR_DENIED","rid"}`.
 
-Sıfırlama yalnız PC'den yapılır: `wolagent reset`.
+Eşleşmeyi kaldırmanın iki yolu var: telefondan `CMD UNPAIR` (§4.5, K25) ya da PC'de `wolagent reset`.
 
 ### 4.3 CHALLENGE → NONCE
 
@@ -145,7 +150,8 @@ Sıfırlama yalnız PC'den yapılır: `wolagent reset`.
 ### 4.5 CMD → ACK
 
 - İstek: `{"t":"CMD","rid","phoneId","nonce","cmd","force","sig"}`.
-  - `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART}`.
+  - `cmd ∈ {LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART, UNPAIR}`.
+  - `UNPAIR` (K25): telefon cihazı silince gönderir. Agent ACK'i (eski `K` ile imzalı) hazırlar ve eşleşmeyi **hemen** siler; güç komutu değildir, BUSY'ye takılmaz, 300 ms beklemez.
   - `SLEEP` (K23): `DISCOVER_REPLY.sleepHibernates=true` olan PC'de (Modern Bekleme, S3 yok, hazırda bekletme açık) agent hazırda bekletme uygular; aksi hâlde normal uyku.
   - `force`: SHUTDOWN/RESTART'ta cihazın kapatma şekline göre değişir (FORCE → `true`, GRACEFUL → `false`); diğer komutlarda `false`.
   - `sig = sig(K, "cmd|{nonce}|{cmd}|{force}")`.
@@ -172,7 +178,9 @@ Sıfırlama yalnız PC'den yapılır: `wolagent reset`.
 | Durum | Telefonun davranışı |
 |---|---|
 | `CHALLENGE` → `UNKNOWN_PHONE` (PC'de `reset` yapılmış) | Cihazın `agentId` + `K`'sını siler, DISCOVER atar; `paired=false` ise otomatik yeniden eşleşir. |
-| `PAIR_DENIED`, ya da DISCOVER `paired=true` ama telefonda `K` yok | Agent çipi **"Başka telefona eşli"**, ipucu "PC'de `wolagent reset` çalıştır". |
+| DISCOVER `paired=true`, `pairedToYou=true`, telefonda `K` yok (uygulama yeniden kuruldu, K25) | PAIR_HELLO atar; agent tanır, aynı `K` ile PAIR_OK. Reset gerekmez. |
+| `PAIR_DENIED`, ya da DISCOVER `paired=true`, `pairedToYou=false` ve telefonda `K` yok | Agent çipi **"Başka telefona eşli"**, ipucu "PC'de `wolagent reset` çalıştır". |
+| Kullanıcı cihazı sildi (K25) | Hemen `CMD UNPAIR` (≤ 2 sn). Cevap yoksa (PC kapalı) agentId + anahtar "bekleyen UNPAIR" olarak saklanır; agent bir DISCOVER'da görülünce sessizce gönderilir. Bu arada kullanıcı PC'yi yeniden eklerse bekleyen iptal olur. Agent artık bize eşli değilse (`pairedToYou=false`) bekleyen düşer. |
 | `proof` doğrulanmadı | Eşleşme atılır, "Eşleşme doğrulanamadı". |
 
 ---

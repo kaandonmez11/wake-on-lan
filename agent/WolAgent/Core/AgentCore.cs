@@ -90,7 +90,7 @@ public sealed partial class AgentCore(
 
     private JsonObject? Dispatch(string type, string rid, JsonObject msg, DateTimeOffset now) => type switch
     {
-        "DISCOVER" => DiscoverReply(rid),
+        "DISCOVER" => DiscoverReply(rid, msg),
         "PAIR_HELLO" => PairHello(rid, msg, now),
         "CHALLENGE" => Challenge(rid, msg, now),
         "STATUS" => Status(rid, msg, now),
@@ -98,12 +98,15 @@ public sealed partial class AgentCore(
         _ => null, // yanıt tipleri ve bilinmeyenler
     };
 
-    private JsonObject DiscoverReply(string rid)
+    private JsonObject DiscoverReply(string rid, JsonObject msg)
     {
         var cfg = config.Load();
+        // K25: isteyen telefon zaten eşli telefon mu (yalnız gösterim; güvenlik kararı PAIR_HELLO'da verilir).
+        var askingPhone = Str(msg, "phoneId");
+        var pairedToYou = cfg.Pairing is not null && askingPhone is not null && askingPhone == cfg.Pairing.PhoneId;
         return Envelope("DISCOVER_REPLY", rid,
             ("agentId", cfg.AgentId), ("hostname", system.Hostname), ("agentVersion", system.AgentVersion),
-            ("paired", cfg.Pairing is not null), ("hibernate", system.HibernateSupported),
+            ("paired", cfg.Pairing is not null), ("pairedToYou", pairedToYou), ("hibernate", system.HibernateSupported),
             ("sleepHibernates", system.SleepHibernates), ("nics", NicsJson()));
     }
 
@@ -115,18 +118,31 @@ public sealed partial class AgentCore(
         if (string.IsNullOrWhiteSpace(phoneId) || pubText is null) return null;
 
         var cfg = config.Load();
-        if (cfg.Pairing is not null) return Envelope("PAIR_DENIED", rid);
-
         var phonePub = Convert.FromBase64String(pubText);
         if (phonePub.Length != X25519Keys.KeySize) return null;
+
+        // K25: eşli telefon (aynı phoneId + aynı kalıcı açık anahtar) yeniden kurulmuş olabilir. Agent'ın anahtarı da
+        // telefonunki de sabit olduğundan K değişmez: kayıt olduğu gibi kalır, yalnız PAIR_OK tekrar gönderilir.
+        // Açık anahtarı kopyalayan biri K'yı hesaplayamaz; kayıt değişmediği için eşleşmeyi de bozamaz.
+        if (cfg.Pairing is { } existing)
+        {
+            if (existing.PhoneId != phoneId || !CryptographicOperations.FixedTimeEquals(existing.PhonePub, phonePub))
+                return Envelope("PAIR_DENIED", rid);
+            if (existing.PhoneName != phoneName) config.SavePairing(existing with { PhoneName = phoneName });
+            return PairOk(rid, cfg, phoneId, existing.SessionKey);
+        }
+
         var shared = X25519Keys.SharedSecret(cfg.PrivateKey, phonePub); // sıfır sır → CryptographicException → atılır
         var key = AgentCrypto.DeriveSessionKey(shared, cfg.AgentId, phoneId);
         config.SavePairing(new Pairing(phoneId, phoneName, phonePub, key, now));
-        return Envelope("PAIR_OK", rid,
+        return PairOk(rid, cfg, phoneId, key);
+    }
+
+    private static JsonObject PairOk(string rid, AgentConfig cfg, string phoneId, byte[] key) =>
+        Envelope("PAIR_OK", rid,
             ("agentId", cfg.AgentId),
             ("agentPub", Convert.ToBase64String(X25519Keys.PublicKey(cfg.PrivateKey))),
             ("proof", AgentCrypto.Sign(key, Canonical.PairOk(phoneId, cfg.AgentId))));
-    }
 
     private JsonObject Challenge(string rid, JsonObject msg, DateTimeOffset now)
     {
@@ -157,6 +173,14 @@ public sealed partial class AgentCore(
         var force = Bool(msg, "force") ?? false;
         if (Authenticate(msg, cfg, now, n => Canonical.Cmd(n, cmd, force), out var nonce) is { } error) return Err(rid, error);
         if (!AgentProtocol.Commands.Contains(cmd)) return Err(rid, "UNSUPPORTED");
+        if (cmd == "UNPAIR")
+        {
+            // K25: telefon cihazı sildi → eşleşme hemen silinir; ACK eski anahtarla imzalanır.
+            var ack = Envelope("ACK", rid, ("cmd", cmd), ("sig", AgentCrypto.Sign(cfg.Pairing!.SessionKey, Canonical.Ack(nonce, cmd))));
+            config.SavePairing(null);
+            log.Write("CMD", "-", "UNPAIR: eşleşme silindi");
+            return ack;
+        }
         if (cmd == "HIBERNATE" && !system.HibernateSupported) return Err(rid, "UNSUPPORTED");
         if (_busy) return Err(rid, "BUSY");
 

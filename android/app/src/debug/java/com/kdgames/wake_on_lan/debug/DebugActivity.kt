@@ -110,9 +110,9 @@ private fun DebugRoot(deps: DebugDeps) {
             when (DebugTab.entries[selected]) {
                 DebugTab.Vectors -> VectorsTab()
                 DebugTab.Design -> DesignTab()
-                DebugTab.Data -> DataTab(deps.devices, deps.settings, deps.vault)
+                DebugTab.Data -> DataTab(deps.devices, deps.settings, deps.vault, deps.linker)
                 DebugTab.Network -> NetworkTab(deps.network, deps.wol, deps.tcp, deps.icmp)
-                DebugTab.Agent -> AgentTab(deps.agent, deps.netBios, deps.network, deps.settings, deps.vault)
+                DebugTab.Agent -> AgentTab(deps.agent, deps.netBios, deps.network, deps.linker.phoneKeys, deps.vault)
                 DebugTab.Status -> StatusTab(deps.devices, deps.engine, deps.wake, deps.power, deps.linker, deps.events)
             }
         }

@@ -104,5 +104,30 @@ _2026-10-29 · Claude_
 - Satırlar "agent önce, IP sırası" yerine **geliş sırasıyla** listeleniyor. Ortaya satır eklenince alttakiler zıplıyordu (animasyon kuralı).
 - Robolectric testlerinde Room sorgu/işlem yürütücüsü doğrudan yürütücü. Room'un işlem iş parçacığından ana looper'a dönüşü compose test saatinde beklemiyordu.
 
+### Cihaz testi düzeltmeleri
+**Tur 1 (Kaan, 2026-10-29):** 2–12 geçti. Notlar ve yapılanlar:
+- "+" ilk açılışta takılıyordu. Tarama `Dispatchers.Default`'a alındı, içerik açılışta bir kez ısıtıldı. 2. turda yine yeterince akıcı değildi (aşağıya bakın).
+- Boş durumdaki "Cihaz ekle" butonu kalktı.
+- İkon 5×4 (10 yeni Material Symbol), renk 4×4 (8 yeni palet, eski colorIndex'ler korunur).
+- IP alanına ilk dokunuşta büyük boşluk: `adjustResize` (pan + inset çift kayıyordu).
+- "Reset yaptım ama başka telefona eşli": uygulamadaki eski cihaz reset sonrası 60 sn'lik keşifte agent'la yeniden eşleşmiş, sonra cihaz silinince agent hâlâ eşli kalmıştı. → K25.
+
+**Tur 2:** Tur 1 düzeltmeleri geçti; ilk "+" hâlâ takılıyordu.
+- İlk açılışta aynı karede üç ağır iş vardı:
+  1. Panel içeriği kapalıyken atıldığı için her açılışta yeniden kuruluyordu (20 ikon + 16 renk + form).
+  2. Arka plan blur'u tüm uygulama katmanında ilk kez kullanılıyordu: blur programı derleniyor, tam ekran katman ayrılıyordu.
+  3. Tarama (160 iş parçacığı, ~2300 bağlantı) giriş yayıyla aynı anda başlıyordu; iş parçacıkları ilk seferde yaratılıyordu.
+- Çözüm:
+  1. İçerik kapalıyken de kompozisyonda kalıyor: ekran dışında, çizilmiyor, dokunulmuyor, semantics'i yok, sonsuz animasyonları durmuş.
+  2. Blur uygulama açılışında 6 kare boyunca görünmez biçimde ısıtılıyor (tüm uygulamada 1 px + panel yarıçapında 4 dp'lik görünmez nokta).
+  3. Tarama panel yerine oturduktan sonra (450 ms) başlıyor; gösterge hemen "taranıyor" der.
+  4. Panel kapanınca klavye ve odak bırakılıyor.
+- **K25 (agent):**
+  - Kalıcı telefon anahtarı (`ANDROID_ID` → HKDF → phoneId + X25519).
+  - Agent aynı telefonu kaydı değiştirmeden tanıyor; ipucu "Agent bu telefonu tanıyor · eklenince hemen bağlanır".
+  - DISCOVER `phoneId` / `pairedToYou`.
+  - Cihaz silinince `UNPAIR` (Debug › Veri'deki silme de). PC kapalıysa bekleyen UNPAIR, PC görülünce sessizce gönderiliyor.
+  - Agent 73/73, Android 246/246.
+
 ### Cihaz testi
 _(Kaan)_

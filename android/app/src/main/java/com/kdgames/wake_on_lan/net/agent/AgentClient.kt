@@ -64,10 +64,10 @@ class AgentClient(
     private val port = AgentProtocol.PORT
 
     /** Subnet broadcast + 255.255.255.255'e DISCOVER; [windowMs] boyunca gelen yanıtlar (agentId başına bir). */
-    suspend fun discover(subnetBroadcast: String, windowMs: Long = DISCOVER_WINDOW_MS): List<DiscoveredAgent> =
+    suspend fun discover(subnetBroadcast: String, phoneId: String? = null, windowMs: Long = DISCOVER_WINDOW_MS): List<DiscoveredAgent> =
         multicast.withLock {
             transport.open {
-                val request = AgentMessage.Discover(AgentCodec.newRid(random))
+                val request = AgentMessage.Discover(AgentCodec.newRid(random), phoneId)
                 val bytes = AgentCodec.encodeToBytes(request)
                 listOf(subnetBroadcast, WolSender.LIMITED_BROADCAST).distinct().forEach { send(it, port, bytes) }
                 val found = LinkedHashMap<String, DiscoveredAgent>()
@@ -84,19 +84,22 @@ class AgentClient(
         }
 
     /** TOFU eşleşme (PROTOCOL.md §4.2). Yeni X25519 çifti üretir; özel anahtar yalnız bu çağrıda yaşar. */
-    suspend fun pair(host: String, phoneId: String, phoneName: String, attemptMs: Long = COMMAND_ATTEMPT_MS): PairResult {
-        val pair = X25519.generateKeyPair(secureRandom)
-        val hello = AgentMessage.PairHello(AgentCodec.newRid(random), phoneId, phoneName, b64(pair.publicKey))
+    /**
+     * TOFU eşleşme. [phone] kalıcı anahtarlıdır (K25): aynı telefon yeniden kurulsa da aynı K türetilir ve agent
+     * zaten eşli olduğu bu telefona PAIR_OK'u tekrar verir.
+     */
+    suspend fun pair(host: String, phone: PhoneKeys, phoneName: String, attemptMs: Long = COMMAND_ATTEMPT_MS): PairResult {
+        val phoneId = phone.phoneId
+        val hello = AgentMessage.PairHello(AgentCodec.newRid(random), phoneId, phoneName, b64(phone.publicKey))
         val reply = transport.open { exchange(host, hello, attemptMs) } ?: return PairResult.NoResponse
         return when (reply) {
             is AgentMessage.PairOk -> {
                 val key = runCatching {
                     val agentPub = Base64.getDecoder().decode(reply.agentPub)
-                    val shared = X25519.sharedSecret(pair.privateKey, agentPub)
+                    val shared = X25519.sharedSecret(phone.privateKey, agentPub)
                     check(shared.any { it != 0.toByte() }) { "Sıfır ortak sır" }
                     AgentCrypto.deriveSessionKey(shared, reply.agentId, phoneId)
                 }.getOrNull()
-                pair.privateKey.fill(0)
                 if (key != null && AgentCrypto.verify(key, Canonical.pairOk(phoneId, reply.agentId), reply.proof)) {
                     PairResult.Paired(reply.agentId, key)
                 } else PairResult.ProofInvalid
@@ -217,5 +220,26 @@ class AgentClient(
         const val COMMAND_BUDGET_MS = 2_000L
         const val COMMAND_ATTEMPT_MS = 300L
         const val DISCOVER_WINDOW_MS = 1_200L
+    }
+}
+
+/**
+ * Telefonun kalıcı agent kimliği (K25): `ANDROID_ID`'den (uygulama imzası + cihaz başına sabit; uygulama silinip
+ * kurulunca değişmez, fabrika ayarında değişir) HKDF ile phoneId ve X25519 özel anahtarı türetilir.
+ * ANDROID_ID ağa hiç gönderilmez.
+ */
+class PhoneKeys(val phoneId: String, val privateKey: ByteArray) {
+    val publicKey: ByteArray = X25519.publicKey(privateKey)
+
+    companion object {
+        private const val SALT = "wol-phone-v1"
+
+        fun derive(seed: String): PhoneKeys {
+            val ikm = seed.toByteArray(Charsets.UTF_8)
+            val salt = SALT.toByteArray(Charsets.UTF_8)
+            val id = com.kdgames.wake_on_lan.data.crypto.Hkdf.derive(ikm, salt, "phone-id".toByteArray(Charsets.UTF_8), 16)
+            val priv = com.kdgames.wake_on_lan.data.crypto.Hkdf.derive(ikm, salt, "phone-x25519".toByteArray(Charsets.UTF_8), 32)
+            return PhoneKeys(id.joinToString("") { "%02x".format(it) }, priv)
+        }
     }
 }

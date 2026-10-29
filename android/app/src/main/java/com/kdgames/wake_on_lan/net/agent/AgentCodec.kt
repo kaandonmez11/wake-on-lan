@@ -53,12 +53,14 @@ object AgentCodec {
         put("t", typeOf(message))
         put("rid", message.rid)
         when (message) {
-            is AgentMessage.Discover, is AgentMessage.PairDenied -> Unit
+            is AgentMessage.Discover -> message.phoneId?.let { put("phoneId", it) }
+            is AgentMessage.PairDenied -> Unit
             is AgentMessage.DiscoverReply -> {
                 put("agentId", message.agentId)
                 put("hostname", message.hostname)
                 put("agentVersion", message.agentVersion)
                 put("paired", message.paired)
+                put("pairedToYou", message.pairedToYou)
                 put("hibernate", message.hibernate)
                 put("sleepHibernates", message.sleepHibernates)
                 putNics(message.nics)
@@ -111,10 +113,11 @@ object AgentCodec {
         val rid = r.string("rid")
         if (!RID.matches(rid)) throw AgentCodecException("Geçersiz rid: $rid")
         return when (val type = r.string("t")) {
-            "DISCOVER" -> AgentMessage.Discover(rid)
+            "DISCOVER" -> AgentMessage.Discover(rid, r.optString("phoneId"))
             "DISCOVER_REPLY" -> AgentMessage.DiscoverReply(
                 rid, r.string("agentId"), r.string("hostname"), r.string("agentVersion"),
                 r.bool("paired"), r.bool("hibernate"), r.bool("sleepHibernates"), r.nics(),
+                pairedToYou = r.optBool("pairedToYou") ?: false,
             )
             "PAIR_HELLO" -> AgentMessage.PairHello(rid, r.string("phoneId"), r.string("phoneName"), r.string("phonePub"))
             "PAIR_OK" -> AgentMessage.PairOk(rid, r.string("agentId"), r.string("agentPub"), r.string("proof"))
@@ -174,6 +177,10 @@ object AgentCodec {
         }
 
         fun bool(key: String): Boolean = wrap(key) { primitive(key).boolean }
+
+        fun optBool(key: String): Boolean? = if (obj[key] == null) null else bool(key)
+
+        fun optString(key: String): String? = if (obj[key] == null) null else string(key)
 
         fun int(key: String): Int = wrap(key) { primitive(key).int }
 

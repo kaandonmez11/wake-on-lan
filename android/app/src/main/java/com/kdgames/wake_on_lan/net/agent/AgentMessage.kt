@@ -9,7 +9,8 @@ object AgentProtocol {
     const val SESSION_KEY_BYTES = 32
 }
 
-enum class AgentCommand { LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART }
+/** UNPAIR (K25): cihaz silinince eşleşmeyi kaldırır; güç komutu değildir. */
+enum class AgentCommand { LOCK, SLEEP, HIBERNATE, SHUTDOWN, RESTART, UNPAIR }
 
 /** STATUS_OK.display (K22, GUID_CONSOLE_DISPLAY_STATE). */
 object AgentDisplay {
@@ -25,7 +26,8 @@ data class AgentNic(val mac: String, val name: String, val wired: Boolean, val i
 sealed interface AgentMessage {
     val rid: String
 
-    data class Discover(override val rid: String) : AgentMessage
+    /** [phoneId] (K25) agent'ın `pairedToYou` yanıtlayabilmesi için; eski agent yok sayar. */
+    data class Discover(override val rid: String, val phoneId: String? = null) : AgentMessage
 
     data class DiscoverReply(
         override val rid: String,
@@ -37,6 +39,8 @@ sealed interface AgentMessage {
         /** K23: bu PC'de SLEEP hazırda bekletme yapar (Modern Bekleme); UI "Hazırda" gösterir. */
         val sleepHibernates: Boolean,
         val nics: List<AgentNic>,
+        /** K25: agent DISCOVER'daki phoneId'ye (bu telefona) eşli. Yalnız gösterim/karar ipucu; eski agent'ta false. */
+        val pairedToYou: Boolean = false,
     ) : AgentMessage
 
     data class PairHello(

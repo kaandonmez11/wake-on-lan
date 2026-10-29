@@ -24,6 +24,7 @@ private class FakeAgent(val host: String = "192.168.1.26") : AgentTransport {
     val agentId = "3b9e7d10-4c2a-4e8f-a6b5-91d0c3e2f478"
     private val priv = X25519.generateKeyPair(SecureRandom()).privateKey
     var pairedPhone: String? = null
+    var pairedPub: String? = null
     var key: ByteArray? = null
     var display = AgentDisplay.ON
     var hibernate = true
@@ -59,7 +60,7 @@ private class FakeAgent(val host: String = "192.168.1.26") : AgentTransport {
         val msg = AgentCodec.decode(payload)
         if (msg is AgentMessage.Discover) {
             reply(AgentMessage.DiscoverReply(msg.rid, agentId, "OFIS-PC", "1.0.0", pairedPhone != null, hibernate, false,
-                listOf(AgentNic("D8:BB:C1:0A:2F:91", "Ethernet", true, host))))
+                listOf(AgentNic("D8:BB:C1:0A:2F:91", "Ethernet", true, host)), pairedToYou = pairedPhone != null && msg.phoneId == pairedPhone))
             extraAgents.forEach { (ip, r) -> reply(r.copy(rid = msg.rid), ip) }
             return
         }
@@ -68,10 +69,11 @@ private class FakeAgent(val host: String = "192.168.1.26") : AgentTransport {
         if (msg::class.simpleName?.uppercase() in silentTypes) return
         cache[msg.rid]?.let { inbox += Received(host, it); return }
         val response: AgentMessage = when (msg) {
-            is AgentMessage.PairHello -> if (pairedPhone != null) AgentMessage.PairDenied(msg.rid) else {
+            // K25: aynı phoneId + aynı açık anahtar → kayıt değişmeden PAIR_OK.
+            is AgentMessage.PairHello -> if (pairedPhone != null && (pairedPhone != msg.phoneId || pairedPub != msg.phonePub)) AgentMessage.PairDenied(msg.rid) else {
                 val shared = X25519.sharedSecret(priv, Base64.getDecoder().decode(msg.phonePub))
                 val k = AgentCrypto.deriveSessionKey(shared, agentId, msg.phoneId)
-                pairedPhone = msg.phoneId; key = k
+                pairedPhone = msg.phoneId; pairedPub = msg.phonePub; key = k
                 val proofKey = if (forgeSignatures) ByteArray(32) else k
                 AgentMessage.PairOk(msg.rid, agentId, b64(X25519.publicKey(priv)), AgentCrypto.sign(proofKey, Canonical.pairOk(msg.phoneId, agentId)))
             }
@@ -91,6 +93,11 @@ private class FakeAgent(val host: String = "192.168.1.26") : AgentTransport {
                 !AgentCrypto.verify(key!!, Canonical.cmd(msg.nonce, msg.cmd, msg.force), msg.sig) -> AgentMessage.Err(msg.rid, AgentErrorCode.BAD_SIG)
                 !nonces.remove(msg.nonce) -> AgentMessage.Err(msg.rid, AgentErrorCode.NONCE_EXPIRED)
                 msg.cmd == AgentCommand.HIBERNATE && !hibernate -> AgentMessage.Err(msg.rid, AgentErrorCode.UNSUPPORTED)
+                msg.cmd == AgentCommand.UNPAIR -> {
+                    val ack = AgentMessage.Ack(msg.rid, msg.cmd, AgentCrypto.sign(key!!, Canonical.ack(msg.nonce, msg.cmd)))
+                    pairedPhone = null; pairedPub = null
+                    ack
+                }
                 else -> {
                     executed += msg.cmd to msg.force
                     AgentMessage.Ack(msg.rid, msg.cmd, AgentCrypto.sign(if (forgeSignatures) ByteArray(32) else key!!, Canonical.ack(msg.nonce, msg.cmd)))
@@ -111,13 +118,14 @@ private object NoLock : MulticastGuard {
 }
 
 class AgentClientTest {
-    private val phoneId = "6f1c2a4e-8b3d-4f7a-9c21-0d5e7b9a1f34"
+    private val phone = PhoneKeys.derive("9774d56d682e549c")
+    private val phoneId = phone.phoneId
 
-    private fun TestScope.client(agent: FakeAgent) =
-        AgentClient(agent, NoLock, Clock { testScheduler.currentTime }, Random(7), SecureRandom())
+    private fun TestScope.client(agent: FakeAgent, seed: Int = 7) =
+        AgentClient(agent, NoLock, Clock { testScheduler.currentTime }, Random(seed), SecureRandom())
 
     private suspend fun AgentClient.pairWith(agent: FakeAgent): AgentSession {
-        val r = pair(agent.host, phoneId, "Galaxy S24")
+        val r = pair(agent.host, phone, "Galaxy S24")
         assertInstanceOf(PairResult.Paired::class.java, r)
         r as PairResult.Paired
         assertArrayEquals(agent.key, r.key)
@@ -150,19 +158,61 @@ class AgentClientTest {
         @Test
         fun `baska telefona esliyse Denied`() = runTest {
             val agent = FakeAgent().apply { pairedPhone = "baska" }
-            assertEquals(PairResult.Denied, client(agent).pair(agent.host, phoneId, "x"))
+            assertEquals(PairResult.Denied, client(agent).pair(agent.host, phone, "x"))
         }
 
         @Test
         fun `proof dogrulanmazsa ProofInvalid`() = runTest {
             val agent = FakeAgent().apply { forgeSignatures = true }
-            assertEquals(PairResult.ProofInvalid, client(agent).pair(agent.host, phoneId, "x"))
+            assertEquals(PairResult.ProofInvalid, client(agent).pair(agent.host, phone, "x"))
+        }
+
+        @Test
+        fun `K25 uygulama yeniden kurulunca ayni telefon taninir, K ayni`() = runTest {
+            val agent = FakeAgent()
+            val first = client(agent).pairWith(agent)
+            // Yeniden kurulum: anahtar kayıtları silindi, ANDROID_ID aynı → aynı PhoneKeys.
+            val again = client(agent, seed = 8).pair(agent.host, PhoneKeys.derive("9774d56d682e549c"), "Galaxy S24")
+            assertInstanceOf(PairResult.Paired::class.java, again)
+            assertArrayEquals(first.key, (again as PairResult.Paired).key)
+            // Farklı cihaz (farklı ANDROID_ID) reddedilir.
+            assertEquals(PairResult.Denied, client(agent, seed = 9).pair(agent.host, PhoneKeys.derive("0000000000000001"), "x"))
+        }
+
+        @Test
+        fun `K25 DISCOVER pairedToYou`() = runTest {
+            val agent = FakeAgent()
+            assertEquals(false, client(agent).discover("192.168.1.255", phoneId, windowMs = 300).single().reply.pairedToYou)
+            client(agent).pairWith(agent)
+            assertEquals(true, client(agent).discover("192.168.1.255", phoneId, windowMs = 300).single().reply.pairedToYou)
+            assertEquals(false, client(agent).discover("192.168.1.255", "baska", windowMs = 300).single().reply.pairedToYou)
+        }
+
+        @Test
+        fun `K25 UNPAIR eslesmeyi kaldirir`() = runTest {
+            val agent = FakeAgent()
+            val c = client(agent)
+            val session = c.pairWith(agent)
+            assertInstanceOf(AgentResult.Ok::class.java, c.command(agent.host, session, AgentCommand.UNPAIR, force = false))
+            assertEquals(null, agent.pairedPhone)
+            assertEquals(AgentResult.UnknownPhone, c.command(agent.host, session, AgentCommand.UNPAIR, force = false))
+        }
+
+        @Test
+        fun `K25 PhoneKeys kararli ve tohuma ozel`() {
+            val a = PhoneKeys.derive("9774d56d682e549c")
+            val b = PhoneKeys.derive("9774d56d682e549c")
+            assertEquals(a.phoneId, b.phoneId)
+            assertArrayEquals(a.publicKey, b.publicKey)
+            assertEquals(32, a.phoneId.length)
+            assertTrue(a.phoneId != PhoneKeys.derive("9774d56d682e549d").phoneId)
+            assertTrue("9774d56d682e549c" !in a.phoneId)
         }
 
         @Test
         fun `yanit yoksa NoResponse`() = runTest {
             val agent = FakeAgent().apply { dropFirst = 3 }
-            assertEquals(PairResult.NoResponse, client(agent).pair(agent.host, phoneId, "x"))
+            assertEquals(PairResult.NoResponse, client(agent).pair(agent.host, phone, "x"))
             assertEquals(3, agent.sent.size)
         }
     }

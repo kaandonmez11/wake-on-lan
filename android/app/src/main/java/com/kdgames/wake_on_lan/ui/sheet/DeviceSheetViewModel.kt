@@ -83,7 +83,8 @@ data class SheetUiState(
                 DeviceError.MAC_DUPLICATE in errors -> DeviceError.MAC_DUPLICATE.message
                 DeviceError.MAC_INVALID in errors -> DeviceError.MAC_INVALID.message
                 savedAgent == SavedAgent.PAIRED_ELSEWHERE -> HINT_ELSEWHERE
-                !isEdit && agent != null && agent.paired -> HINT_ELSEWHERE
+                !isEdit && agent != null && agent.pairedElsewhere -> HINT_ELSEWHERE
+                !isEdit && agent != null && agent.pairedToYou -> HINT_KNOWN
                 !isEdit && agent != null -> HINT_AGENT
                 form.mac.isBlank() -> HINT_NO_MAC
                 DeviceWarning.IP_OUTSIDE_SUBNET in warnings -> DeviceWarning.IP_OUTSIDE_SUBNET.message
@@ -97,7 +98,8 @@ data class SheetUiState(
         get() = when {
             savedAgent == SavedAgent.PAIRED -> "Agent ✓"
             savedAgent == SavedAgent.PAIRED_ELSEWHERE -> "Başka telefona eşli"
-            foundAgent?.paired == true -> "Başka telefona eşli"
+            foundAgent?.pairedElsewhere == true -> "Başka telefona eşli"
+            foundAgent?.pairedToYou == true -> "Agent bu telefonu tanıyor"
             foundAgent != null -> "Agent bulundu"
             else -> "Agent yok"
         }
@@ -106,6 +108,7 @@ data class SheetUiState(
         const val HINT_REQUIRED = "Ad ve geçerli IP gerekli"
         const val HINT_NO_MAC = "MAC olmadan uyandırılamaz · PC açıkken otomatik bulunur"
         const val HINT_AGENT = "Agent bulundu · eklenince otomatik eşleşir"
+        const val HINT_KNOWN = "Agent bu telefonu tanıyor · eklenince hemen bağlanır"
         const val HINT_ELSEWHERE = "Başka telefona eşli · PC'de `wolagent reset` çalıştır"
     }
 }
@@ -133,6 +136,9 @@ class DeviceSheetViewModel @Inject constructor(
 
     @Volatile private var devices: List<Device> = emptyList()
     private var scanJob: Job? = null
+
+    /** Test ayarlar (0). */
+    internal var scanStartDelayMs = SCAN_START_DELAY_MS
     private var session = 0
 
     init {
@@ -154,7 +160,8 @@ class DeviceSheetViewModel @Inject constructor(
         stopScan()
         _state.value = SheetUiState(mode = mode)
         when (mode) {
-            SheetMode.Add -> startScan()
+            // Tarama panel yerine oturduktan sonra başlar: soket/iş parçacığı patlaması giriş animasyonuyla çakışmasın.
+            SheetMode.Add -> startScan(scanStartDelayMs)
             is SheetMode.Edit -> viewModelScope.launch {
                 val d = repo.getDevice(mode.id) ?: return@launch
                 val issue = linker.issues.value[d.id]
@@ -230,16 +237,20 @@ class DeviceSheetViewModel @Inject constructor(
     fun delete(onResult: (SheetResult) -> Unit) {
         val id = (_state.value.mode as? SheetMode.Edit)?.id ?: return
         viewModelScope.launch {
-            repo.delete(id)
+            val device = repo.getDevice(id)
+            // K25: anahtar, agent'a UNPAIR gönderilene kadar tutulur; AgentLinker siler.
+            repo.delete(id, keepAgentKey = true)
+            device?.let(linker::release)
             onResult(SheetResult.Deleted(id))
         }
     }
 
-    private fun startScan() {
+    private fun startScan(delayMs: Long = 0) {
         stopScan()
         val current = session
         _state.update { it.copy(scan = it.scan.copy(running = true)) }
         scanJob = viewModelScope.launch {
+            if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
             // 253 host'luk boru hattı ve birleştirme ana iş parçacığında koşmasın (S07: panel ilk açılışta takılıyordu).
             scanner.scan(wifi.state.value) { devices }
                 .flowOn(Dispatchers.Default)
@@ -256,6 +267,11 @@ class DeviceSheetViewModel @Inject constructor(
     }
 
     override fun onCleared() = stopScan()
+
+    private companion object {
+        /** `smooth` giriş yayının (0.5 sn) oturma süresi. */
+        const val SCAN_START_DELAY_MS = 450L
+    }
 
     private fun SheetForm.toInput() = DeviceInput(name, ip, mac.ifBlank { null }, iconKey, colorIndex)
 }

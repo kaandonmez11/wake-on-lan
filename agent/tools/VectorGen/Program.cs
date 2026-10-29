@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -144,11 +144,11 @@ JsonArray Messages()
 
     return
     [
-        Msg("DISCOVER", "a1b2c3d4e5f60718", new JsonObject()),
+        Msg("DISCOVER", "a1b2c3d4e5f60718", new JsonObject { ["phoneId"] = phoneId }),
         Msg("DISCOVER_REPLY", "a1b2c3d4e5f60718", new JsonObject
         {
             ["agentId"] = agentId, ["hostname"] = hostname, ["agentVersion"] = agentVersion,
-            ["paired"] = false, ["hibernate"] = true, ["sleepHibernates"] = true, ["nics"] = Nics(),
+            ["paired"] = false, ["pairedToYou"] = false, ["hibernate"] = true, ["sleepHibernates"] = true, ["nics"] = Nics(),
         }),
         Msg("PAIR_HELLO", "0f1e2d3c4b5a6978", new JsonObject
         {

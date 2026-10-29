@@ -13,7 +13,11 @@ data class AgentFound(
     val paired: Boolean,
     val hibernate: Boolean,
     val sleepHibernates: Boolean,
-)
+    /** K25: bu telefona eşli (uygulama yeniden kurulmuş); eklenince agent tanır, reset gerekmez. */
+    val pairedToYou: Boolean = false,
+) {
+    val pairedElsewhere: Boolean get() = paired && !pairedToYou
+}
 
 /**
  * "Ağda bulunanlar" satırı (spec 7.4). [key] satırın sabit kimliği (ilk görüldüğü IP): sonradan MAC gelse de
@@ -115,7 +119,7 @@ class ScanMerger(private val phoneIp: String?, private val prefixLength: Int?) {
             mac = mac,
             name = name,
             iconKey = guessIcon(a != null, ports),
-            agent = a?.let { AgentFound(it.agentId, it.hostname, it.paired, it.hibernate, it.sleepHibernates) },
+            agent = a?.let { AgentFound(it.agentId, it.hostname, it.paired, it.hibernate, it.sleepHibernates, it.pairedToYou) },
             added = added,
         )
     }

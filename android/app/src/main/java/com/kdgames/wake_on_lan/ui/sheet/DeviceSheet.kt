@@ -122,7 +122,12 @@ fun DeviceSheet(
     motion: SheetMotion = rememberSheetMotion(),
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
-    LaunchedEffect(open) { if (open) confirmDelete = false }
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(open) {
+        if (open) confirmDelete = false
+        // İçerik kapalıyken de yaşadığı için klavye ve odak kapanışın başında bırakılır.
+        else focus.clearFocus(force = true)
+    }
     SheetHost(open = open, motion = motion, onDismiss = actions.onClose) { dragHandle, bodyScroll ->
         Column(
             Modifier
@@ -602,7 +607,7 @@ private fun BottomBar(state: SheetUiState, onSave: () -> Unit, onDelete: () -> U
     val hint = state.hint
     val hintColor by animateColorAsState(
         when (hint) {
-            SheetUiState.HINT_AGENT -> WolColors.Success
+            SheetUiState.HINT_AGENT, SheetUiState.HINT_KNOWN -> WolColors.Success
             SheetUiState.HINT_NO_MAC, SheetUiState.HINT_ELSEWHERE -> WolColors.Amber
             SheetUiState.HINT_REQUIRED -> WolColors.TextTertiary
             else -> if (state.errors.isNotEmpty()) WolColors.DangerLight else WolColors.TextSecondaryAlt

@@ -126,9 +126,10 @@ class AndroidScanSources @Inject constructor(
     private val sockets: SocketFactory,
     private val netBiosProbe: NetBiosProbe,
     private val mdnsResolver: MdnsResolver,
+    private val phone: com.kdgames.wake_on_lan.domain.agent.PhoneIdentity,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : ScanSources {
-    override suspend fun agents(broadcast: String) = agent.discover(broadcast).map { it.host to it.reply }
+    override suspend fun agents(broadcast: String) = agent.discover(broadcast, phone.keys.phoneId).map { it.host to it.reply }
 
     // 64 host × 9 port aynı anda bekleyebilsin diye IO havuzunun geniş bir görünümü; yoksa ölü adreslerin
     // 300 ms zaman aşımları 64 iş parçacığında sıraya girip tarama ~10 sn sürer.

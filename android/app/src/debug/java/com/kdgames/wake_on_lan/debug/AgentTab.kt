@@ -102,7 +102,7 @@ private enum class DebugCommand(val label: String, val cmd: AgentCommand) {
 /** S04: agent keşfi, TOFU eşleşme, imzalı durum, 6 komut ve NetBIOS (S2). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AgentTab(client: AgentClient, netBios: NetBiosProbe, monitor: NetworkMonitor, settings: SettingsStore, vault: KeyVault) {
+fun AgentTab(client: AgentClient, netBios: NetBiosProbe, monitor: NetworkMonitor, phone: com.kdgames.wake_on_lan.net.agent.PhoneKeys, vault: KeyVault) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val wifi by monitor.state.collectAsStateWithLifecycle()
@@ -125,7 +125,7 @@ fun AgentTab(client: AgentClient, netBios: NetBiosProbe, monitor: NetworkMonitor
     }
 
     suspend fun session(): AgentSession? {
-        val s = pairing.session(settings.ensurePhoneId())
+        val s = pairing.session(phone.phoneId)
         if (s == null) message = "Önce eşleş" to false
         return s
     }
@@ -147,7 +147,7 @@ fun AgentTab(client: AgentClient, netBios: NetBiosProbe, monitor: NetworkMonitor
             searching = true
             scope.launch {
                 found = try {
-                    client.discover(wifi.broadcast ?: throw NoWifiException())
+                    client.discover(wifi.broadcast ?: throw NoWifiException(), phone.phoneId)
                 } catch (_: NoWifiException) {
                     message = "Wi-Fi yok" to false
                     null
@@ -184,7 +184,7 @@ fun AgentTab(client: AgentClient, netBios: NetBiosProbe, monitor: NetworkMonitor
                 scope.launch {
                     message = "Eşleşiyor…" to true
                     message = try {
-                        when (val r = client.pair(host.trim(), settings.ensurePhoneId(), phoneName)) {
+                        when (val r = client.pair(host.trim(), phone, phoneName)) {
                             is PairResult.Paired -> {
                                 pairing.save(r.agentId, r.key)
                                 pairedId = r.agentId

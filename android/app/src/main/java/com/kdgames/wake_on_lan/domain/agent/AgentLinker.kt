@@ -26,6 +26,10 @@ import com.kdgames.wake_on_lan.net.agent.AgentErrorCode
 import com.kdgames.wake_on_lan.net.agent.DiscoveredAgent
 import com.kdgames.wake_on_lan.net.agent.NicSelector
 import com.kdgames.wake_on_lan.net.agent.PairResult
+import com.kdgames.wake_on_lan.net.agent.AgentCommand
+import com.kdgames.wake_on_lan.net.agent.AgentResult
+import com.kdgames.wake_on_lan.net.agent.AgentSession
+import com.kdgames.wake_on_lan.net.agent.PhoneKeys
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -43,10 +47,24 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Eşleşmede agent'a gönderilen telefon adı ("Galaxy S24"). */
+/**
+ * Telefonun agent'a görünen kimliği: ad ("Galaxy S24") + kalıcı anahtar (K25). Anahtar `ANDROID_ID`'den
+ * türetilir; uygulama silinip kurulunca aynı kalır, böylece agent telefonu `reset` gerekmeden yeniden tanır.
+ */
+@Singleton
 class PhoneIdentity @Inject constructor(@ApplicationContext private val context: Context) {
     val name: String
         get() = Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME) ?: Build.MODEL
+
+    val keys: PhoneKeys by lazy { PhoneKeys.derive(seed()) }
+
+    @android.annotation.SuppressLint("HardwareIds")
+    private fun seed(): String {
+        Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)?.takeIf { it.isNotBlank() }?.let { return it }
+        // ANDROID_ID yoksa (pratikte olmaz) uygulama verisinde kalıcı rastgele tohum: yeniden kurulumda değişir.
+        val prefs = context.getSharedPreferences("wol_identity", Context.MODE_PRIVATE)
+        return prefs.getString("seed", null) ?: java.util.UUID.randomUUID().toString().also { prefs.edit().putString("seed", it).apply() }
+    }
 }
 
 /** Agent çipinin ek durumu (K6). */
@@ -55,6 +73,9 @@ enum class AgentIssue { PAIRED_ELSEWHERE }
 /** Cihaz eklenince/düzenlenince hemen discovery + eşleşme (spec 10.5); testte kaydedici. */
 interface AgentLinkTrigger {
     fun linkNow()
+
+    /** K25: silinen cihazın agent eşleşmesini kaldırır (PC kapalıysa sonra); anahtarı bu siler. */
+    fun release(device: Device)
 
     /** Agent sorunları (K6 "Başka telefona eşli"), cihaz id'sine göre. */
     val issues: StateFlow<Map<Long, AgentIssue>>
@@ -83,6 +104,9 @@ class AgentLinker @Inject constructor(
     @AppScope private val scope: CoroutineScope,
 ) : RoundObserver, UnknownPhoneHandler, AgentLinkTrigger {
 
+    /** Debug ekranı için kalıcı telefon kimliği (K25). */
+    val phoneKeys: PhoneKeys get() = phone.keys
+
     private val mutex = Mutex()
     private var lastRefresh = Long.MIN_VALUE / 2
     private var job: Job? = null
@@ -106,6 +130,63 @@ class AgentLinker @Inject constructor(
         scope.launch { refresh(force = true) }
     }
 
+    override fun release(device: Device) {
+        scope.launch {
+            mutex.withLock { runCatching { releaseNow(device) }.onFailure { warn(TAG, "UNPAIR başarısız", it) } }
+        }
+    }
+
+    /** PC açıksa hemen UNPAIR; cevap yoksa bekleyenlere yazılır ve agent bir sonraki DISCOVER'da görülünce gönderilir. */
+    private suspend fun releaseNow(device: Device) {
+        val alias = device.agentKeyAlias ?: return
+        val agentId = device.agentId
+        val key = vault.load(alias)
+        if (agentId == null || key == null) return dropKey(alias)
+        if (unpair(device.ip, agentId, key)) {
+            dropKey(alias)
+        } else {
+            settings.addPendingUnpair(pendingEntry(agentId, alias))
+        }
+    }
+
+    /** true: agent artık bu telefona eşli değil (UNPAIR kabul edildi ya da zaten tanımıyor). false: cevap yok. */
+    private suspend fun unpair(host: String, agentId: String, key: ByteArray): Boolean = try {
+        when (client.command(host, AgentSession(agentId, phone.keys.phoneId, key), AgentCommand.UNPAIR, force = false)) {
+            AgentResult.NoResponse -> false
+            else -> true // Ok, UNKNOWN_PHONE, BAD_SIG (artık başka anahtar): bizim eşleşmemiz yok
+        }
+    } catch (_: NoWifiException) {
+        false
+    } catch (_: IOException) {
+        false
+    }
+
+    private fun dropKey(alias: String) {
+        sessions.forget(alias)
+        vault.delete(alias)
+    }
+
+    /** K25: PC kapalıyken silinmiş cihazların agent'ı göründüyse sessizce UNPAIR. */
+    private suspend fun processPending(found: List<DiscoveredAgent>, devices: List<Device>) {
+        for (entry in settings.pendingUnpairs()) {
+            val (agentId, alias) = entry.split('|', limit = 2).takeIf { it.size == 2 } ?: run { settings.removePendingUnpair(entry); continue }
+            val agent = found.firstOrNull { it.reply.agentId == agentId } ?: continue
+            val done = when {
+                // Kullanıcı PC'yi yeniden ekledi: eşleşme kalmalı (yeni kayıt kendi anahtarını kullanır).
+                devices.any { it.agentId == agentId || (it.agentId == null && matches(it, agent)) } -> true
+                // Agent artık bize eşli değil (reset, başka telefon): yapacak bir şey yok.
+                !agent.reply.paired || !agent.reply.pairedToYou -> true
+                else -> vault.load(alias)?.let { unpair(agent.host, agentId, it) } ?: true
+            }
+            if (done) {
+                settings.removePendingUnpair(entry)
+                if (devices.none { it.agentKeyAlias == alias }) dropKey(alias)
+            }
+        }
+    }
+
+    private fun pendingEntry(agentId: String, alias: String) = "$agentId|$alias"
+
     /** Arka planda discovery tetikle (kısa aralıkla gelen istekler birleştirilir). */
     fun requestRefresh() {
         scope.launch { refresh(force = false) }
@@ -118,7 +199,7 @@ class AgentLinker @Inject constructor(
         val wifi = monitor.state.value
         val broadcast = wifi.broadcast ?: return@withLock
         val found = try {
-            client.discover(broadcast)
+            client.discover(broadcast, phone.keys.phoneId)
         } catch (_: NoWifiException) {
             return@withLock
         } catch (e: IOException) {
@@ -126,6 +207,7 @@ class AgentLinker @Inject constructor(
             return@withLock
         }
         val devices = repo.getDevices()
+        runCatching { processPending(found, devices) }.onFailure { warn(TAG, "Bekleyen UNPAIR", it) }
         for (agent in found) {
             val device = devices.firstOrNull { it.agentId == agent.reply.agentId }
                 ?: devices.firstOrNull { it.agentId == null && matches(it, agent) }
@@ -158,9 +240,10 @@ class AgentLinker @Inject constructor(
         val hasKey = d.agentId != null && d.agentKeyAlias?.let(vault::load) != null
         when {
             d.agentId != null && hasKey && reply.paired -> clearIssue(d.id)
-            // Agent eşleşmemiş görünüyor (reset) ya da anahtarımız yok ama agent boşta → yeniden eşleş.
-            !reply.paired -> d = pair(forget(d), agent)
-            // Agent eşli ama bizde anahtar yok → başka telefon (K6).
+            // Agent boşta (reset) ya da bu telefona eşli ama anahtar yok (uygulama yeniden kuruldu, K25) → eşleş;
+            // ikinci durumda agent kalıcı anahtarımızı tanıyıp aynı K ile PAIR_OK verir.
+            !reply.paired || reply.pairedToYou -> d = pair(forget(d), agent)
+            // Agent başka bir telefona eşli (K6).
             else -> {
                 if (d.agentId == null || !hasKey) {
                     _issues.update { it + (d.id to AgentIssue.PAIRED_ELSEWHERE) }
@@ -171,7 +254,7 @@ class AgentLinker @Inject constructor(
     }
 
     private suspend fun pair(device: Device, agent: DiscoveredAgent): Device =
-        when (val r = client.pair(agent.host, settings.ensurePhoneId(), phone.name)) {
+        when (val r = client.pair(agent.host, phone.keys, phone.name)) {
             is PairResult.Paired -> {
                 val alias = vault.newAlias()
                 vault.store(alias, r.key)

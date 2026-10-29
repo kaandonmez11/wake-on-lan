@@ -43,6 +43,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Velocity
+import com.kdgames.wake_on_lan.ui.theme.LocalAnimationsActive
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.dp
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
 import com.kdgames.wake_on_lan.ui.theme.SpringToken
@@ -61,6 +66,9 @@ class SheetMotion {
     val enter = Animatable(0f)
     var dragPx by mutableFloatStateOf(0f)
     var heightPx by mutableFloatStateOf(1f)
+
+    /** Uygulama açılışındaki ilk birkaç kare: blur görünmez yarıçapta ısıtılır. */
+    var warming by mutableStateOf(true)
 
     /** Yukarı çekişte direnç (iOS rubber-band, c = 0.55); aşağı serbest. */
     val shownDragPx: Float
@@ -82,11 +90,14 @@ fun rememberSheetMotion(): SheetMotion = remember { SheetMotion() }
 /** Panel açıkken arkadaki ekran 6'lık blur alır (spec 10.5); değer yalnız katman aşamasında okunur. */
 fun Modifier.sheetBackdrop(motion: SheetMotion): Modifier = graphicsLayer {
     val v = motion.visibility
-    renderEffect = if (v > 0.01f) {
-        val r = 6.dp.toPx() * v
-        BlurEffect(r, r, TileMode.Clamp)
-    } else {
-        null
+    renderEffect = when {
+        v > 0.01f -> {
+            val r = 6.dp.toPx() * v
+            BlurEffect(r, r, TileMode.Clamp)
+        }
+        // Isınma: tam ekran katman + blur yolu açılışta bir kez kurulur; 1 px fark edilmez.
+        motion.warming -> BlurEffect(1f, 1f, TileMode.Clamp)
+        else -> null
     }
 }
 
@@ -185,42 +196,38 @@ fun SheetHost(
     }
 
     val shown by remember { derivedStateOf { motion.enter.value > 0.001f } }
-    // Isınma: içerik uygulama açılışında görünmez olarak birkaç kare kurulur ve çizilir; ilk "+" basışında
-    // sınıf yükleme, ilk kompozisyon ve font hazırlığı panelin giriş animasyonunu takıltmasın (S07 cihaz testi).
-    var warmed by remember { mutableStateOf(false) }
+    val visible = open || shown
+    // Isınma (S07 cihaz testi: ilk "+" takılıyordu): blur programı ve tam ekran katmanı uygulama açılışında
+    // görünmez biçimde bir kez kullanılır; GPU onları ilk panel açılışında derlemez/ayırmaz.
     LaunchedEffect(Unit) {
         repeat(WARMUP_FRAMES) { withFrameNanos { } }
-        warmed = true
-    }
-    if (!open && !shown) {
-        if (!warmed) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = 0.001f }
-                    .clearAndSetSemantics { },
-            ) { content(Modifier, bodyScroll) }
-        }
-        return
+        motion.warming = false
     }
 
     val shape = RoundedCornerShape(topStart = WolDimens.CornerSheet, topEnd = WolDimens.CornerSheet)
     Box(Modifier.fillMaxSize()) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .drawBehind { drawRect(Color.Black.copy(alpha = SCRIM_ALPHA * motion.visibility)) }
-                .pointerInput(open) { if (open) detectTapGestures { dismiss() } },
-        )
+        if (visible) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .drawBehind { drawRect(Color.Black.copy(alpha = SCRIM_ALPHA * motion.visibility)) }
+                    .pointerInput(open) { if (open) detectTapGestures { dismiss() } },
+            )
+        }
+        // İçerik kapalıyken de kompozisyonda kalır (ilk açılışta 20 ikon + 16 renk + form sıfırdan kurulmaz):
+        // ekran dışına yerleşir, çizilmez, dokunulmaz, erişilebilirlikte görünmez, sonsuz animasyonları durur.
         Box(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .fillMaxHeight(SHEET_HEIGHT_FRACTION)
                 .onSizeChanged { motion.heightPx = it.height.toFloat() }
+                .offset { IntOffset(0, if (visible) 0 else HIDDEN_OFFSET_PX) }
                 .graphicsLayer {
                     translationY = (1f - motion.enter.value) * motion.heightPx + motion.shownDragPx
+                    alpha = if (visible) 1f else 0f
                 }
+                .then(if (visible) Modifier else Modifier.clearAndSetSemantics { })
                 .clip(shape)
                 .background(SheetColors.Surface)
                 .drawBehind {
@@ -234,13 +241,27 @@ fun SheetHost(
                 // Panelin içindeki dokunuşlar scrim'e geçmesin.
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {
-            content(dragHandle, bodyScroll)
+            CompositionLocalProvider(LocalAnimationsActive provides visible) { content(dragHandle, bodyScroll) }
+        }
+        if (motion.warming) {
+            // Panelin kullandığı yarıçapta blur'u bir kez çalıştıran, gözle görülmeyen nokta.
+            Box(
+                Modifier
+                    .size(4.dp)
+                    .graphicsLayer {
+                        val r = 6.dp.toPx()
+                        renderEffect = BlurEffect(r, r, TileMode.Clamp)
+                        alpha = 0.01f
+                    }
+                    .background(Color.Black),
+            )
         }
     }
 }
 
+private const val HIDDEN_OFFSET_PX = 100_000
 const val SHEET_HEIGHT_FRACTION = 0.84f
-private const val WARMUP_FRAMES = 3
+private const val WARMUP_FRAMES = 6
 
 object SheetColors {
     val Surface = Color(0xFF15161D)

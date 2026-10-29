@@ -58,13 +58,13 @@ private val SampleNames = listOf("Ofis PC", "Oyun PC", "NAS", "Salon TV", "Çal�
 /** S02: gerçek Room/DataStore/Keystore üzerinde cihaz, geçmiş, ayar ve anahtar denemeleri. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DataTab(devices: DeviceRepository, settings: SettingsStore, vault: KeyVault) {
+fun DataTab(devices: DeviceRepository, settings: SettingsStore, vault: KeyVault, linker: com.kdgames.wake_on_lan.domain.agent.AgentLinker) {
     val scope = rememberCoroutineScope()
     val list by devices.observeDevices().collectAsState(initial = emptyList())
     val prefs by settings.settings.collectAsState(initial = Settings())
     var message by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var phoneId by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) { phoneId = settings.ensurePhoneId() }
+    LaunchedEffect(Unit) { phoneId = linker.phoneKeys.phoneId }
 
     fun show(text: String, ok: Boolean) { message = text to ok }
 
@@ -102,7 +102,7 @@ fun DataTab(devices: DeviceRepository, settings: SettingsStore, vault: KeyVault)
             RealDeviceForm(devices) { text, ok -> show(text, ok) }
         }
 
-        items(list, key = { it.id }) { device -> DeviceRow(device, devices) { text, ok -> show(text, ok) } }
+        items(list, key = { it.id }) { device -> DeviceRow(device, devices, linker) { text, ok -> show(text, ok) } }
 
         item {
             HorizontalDivider()
@@ -115,7 +115,7 @@ fun DataTab(devices: DeviceRepository, settings: SettingsStore, vault: KeyVault)
 }
 
 @Composable
-private fun DeviceRow(device: Device, repo: DeviceRepository, onMessage: (String, Boolean) -> Unit) {
+private fun DeviceRow(device: Device, repo: DeviceRepository, linker: com.kdgames.wake_on_lan.domain.agent.AgentLinker, onMessage: (String, Boolean) -> Unit) {
     val scope = rememberCoroutineScope()
     val history by repo.observeHistory(device.id).collectAsState(initial = WakeHistory(emptyList()))
     var n by remember { mutableStateOf(0L) }
@@ -140,7 +140,9 @@ private fun DeviceRow(device: Device, repo: DeviceRepository, onMessage: (String
                 }) { Text("+ ✗") }
                 OutlinedButton(onClick = {
                     scope.launch {
-                        repo.delete(device.id)
+                        // Asıl paneldeki gibi: PC açıksa agent eşleşmesi de kalkar (K25).
+                        repo.delete(device.id, keepAgentKey = true)
+                        linker.release(device)
                         onMessage("Silindi: ${device.name}", true)
                     }
                 }) { Text("Sil") }

@@ -69,6 +69,7 @@ class DeviceSheetTest {
     private lateinit var repo: DeviceRepository
     private lateinit var vm: DeviceSheetViewModel
     private var links = 0
+    private val released = mutableListOf<Long>()
 
     @Before
     fun setUp() {
@@ -90,9 +91,12 @@ class DeviceSheetTest {
             override fun linkNow() {
                 links++
             }
+            override fun release(device: com.kdgames.wake_on_lan.data.db.Device) {
+                released += device.id
+            }
             override val issues: StateFlow<Map<Long, AgentIssue>> = MutableStateFlow(emptyMap())
         }
-        vm = DeviceSheetViewModel(repo, scanner, wifi, linker)
+        vm = DeviceSheetViewModel(repo, scanner, wifi, linker).apply { scanStartDelayMs = 0 }
     }
 
     @After
@@ -237,5 +241,7 @@ class DeviceSheetTest {
         compose.onNodeWithTag("confirm_Sil").performClick()
         compose.waitUntil(3_000) { runBlocking { repo.getDevice(id) } == null }
         assertNull(runBlocking { repo.getDevice(id) })
+        // K25: agent eşleşmesi kaldırılmak üzere AgentLinker'a verildi.
+        assertEquals(listOf(id), released)
     }
 }

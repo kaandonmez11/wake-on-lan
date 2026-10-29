@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.kdgames.wake_on_lan.data.repo.RetryError
 import com.kdgames.wake_on_lan.data.repo.RetryPolicy
 import com.kdgames.wake_on_lan.domain.model.TileMode
@@ -52,6 +53,20 @@ class SettingsStore @Inject constructor(
             id = prefs[Keys.PHONE_ID] ?: newPhoneId().also { prefs[Keys.PHONE_ID] = it }
         }
         return id
+    }
+
+    /**
+     * K25: PC kapalıyken silinen cihazların agent'ına sonra gönderilecek UNPAIR'ler, "agentId|anahtarTakmaAdı".
+     * Anahtar bu listede durduğu sürece KeyVault'tan silinmez.
+     */
+    suspend fun pendingUnpairs(): Set<String> = dataStore.data.first()[Keys.PENDING_UNPAIRS].orEmpty()
+
+    suspend fun addPendingUnpair(entry: String) {
+        dataStore.edit { it[Keys.PENDING_UNPAIRS] = it[Keys.PENDING_UNPAIRS].orEmpty() + entry }
+    }
+
+    suspend fun removePendingUnpair(entry: String) {
+        dataStore.edit { it[Keys.PENDING_UNPAIRS] = it[Keys.PENDING_UNPAIRS].orEmpty() - entry }
     }
 
     /** İki değer birlikte doğrulanır (giveUp ≥ interval); geçersizse hiçbir şey yazılmaz. */
@@ -101,6 +116,7 @@ class SettingsStore @Inject constructor(
         val TILE_MODE = stringPreferencesKey("tileMode")
         val PHONE_ID = stringPreferencesKey("phoneId")
         val SELECTED_DEVICE = longPreferencesKey("selectedDeviceId")
+        val PENDING_UNPAIRS = stringSetPreferencesKey("pendingUnpairs")
         private val slots = List(Settings.TILE_SLOT_COUNT) { longPreferencesKey("tileSlot$it") }
         fun tileSlot(index: Int) = slots[index]
     }
