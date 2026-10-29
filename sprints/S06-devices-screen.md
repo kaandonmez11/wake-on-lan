@@ -180,6 +180,20 @@ _2026-10-29 · Claude_
 - **Art arda dokunuşta seçim halkası sekiyordu:** yeni hedefe artık o an çizildiği yerden gidiyor; eski karta sıçramıyor.
 - Testler **216/216**.
 
+### Bellek ve FPS taraması, 3. tur (Kaan'ın isteği: "sıfırdan bak", 2026-10-29)
+Bulunan ve düzeltilenler:
+- **Canlı arka plan AGSL shader'ını sürekli yeniden derliyordu.** Shader `drawWithCache` içinde yaratılıyordu; her yeniden kompozisyonda (her durum güncellemesi, ton değişimi) lambda yenilendiği için önbellek boşalıp shader baştan derleniyordu. Artık `remember` ile bir kez.
+- **Ping her çağrıda bir dosya tanımlayıcısı sızdırıyordu** (stdin kapatılmıyordu) ve her seferinde yeni bir thread açıyordu (her tur, her cihaz). Artık stdin hemen kapanıyor, süreç ve akışlar `finally` içinde yok ediliyor, thread yok.
+- **Kök yeniden kompozisyon fırtınası:** MainActivity tam durumu kökte okuyordu; her ping ms'si ve Wi-Fi sinyal değişiminde arka plan, nav ve tüm ağaç yeniden kompoze ediliyordu. Artık kök yalnız ayrı ve `distinctUntilChanged` olan ton akışını okuyor; tam durum yalnız Cihazlar içeriğinde okunuyor.
+- **Sekme geçişi gecikmesi:** Cihazlar her açılışta sıfırdan kuruluyordu. İki sekme de canlı tutuluyor; gizli sekmede sonsuz döngüler duruyor (`LocalAnimationsActive`), dokunuş ve erişilebilirlik ona ulaşmıyor. Geçiş yine spring'li (fade + 0.98→1 + 12 dp).
+- **Ayarlar açıkken** alttaki ekranın döngüleri duruyor; push karartması çizimde okunuyor.
+- **Tur başına anahtar okuma:** her 3 sn'de her cihaz için Keystore dosyası okunup çözülüyor ve DataStore'dan phoneId okunuyordu. Artık bellekte (LRU 16); K6'da önbellekten de siliniyor.
+- **Silinen cihaz izleri:** StatusEngine'deki tur, kilit, önbellek ve tried haritaları ile kart konumu haritası artık temizleniyor.
+- **Uyanırken kare başı fırçalar:** hero amber parlaması ve kart güç butonu gradyanı önbellekte.
+- **Kart ilerleme çubuğu "tık tık" ilerliyordu** (Kaan): zamanlı durumlarda (uyanıyor 60 sn, kapanıyor 90 sn, yeniden 180 sn) girişte o anki noktadan kalan süre boyunca doğrusal, kesintisiz doluyor.
+
+Doğrulama (telefonda, 1 dk, durum turları ve ping çalışırken): dosya tanımlayıcısı **135 → 135**, thread **50 → 50**, PSS **~68 MB** sabit. Testler **216/216**.
+
 ### Açık kalanlar
 - Cihaz ekle / düzenle paneli, tarama: S07.
 - Ayarlar içeriği ve titreşim anahtarı: S10.

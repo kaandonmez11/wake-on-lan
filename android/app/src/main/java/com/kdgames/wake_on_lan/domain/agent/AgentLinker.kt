@@ -66,6 +66,7 @@ class AgentLinker @Inject constructor(
     private val client: AgentClient,
     private val vault: KeyVault,
     private val settings: SettingsStore,
+    private val sessions: com.kdgames.wake_on_lan.domain.status.AgentSessions,
     private val monitor: NetworkMonitor,
     private val phone: PhoneIdentity,
     private val events: DomainEvents,
@@ -178,6 +179,7 @@ class AgentLinker @Inject constructor(
         }
 
     private fun forget(device: Device): Device {
+        sessions.forget(device.agentKeyAlias)
         device.agentKeyAlias?.let(vault::delete)
         return device.copy(agentId = null, agentKeyAlias = null)
     }

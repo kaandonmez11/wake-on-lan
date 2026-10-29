@@ -67,6 +67,12 @@ class DevicesViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DevicesUiState())
 
+    /** Arka plan tonu ayrı akış: yalnız gerçekten değişince yayınlanır (her ping ms'sinde kökü yeniden çizdirmez). */
+    val tint: StateFlow<androidx.compose.ui.graphics.Color> = state
+        .map { backgroundTint(it.selected) }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), androidx.compose.ui.graphics.Color.Unspecified)
+
     val events: SharedFlow<DomainEvent> = events.events
 
     fun select(id: Long) {

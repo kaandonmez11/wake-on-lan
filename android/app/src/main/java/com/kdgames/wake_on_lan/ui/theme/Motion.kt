@@ -55,6 +55,11 @@ enum class SpringToken(val response: Float, val damping: Float) {
  */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
+/**
+ * false iken (gizli sekme) sonsuz döngüler durur: görünmeyen ekran kare üretmez (S06 FPS taraması).
+ */
+val LocalAnimationsActive = staticCompositionLocalOf { true }
+
 /** Hareket azaltıldığında geçişlerin indiği kısa crossfade süresi. */
 const val REDUCED_CROSSFADE_MS = 120
 

@@ -16,7 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -107,15 +107,19 @@ fun LivingBackground(
         }
     }
 
+    // Shader bir kez derlenir. drawWithCache içinde yaratınca her yeniden kompozisyonda (yeni lambda →
+    // önbellek geçersiz) baştan derleniyordu (S06 bellek/FPS taraması).
+    val shader = remember {
+        runCatching { RuntimeShader(SHADER_SRC) }
+            .onFailure { Log.w(TAG, "AGSL shader kullanılamıyor, gradient yedeği çiziliyor", it) }
+            .getOrNull()
+    }
+    val brush = remember(shader) { shader?.let(::ShaderBrush) }
     Box(
         modifier
             .fillMaxSize()
-            .drawWithCache {
-                val shader = runCatching { RuntimeShader(SHADER_SRC) }
-                    .onFailure { Log.w(TAG, "AGSL shader kullanılamıyor, gradient yedeği çiziliyor", it) }
-                    .getOrNull()
-                val brush = shader?.let(::ShaderBrush)
-                onDrawBehind {
+            .drawBehind {
+                run {
                     val positions = foci.mapIndexed { i, f -> f.resolve(this, time, drift, i) }
                     if (shader != null && brush != null) {
                         shader.setFloatUniform("resolution", size.width, size.height)

@@ -10,7 +10,6 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.concurrent.thread
 import kotlin.math.roundToLong
 
 /** `ping` sürecinin ham çıktısı. */
@@ -30,16 +29,19 @@ class SystemPingRunner @Inject constructor() : PingRunner {
         } catch (_: IOException) {
             return null
         }
-        val out = StringBuilder()
-        val reader = thread(isDaemon = true) {
-            runCatching { process.inputStream.bufferedReader().use { r -> out.append(r.readText()) } }
+        // Her turda çalışır: stdin hemen kapatılır, süreç ve akışları her durumda yok edilir
+        // (aksi hâlde her ping bir dosya tanımlayıcısı sızdırıyordu). Çıktı birkaç yüz bayt; boru
+        // tamponuna sığar, süreç bittikten sonra okumak güvenli; ayrı thread gerekmez.
+        try {
+            runCatching { process.outputStream.close() }
+            if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) return PingOutput(-1, "timeout")
+            val text = process.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+            return PingOutput(process.exitValue(), text)
+        } finally {
+            runCatching { process.inputStream.close() }
+            runCatching { process.errorStream.close() }
+            process.destroy()
         }
-        if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) {
-            process.destroyForcibly()
-            return PingOutput(-1, "timeout")
-        }
-        reader.join(200)
-        return PingOutput(process.exitValue(), synchronized(out) { out.toString() })
     }
 }
 

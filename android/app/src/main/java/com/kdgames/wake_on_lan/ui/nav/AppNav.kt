@@ -1,14 +1,18 @@
 package com.kdgames.wake_on_lan.ui.nav
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.Animatable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.zIndex
+import com.kdgames.wake_on_lan.ui.theme.LocalAnimationsActive
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -22,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kdgames.wake_on_lan.ui.automation.AutomationScreen
 import com.kdgames.wake_on_lan.ui.background.LivingBackground
@@ -53,6 +56,7 @@ fun AppNav(
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Devices) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var tabDirection by remember { mutableIntStateOf(1) }
     val hazeState = rememberHazeState()
     val reduceMotion = LocalReduceMotion.current
     val shiftPx = with(LocalDensity.current) { TabShift.roundToPx() }
@@ -69,40 +73,73 @@ fun AppNav(
                 modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
                 tint = if (tab == MainTab.Devices) devicesTint else Color.Unspecified,
             )
-            AnimatedContent(
-                targetState = tab,
-                modifier = Modifier.fillMaxSize().hazeSource(hazeState, zIndex = 1f),
-                transitionSpec = {
-                    if (reduceMotion) {
-                        fadeIn(tween(REDUCED_CROSSFADE_MS)) togetherWith fadeOut(tween(REDUCED_CROSSFADE_MS))
-                    } else {
-                        // Sağdaki sekmeye giderken içerik sağdan, soldakine giderken soldan girer.
-                        val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
-                        val offsetSpec = SpringToken.Smooth.spec(IntOffset.VisibilityThreshold)
-                        (fadeIn(SpringToken.Smooth.spec()) +
-                            // Ölçek ekseni üst kenar: başlık dikeyde oynamaz (merkez eksen onu 0.98→1
-                            // boyunca aşağıdan yukarı kaydırıyordu — S01 cihaz testi).
-                            scaleIn(SpringToken.Smooth.spec(), initialScale = TAB_ENTER_SCALE, transformOrigin = TopCenter) +
-                            slideInHorizontally(offsetSpec) { shiftPx * dir }) togetherWith
-                            (fadeOut(SpringToken.Smooth.spec()) + slideOutHorizontally(offsetSpec) { -shiftPx * dir })
+            // İki sekme de canlı tutulur: Cihazlar'a dönüş her seferinde grid ve kartları sıfırdan kurmaz
+            // (S06: Otomasyon → Cihazlar gecikiyordu). Gizli sekmede sonsuz döngüler durur, dokunuş ve
+            // erişilebilirlik ona ulaşmaz.
+            Box(Modifier.fillMaxSize().hazeSource(hazeState, zIndex = 1f)) {
+                MainTab.entries.forEach { t ->
+                    key(t) {
+                        TabLayer(active = tab == t, direction = tabDirection, shiftPx = shiftPx) {
+                            when (t) {
+                                MainTab.Devices -> devices { settingsOpen = true }
+                                MainTab.Automation -> AutomationScreen()
+                            }
+                        }
                     }
-                },
-                label = "tabContent",
-            ) { target ->
-                when (target) {
-                    MainTab.Devices -> devices { settingsOpen = true }
-                    MainTab.Automation -> AutomationScreen()
                 }
             }
             FloatingNavBar(
                 selected = tab,
-                onSelect = { tab = it },
+                onSelect = {
+                    if (it != tab) tabDirection = if (it.ordinal > tab.ordinal) 1 else -1
+                    tab = it
+                },
                 onAdd = onAddDevice,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
         },
       )
+    }
+}
+
+/**
+ * Sekme katmanı (spec 12.2): girerken fade + 0.98→1 ölçek (üst kenar ekseni) + yöne göre 12'lik kayma,
+ * çıkarken fade + ters yöne kayma; hepsi `smooth` spring. Değerler yalnız katman aşamasında okunur.
+ */
+@Composable
+private fun TabLayer(active: Boolean, direction: Int, shiftPx: Int, content: @Composable () -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    val progress = remember { Animatable(if (active) 1f else 0f) }
+    LaunchedEffect(active) {
+        progress.animateTo(if (active) 1f else 0f, if (reduceMotion) tween(REDUCED_CROSSFADE_MS) else SpringToken.Smooth.spec())
+    }
+    val shown by remember { derivedStateOf { progress.value > 0.001f } }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .zIndex(if (active) 1f else 0f)
+            .graphicsLayer {
+                val p = progress.value
+                alpha = p
+                if (!reduceMotion) {
+                    translationX = (1f - p) * shiftPx * direction * (if (active) 1f else -1f)
+                    val s = if (active) TAB_ENTER_SCALE + (1f - TAB_ENTER_SCALE) * p else 1f
+                    scaleX = s
+                    scaleY = s
+                    transformOrigin = TopCenter
+                }
+            }
+            .then(if (active) Modifier else Modifier.clearAndSetSemantics { }.blockTouches()),
+    ) {
+        CompositionLocalProvider(LocalAnimationsActive provides (active || shown)) { content() }
+    }
+}
+
+/** Gizli sekme dokunuşları yutar; alttaki/üstteki ekran yanlışlıkla tetiklenmez. */
+private fun Modifier.blockTouches(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
     }
 }
 

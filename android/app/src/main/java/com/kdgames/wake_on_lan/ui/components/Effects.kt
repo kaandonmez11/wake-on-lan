@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kdgames.wake_on_lan.R
 import com.kdgames.wake_on_lan.domain.model.PowerAction
+import com.kdgames.wake_on_lan.ui.theme.LocalAnimationsActive
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
 import androidx.compose.foundation.layout.size
 
@@ -45,7 +46,7 @@ import androidx.compose.foundation.layout.size
 @Composable
 fun loopProgress(periodMs: Int, running: Boolean = true, rest: Float = 0f, label: String = "loop"): State<Float> {
     val reduceMotion = LocalReduceMotion.current
-    if (!running || reduceMotion) return remember(rest) { mutableFloatStateOf(rest) }
+    if (!running || reduceMotion || !LocalAnimationsActive.current) return remember(rest) { mutableFloatStateOf(rest) }
     val transition = rememberInfiniteTransition(label = label)
     return transition.animateFloat(0f, 1f, infiniteRepeatable(tween(periodMs, easing = LinearEasing)), label = label)
 }
@@ -55,7 +56,7 @@ fun loopProgress(periodMs: Int, running: Boolean = true, rest: Float = 0f, label
 fun breathing(periodMs: Int, min: Float, max: Float, running: Boolean = true, label: String = "breath"): State<Float> {
     val reduceMotion = LocalReduceMotion.current
     val mid = (min + max) / 2
-    if (!running || reduceMotion) return remember(mid) { mutableFloatStateOf(mid) }
+    if (!running || reduceMotion || !LocalAnimationsActive.current) return remember(mid) { mutableFloatStateOf(mid) }
     val transition = rememberInfiniteTransition(label = label)
     return transition.animateFloat(
         min, max,

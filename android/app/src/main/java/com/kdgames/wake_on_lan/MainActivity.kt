@@ -14,7 +14,6 @@ import com.kdgames.wake_on_lan.ui.components.ToastHostState
 import com.kdgames.wake_on_lan.ui.components.ToastKind
 import com.kdgames.wake_on_lan.ui.devices.DevicesScreen
 import com.kdgames.wake_on_lan.ui.devices.DevicesViewModel
-import com.kdgames.wake_on_lan.ui.devices.backgroundTint
 import com.kdgames.wake_on_lan.ui.theme.Sym
 import com.kdgames.wake_on_lan.ui.nav.AppNav
 import com.kdgames.wake_on_lan.ui.theme.WolTheme
@@ -33,12 +32,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             WolTheme {
-                val state by devicesViewModel.state.collectAsStateWithLifecycle()
+                // Kök yalnız tonu okur; tam durum yalnız Cihazlar içeriğinde okunur (S06 FPS taraması).
+                val tint by devicesViewModel.tint.collectAsStateWithLifecycle()
                 val toasts = remember { ToastHostState() }
                 AppNav(
                     onAddDevice = { toasts.show("Cihaz ekleme bir sonraki güncellemede · şimdilik WoL Debug › Veri", ToastKind.Info, Sym.add) },
-                    devicesTint = backgroundTint(state.selected),
+                    devicesTint = tint,
                     devices = { openSettings ->
+                        val state by devicesViewModel.state.collectAsStateWithLifecycle()
                         DevicesScreen(
                             state = state,
                             events = devicesViewModel.events,

@@ -1,6 +1,13 @@
 package com.kdgames.wake_on_lan.ui.devices
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -117,19 +124,45 @@ fun DeviceCard(
 
 /**
  * Kart çubuğu (4 yükseklik): kapalı = güvenilirlik oranı, açık = tam gradient,
- * uyanıyor = amber ilerleme, kapanıyor = kırmızı ilerleme. Uzunluk ve renk spring ile akar.
+ * uyanıyor = amber ilerleme, kapanıyor = kırmızı ilerleme.
+ *
+ * Zamanlı durumlarda (uyanıyor 60 sn, kapanıyor 90 sn, yeniden başlıyor 180 sn) çubuk saniyelik
+ * değerlere atlamaz: girişte o anki konumdan kalan süre boyunca **doğrusal, kesintisiz** dolar
+ * (S06 cihaz testi: "tık tık ilerliyor"). Diğer durumlarda hedefe spring ile akar.
  */
 @Composable
 private fun StatusBar(ui: DeviceUi) {
     val reduceMotion = LocalReduceMotion.current
     val state = ui.state
-    val fraction = when (state) {
+    val totalMs = when (state) {
+        is DeviceState.Waking -> 60_000L
+        is DeviceState.PowerTransition -> if (state.action == PowerAction.RESTART) 180_000L else 90_000L
+        else -> null
+    }
+    val elapsedMs = when (state) {
+        is DeviceState.Waking -> state.elapsedSec * 1_000L
+        is DeviceState.PowerTransition -> state.elapsedSec * 1_000L
+        else -> 0L
+    }
+    val restFraction = when (state) {
         is DeviceState.On -> 1f
-        is DeviceState.Waking -> (state.elapsedSec / 60f).coerceIn(0.05f, 1f)
-        is DeviceState.PowerTransition -> (state.elapsedSec / if (state.action == PowerAction.RESTART) 180f else 90f).coerceIn(0.05f, 1f)
         else -> if (ui.history.total == 0) 0f else ui.history.successes.toFloat() / ui.history.total
     }
-    val width by animateFloatAsState(fraction, motionSpec(SpringToken.Smooth, reduceMotion), label = "barWidth")
+    val bar = remember { Animatable(restFraction) }
+    val currentElapsed by rememberUpdatedState(elapsedMs)
+    // Anahtar: durum türü (zamanlıysa saniye değişimi efekti yeniden başlatmaz).
+    val key = if (totalMs != null) "timed-${state!!::class.simpleName}-${(state as? DeviceState.PowerTransition)?.action}" else "rest-$restFraction"
+    LaunchedEffect(key) {
+        if (totalMs != null && !reduceMotion) {
+            // Önce geçen süreye karşılık gelen noktaya kısa bir spring, sonra kalan süre boyunca sabit hız.
+            val start = (currentElapsed.toFloat() / totalMs).coerceIn(0.02f, 1f)
+            bar.animateTo(start, SpringToken.Snappy.spec())
+            val remainingMs = ((1f - bar.value) * totalMs).toInt().coerceAtLeast(1)
+            bar.animateTo(1f, tween(remainingMs, easing = LinearEasing))
+        } else {
+            bar.animateTo(if (totalMs != null) (currentElapsed.toFloat() / totalMs).coerceIn(0f, 1f) else restFraction, motionSpec(SpringToken.Smooth, reduceMotion))
+        }
+    }
     val c1 by animateColorAsState(
         when (state) {
             is DeviceState.On -> ui.palette.start
@@ -153,6 +186,7 @@ private fun StatusBar(ui: DeviceUi) {
             .clip(RoundedCornerShape(2.dp))
             .background(Color.White.copy(alpha = 0.10f))
             .drawBehind {
+                val width = bar.value
                 if (width > 0f) drawRect(Brush.horizontalGradient(listOf(c1, c2), endX = size.width * width), size = size.copy(width = size.width * width))
             },
     )
@@ -189,8 +223,10 @@ private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> 
             .then(gesture),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.fillMaxSize().graphicsLayer()) {
-            drawCircle(Brush.linearGradient(listOf(bg1, bg2), start = Offset.Zero, end = Offset(size.width, size.height)))
+        Spacer(Modifier.fillMaxSize().graphicsLayer().drawWithCache {
+            val bgBrush = Brush.linearGradient(listOf(bg1, bg2), start = Offset.Zero, end = Offset(size.width, size.height))
+            onDrawBehind {
+            drawCircle(bgBrush)
             if (on) drawCircle(ui.palette.start.copy(alpha = 0.55f), radius = size.minDimension / 2 + 2.dp.toPx(), style = Stroke(1.dp.toPx()))
             val stroke = 3.dp.toPx()
             if (ui.isBusy) {
@@ -201,7 +237,8 @@ private fun CardPowerButton(ui: DeviceUi, onWake: () -> Unit, onShutdown: () -> 
             if (p > 0f) {
                 drawArc(WolColors.Danger, -90f, 360f * p, false, topLeft = Offset(stroke / 2, stroke / 2), size = size.copy(size.width - stroke, size.height - stroke), style = Stroke(stroke, cap = StrokeCap.Round))
             }
-        }
+            }
+        })
         SymbolIcon(Sym.power_settings_new, contentDescription = null, size = 22.dp, tint = icon)
     }
 }

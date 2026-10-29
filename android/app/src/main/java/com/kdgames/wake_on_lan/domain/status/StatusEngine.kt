@@ -141,6 +141,12 @@ class StatusEngine @Inject constructor(
             }
             trackers.update { (it + fresh).filterKeys(map::containsKey) }
             overlays.update { it.filterKeys(map::containsKey) }
+            _rounds.update { it.filterKeys(map::containsKey) }
+            (current.keys - map.keys).forEach { gone ->
+                locks.remove(gone)
+                lastCached.remove(gone)
+                triedIds.remove(gone)
+            }
             devices.value = map
             publish()
         }

@@ -16,6 +16,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.drawWithContent
+import com.kdgames.wake_on_lan.ui.theme.LocalAnimationsActive
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,15 +68,22 @@ fun PushHost(
     }
 
     Box(Modifier.fillMaxSize()) {
+        val covered by remember { derivedStateOf { open && progress.value > 0.999f } }
+        val topShown by remember { derivedStateOf { progress.value > 0.001f } }
         Box(
-            Modifier.fillMaxSize().graphicsLayer { translationX = -size.width * 0.30f * progress.value },
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { translationX = -size.width * 0.30f * progress.value }
+                .drawWithContent {
+                    drawContent()
+                    val p = progress.value
+                    if (p > 0f) drawRect(Color.Black.copy(alpha = 0.35f * p))
+                },
         ) {
-            base()
-            if (progress.value > 0f) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f * progress.value)))
-            }
+            // Üst ekran tamamen örtünce alttaki sonsuz animasyonlar kare üretmez.
+            CompositionLocalProvider(LocalAnimationsActive provides !covered) { base() }
         }
-        if (progress.value > 0.001f || open) {
+        if (topShown || open) {
             Box(Modifier.fillMaxSize().graphicsLayer { translationX = size.width * (1f - progress.value) }) {
                 top()
             }

@@ -25,10 +25,24 @@ fun interface SignalProber {
 /** Agent oturumunu KeyVault'tan açar; eşleşme yoksa null. */
 @Singleton
 class AgentSessions @Inject constructor(private val vault: KeyVault, private val settings: SettingsStore) {
+    // Tur başına (her 3 sn, her cihaz) Keystore dosyası okuyup çözmemek için küçük önbellek.
+    // Takma ad değişince (yeniden eşleşme) yeni anahtar okunur; eski girdiler LRU ile düşer.
+    private val keys = object : LinkedHashMap<String, ByteArray>(8, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ByteArray>?) = size > 16
+    }
+    @Volatile private var phoneId: String? = null
+
     suspend fun of(device: Device): AgentSession? {
         val agentId = device.agentId ?: return null
-        val key = device.agentKeyAlias?.let(vault::load) ?: return null
-        return AgentSession(agentId, settings.ensurePhoneId(), key)
+        val alias = device.agentKeyAlias ?: return null
+        val key = synchronized(keys) { keys[alias] } ?: vault.load(alias)?.also { synchronized(keys) { keys[alias] = it } } ?: return null
+        val id = phoneId ?: settings.ensurePhoneId().also { phoneId = it }
+        return AgentSession(agentId, id, key)
+    }
+
+    /** Anahtar silinince (K6, cihaz silme) önbellekten de düşer. */
+    fun forget(alias: String?) {
+        if (alias != null) synchronized(keys) { keys.remove(alias) }
     }
 }
 

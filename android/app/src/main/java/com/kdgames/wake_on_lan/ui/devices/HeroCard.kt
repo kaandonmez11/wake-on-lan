@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Brush
@@ -120,12 +121,17 @@ fun HeroCard(
             Modifier
                 .matchParentSize()
                 .graphicsLayer()
-                .drawBehind {
-                    val a = amber.value
-                    if (a <= 0.01f) return@drawBehind
-                    drawRect(Brush.verticalGradient(listOf(WolColors.Amber.copy(alpha = 0.30f * a), WolColors.Amber.copy(alpha = 0.08f * a))))
+                .drawWithCache {
+                    // Fırça ve çerçeve boyut başına bir kez; nefes yalnız saydamlığı değiştirir.
+                    val wash = Brush.verticalGradient(listOf(WolColors.Amber.copy(alpha = 0.30f), WolColors.Amber.copy(alpha = 0.08f)))
                     val outline = shape.createOutline(size, layoutDirection, this)
-                    drawOutline(outline, WolColors.Amber.copy(alpha = 0.60f * a * wakingGlow.value), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+                    val ring = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx())
+                    onDrawBehind {
+                        val a = amber.value
+                        if (a <= 0.01f) return@onDrawBehind
+                        drawRect(wash, alpha = a)
+                        drawOutline(outline, WolColors.Amber, alpha = (0.60f * a * wakingGlow.value).coerceIn(0f, 1f), style = ring)
+                    }
                 },
         )
         OpenCardOverlay(shape, palette.start, openness, Modifier.matchParentSize())
