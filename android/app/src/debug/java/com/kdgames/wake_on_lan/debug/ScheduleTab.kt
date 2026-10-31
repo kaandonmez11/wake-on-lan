@@ -1,6 +1,16 @@
 package com.kdgames.wake_on_lan.debug
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Row
+import androidx.compose.runtime.rememberCoroutineScope
+import com.kdgames.wake_on_lan.domain.model.PowerAction
+import com.kdgames.wake_on_lan.domain.schedule.AndroidScheduleNotifier
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -35,11 +48,12 @@ private val Pass = Color(0xFF7CFFB2)
 private val Fail = Color(0xFFFF8F85)
 private val Muted = Color(0xFFB0B4C0)
 private val TIME = SimpleDateFormat("dd.MM HH:mm:ss", Locale.forLanguageTag("tr"))
+private const val TEST_ID = 9_999L
 private fun fmt(ms: Long?) = ms?.let { TIME.format(Date(it)) } ?: "—"
 
 /**
  * S08: kurulu alarmlar (zamanlayıcı, sonraki tetik), "Şimdi tetikle" (alarmı beklemeden alıcıyı çağırır),
- * son `ScheduleRun` kayıtları + `attemptsJson`.
+ * son `ScheduleRun` kayıtları + `attemptsJson`; "Test bildirimi" (gerçek bildirim yolu, ikon/metin denemesi).
  */
 @Composable
 fun ScheduleTab(schedules: ScheduleRepository, devices: DeviceRepository, service: ScheduleService) {
@@ -49,6 +63,21 @@ fun ScheduleTab(schedules: ScheduleRepository, devices: DeviceRepository, servic
     val armed by service.armed.collectAsState()
     val runs by schedules.observeRecentRuns(20).collectAsState(initial = emptyList())
     val names = devs.associate { it.id to it.name }
+    val scope = rememberCoroutineScope()
+    val notifier = remember { AndroidScheduleNotifier(context.applicationContext) }
+    // İzin yoksa önce iste, verilince bildirimi gönder.
+    var pending by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) pending?.invoke()
+        pending = null
+    }
+    fun withPermission(block: () -> Unit) {
+        if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) block()
+        else {
+            pending = block
+            permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     LazyColumn(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
@@ -56,6 +85,32 @@ fun ScheduleTab(schedules: ScheduleRepository, devices: DeviceRepository, servic
                 "Tam saatli alarm: " + if (service.canScheduleExact()) "izinli" else "İZİN YOK",
                 color = if (service.canScheduleExact()) Pass else Fail,
             )
+        }
+        item {
+            // Gerçek bildirim yolu (AndroidScheduleNotifier): emir, 3 sn sonra sonuç; aynı bildirimin yerine geçer.
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Test bildirimi", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        withPermission {
+                            scope.launch {
+                                notifier.started(TEST_ID, "Test PC", PowerAction.WAKE)
+                                delay(3_000)
+                                notifier.finished(TEST_ID, "Test PC", PowerAction.WAKE, RunResult.SUCCESS, "Uyandı · 4 sn")
+                            }
+                        }
+                    }) { Text("Başarılı") }
+                    Button(onClick = {
+                        withPermission {
+                            scope.launch {
+                                notifier.started(TEST_ID, "Test PC", PowerAction.WAKE)
+                                delay(3_000)
+                                notifier.finished(TEST_ID, "Test PC", PowerAction.WAKE, RunResult.FAILED, "Paket gitti · cevap yok")
+                            }
+                        }
+                    }) { Text("Başarısız") }
+                }
+            }
         }
         item { Text("Zamanlayıcılar", style = MaterialTheme.typography.titleMedium) }
         items(list, key = { it.id }) { s ->

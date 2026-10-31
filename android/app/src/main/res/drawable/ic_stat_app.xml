@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bildirim küçük ikonu: uygulama ikonunun glifi (ic_launcher_foreground ile aynı yollar), tek renk.
+     Glif sınırı (çizgi kalınlığı dahil) 22..678 x 138..562 → 24dp içinde 20 birim genişlik, ortalı. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:scaleX="0.03049"
+        android:scaleY="0.03049"
+        android:translateX="1.33"
+        android:translateY="1.33">
+        <path
+            android:pathData="M60,179.445L149.781,524.758H262.193V403.898H437.943V524.758H550.344L640.125,179.445"
+            android:strokeWidth="75"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M261.062,238V378 M306.062,176V378 M350.062,176V378 M394.062,176V378 M439.062,238V378"
+            android:strokeWidth="36"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

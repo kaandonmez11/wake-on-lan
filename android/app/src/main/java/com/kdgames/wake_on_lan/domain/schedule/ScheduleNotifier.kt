@@ -77,7 +77,7 @@ class AndroidScheduleNotifier @Inject constructor(@ApplicationContext private va
             PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_stat_power)
+            .setSmallIcon(R.drawable.ic_stat_app)
             .setContentTitle(title)
             .setContentText(text)
             .setSubText("Zamanlayıcı")
