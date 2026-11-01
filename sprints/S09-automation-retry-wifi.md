@@ -194,5 +194,5 @@ Hazırlık: WoL Debug › **Sahte PC** › "Sahte PC ekle".
 - **Çözüm:** halka yeniden tüm kartların üstündeki katmanda. Kenar esnemesi `rememberOverscrollEffect` ile listeyle halkayı saran kutuya uygulanıyor; liste efekti yalnız girdi için kullanıyor (`withoutVisualEffect`). Halka hem hep üstte hem kartlarla birlikte esniyor. 298/298.
 
 ### Cihaz testi
-✅ 2026-11-01, Kaan: sahte PC ile #1–12 ve düzeltme turları geçti (açılış halkası düzeltmesi bu sürümde).
+✅ 2026-11-01, Kaan: sahte PC ile #1–12 ve tüm düzeltme turları geçti; açılıştaki halka düzeltmesi de (tur 3: açılış, kart değişimi, kenar esnemesi) onaylandı.
 
