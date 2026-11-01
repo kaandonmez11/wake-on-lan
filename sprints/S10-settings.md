@@ -41,4 +41,65 @@ Ayarlar ekranı tamam: tüm izinler tek yerden görülür ve düzeltilir, retry 
 Testler yeşil; cihaz testi #1–12 geçti.
 
 ## Sprint sonu raporu
-_(Claude doldurur)_
+_2026-11-01 · Claude_
+
+### Doğrulananlar
+İzinlerin sistem ekranları ([Schedule alarms](https://developer.android.com/training/scheduling/alarms), [Android 14 exact alarm değişiklikleri](https://developer.android.com/about/versions/14/changes/schedule-exact-alarms)):
+- **Tam saatli alarm:** `USE_EXACT_ALARM` kurulumda veriliyor; yine de `canScheduleExactAlarms()` kontrol ediliyor. Kapalıysa `ACTION_REQUEST_SCHEDULE_EXACT_ALARM` (paket uri'li) açılıyor, açılamazsa uygulama bilgisi. Dönüşte `ON_RESUME`'da yeniden okunuyor (belgedeki önerilen akış).
+- **Pil:** `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` sistem dialog'u; manifeste `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` eklendi (telefonda `granted=true`). Açılamazsa `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` listesi. Durum `PowerManager.isIgnoringBatteryOptimizations`.
+- **Bildirim:** önce runtime istek; reddedildiyse `ACTION_APP_NOTIFICATION_SETTINGS`.
+- **Konum:** önce runtime istek (kesin + yaklaşık). Reddedildiyse uygulama bilgisi. İzin var ama konum servisi kapalıysa `ACTION_LOCATION_SOURCE_SETTINGS`; servis açılınca Wi-Fi adı yeniden okunuyor.
+- **Yerel ağ (`ACCESS_LOCAL_NETWORK`, NEARBY_DEVICES grubu):** önce runtime istek; reddedildiyse uygulama bilgisi › İzinler.
+- One UI 9'da her ekranın açıldığı cihaz testi #3–6 ile görülecek.
+
+### Yapılanlar
+- **SettingsScreen + ViewModel:** Cihazlar başlığındaki ayarlar balonundan push (sağdan giriş, alttaki %30 paralaks + kararma), predictive back (yarıda bırakınca geri oturur, S09), geri butonu, arka plan tam ekran canlı sahne. Bölümler cam gruplar halinde.
+- **İzinler:**
+  - Yerel ağ, Konum, Tam saatli alarm, Bildirimler, Pil satırları: "✓ Verildi" (yeşil) ya da amber "İzin ver"/"Düzelt".
+  - Ekrana her dönüşte (`ON_RESUME`) ve izin sonucundan sonra canlı yenileniyor. Durum rozeti ölçeklenip solarak, alt yazı ve renk akarak değişiyor.
+  - Tam saatli alarm yoksa satır kırmızımsı.
+  - Otomasyon'daki geçici uyarı satırı ("… · Ayarlar") dokununca Ayarlar'ı açıyor.
+- **Zamanlayıcı tekrar denemesi:** `NumberStepperField` ×2 (Tekrar aralığı 1–30, Vazgeçme süresi 2–120).
+  - −/+ basılı tutunca hızlanıyor, sınırda soluk ve duruyor. Ortada sayısal klavyeli mono alan, odakta Buz halkası, birimi "dk". Stepper'la değişimde haneler yuvarlanıyor.
+  - Aralık dışı/boş giriş ya da vazgeçme < aralık → kırmızımsı yatay titreme (3 salınım + `bouncy` oturma) + hata titreşimi + son geçerli değere dönüş.
+  - Altında canlı özet "2 dk arayla 6 deneme · 10 dk sonra vazgeçilir".
+- **Cihazlar · Kapatma şekli:** cihaz başına renk noktası, ad, agent durumu ("Agent eşli" / amber "Agent yok"), "Zorla / Nazik" segmenti (kayan gösterge `bouncy`). Altında iki modun açıklaması.
+- **Hızlı ayarlar:** 3 tile satırı ("Boş" + cihaz çipleri) ve "Tile davranışı" A/B/C segmenti, seçilen modun açıklamasıyla (tile'lar S12'de; değerler şimdiden DataStore'da).
+- **Diğer:**
+  - Titreşim anahtarı `Haptics.enabled`'a bağlı: kapalıyken hiçbir titreşim çalmıyor; açınca hemen bir tık hissettiriyor.
+  - DHCP rezervasyonu ipucu.
+- **Hakkında:** sürüm (0.1.0 (1)) + `assets/licenses` listesi. Satıra dokununca lisans metni açılıp kapanıyor (ok döner, alan genişleyip daralır).
+
+### Testler
+- Android: **309/309 yeşil**.
+  - `PermissionRowsTest`: hepsi verildi; runtime yok → "İzin ver", reddedildi → "Düzelt"; konum servisi kapalı; tam saatli alarm kırmızı; pil "Düzelt"; sayı ayrıştırma; lisans adları.
+  - `SettingsScreenTest` (Robolectric Compose):
+    - aralık dışı (45) ve boş giriş eski değere dönüyor, geçerli değer yazılıyor;
+    - vazgeçme < aralık reddediliyor; aralık "+" vazgeçmeyi geçemiyor;
+    - stepper sınırlarda pasif ve duruyor;
+    - Zorla/Nazik, tile modu, tile slotu ve titreşim seçimleri kaydediliyor;
+    - izin satırları sahte kaynakla doğru durumda ve değişince canlı güncelleniyor.
+- `assembleDebug` ve `assembleRelease` temiz. Agent değişmedi.
+
+### Animasyon denetimi
+- Push + predictive back: mevcut `PushHost`.
+- İzin rozeti `AnimatedContent` (fade + `bouncy` ölçek), satır zemini/alt yazı rengi akıyor, alt yazı `AnimatedText`.
+- Stepper: haneler yuvarlanıyor; −/+ basma ölçeği; sınırda soluklaşma animasyonlu; titreme `Quick` → `bouncy`; kırmızı tonu yumuşak sönüyor; odak halkası rengi akıyor.
+- Segmentler: kayan zemin `bouncy`, yazı rengi `snappy`. Tile çipleri: çerçeve/zemin rengi akıyor. Mod açıklaması `AnimatedText`.
+- Titreşim anahtarı: `GradientSwitch` (`bouncy`). Lisanslar: ok dönüşü + genişleme.
+- Animasyonlu `dropShadow` yok.
+
+### Sapmalar
+- **Tile slot seçimi** açılır liste yerine yatay çip satırı (birkaç cihazda tek dokunuş).
+- **Kapatma şekli** agent'sız cihazda da seçilebiliyor (agent eşlenince geçerli olur); satırda "Agent yok" uyarısı var.
+- Ayarlar başlığında Wi-Fi pill'i yok (Otomasyon'daki gibi sade başlık).
+
+### Kontrol raporu (K20)
+Şunlara baktım, tamam; sen de kontrol et:
+- Manifestte `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` var; telefonda `granted=true`. Diğer izinler (`ACCESS_LOCAL_NETWORK`, `POST_NOTIFICATIONS`, `USE_EXACT_ALARM`) verilmiş durumda.
+- Kurulum + açılışta çökme yok.
+- Retry ayarı `SettingsStore.setRetryPolicy` ile iki değer birlikte doğrulanıp yazılıyor; ScheduleRunner her denemede güncel değeri okuyor (S09).
+- Titreşim kapalıyken `Haptics` hiçbir primitif çalmıyor (tek giriş noktası `compose()` bayrağa bakıyor).
+
+### Açık kalanlar
+- Tile'lar (S12) slot/mod değerlerini kullanacak.

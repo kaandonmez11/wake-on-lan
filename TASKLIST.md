@@ -138,13 +138,13 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)**
 
 ## S10 — Ayarlar
-- [ ] SettingsScreen (push + predictive back)
-- [ ] İzinler grubu + canlı yenileme
-- [ ] NumberStepperField ×2
-- [ ] Kapatma şekli segmentleri
-- [ ] Tile slotları + mod
-- [ ] Titreşim, ipucu, hakkında/lisanslar
-- [ ] Testler yeşil · rapor · commit
+- [x] SettingsScreen (push + predictive back)
+- [x] İzinler grubu + canlı yenileme
+- [x] NumberStepperField ×2
+- [x] Kapatma şekli segmentleri
+- [x] Tile slotları + mod
+- [x] Titreşim, ipucu, hakkında/lisanslar
+- [x] Testler yeşil · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S11 — Kapılar + onboarding

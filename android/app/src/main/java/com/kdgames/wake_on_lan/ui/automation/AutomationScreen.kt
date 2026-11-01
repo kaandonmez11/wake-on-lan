@@ -109,8 +109,9 @@ fun AutomationScreen(
         if (!state.exactAlarmsAllowed) {
             item(key = "exact") {
                 WarningRow(
-                    "Tam saatli alarm izni kapalı · zamanlayıcılar gecikebilir",
-                    Modifier.animateItem(fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion), fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion)),
+                    "Tam saatli alarm izni kapalı · zamanlayıcılar gecikebilir · Ayarlar",
+                    onClick = onOpenSettings,
+                    modifier = Modifier.animateItem(fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion), fadeOutSpec = motionSpec(SpringToken.Snappy, reduceMotion)),
                 )
             }
         }
@@ -142,12 +143,14 @@ fun AutomationScreen(
 }
 
 @Composable
-private fun WarningRow(text: String, modifier: Modifier = Modifier) {
+private fun WarningRow(text: String, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
+    // S10: dokununca Ayarlar › İzinler (kırmızı satır orada).
     Row(
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(WolDimens.CornerSchedule))
             .background(WolColors.Amber.copy(alpha = 0.14f))
+            .pressable(onClick = onClick, onClickLabel = "Ayarlar")
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

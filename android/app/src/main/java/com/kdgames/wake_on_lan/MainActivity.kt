@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
     private val automationViewModel: com.kdgames.wake_on_lan.ui.automation.AutomationViewModel by viewModels()
     private val editorViewModel: com.kdgames.wake_on_lan.ui.automation.ScheduleEditorViewModel by viewModels()
     private val failureViewModel: com.kdgames.wake_on_lan.ui.automation.FailureViewModel by viewModels()
+    private val settingsViewModel: com.kdgames.wake_on_lan.ui.settings.SettingsViewModel by viewModels()
 
     @javax.inject.Inject lateinit var wifiSource: com.kdgames.wake_on_lan.net.WifiStateSource
 
@@ -71,6 +72,10 @@ class MainActivity : ComponentActivity() {
             WolTheme {
                 // Kök yalnız tonu okur; tam durum yalnız Cihazlar içeriğinde okunur (S06 FPS taraması).
                 val tint by devicesViewModel.tint.collectAsStateWithLifecycle()
+                // Titreşim anahtarı (S10): Haptics bayrağına bağlı.
+                val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
+                val haptics = com.kdgames.wake_on_lan.ui.theme.LocalHaptics.current
+                androidx.compose.runtime.SideEffect { if (settingsState.loaded) haptics.enabled = settingsState.settings.hapticsEnabled }
                 val toasts = remember { ToastHostState() }
                 val motion = rememberSheetMotion()
                 val editorMotion = rememberSheetMotion()
@@ -126,6 +131,24 @@ class MainActivity : ComponentActivity() {
                                 onEdit = { openSheet(SheetMode.Edit(it)) },
                                 onDelete = { id -> deleteDevice = state.devices.firstOrNull { it.id == id }?.device },
                                 onOpenSettings = openSettings,
+                            )
+                        },
+                        settings = { back ->
+                            com.kdgames.wake_on_lan.ui.settings.SettingsScreen(
+                                state = settingsState,
+                                actions = remember {
+                                    com.kdgames.wake_on_lan.ui.settings.SettingsActions(
+                                        onBack = back,
+                                        onRefreshPermissions = settingsViewModel::refreshPermissions,
+                                        onPermissionResult = settingsViewModel::onPermissionResult,
+                                        onInterval = settingsViewModel::setInterval,
+                                        onGiveUp = settingsViewModel::setGiveUp,
+                                        onShutdownMode = settingsViewModel::setShutdownMode,
+                                        onTileSlot = settingsViewModel::setTileSlot,
+                                        onTileMode = settingsViewModel::setTileMode,
+                                        onHaptics = settingsViewModel::setHaptics,
+                                    )
+                                },
                             )
                         },
                         failureRunId = failureRun.value,

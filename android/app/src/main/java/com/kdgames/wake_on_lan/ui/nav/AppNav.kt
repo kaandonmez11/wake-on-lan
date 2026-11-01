@@ -67,6 +67,8 @@ fun AppNav(
     failureRunId: Long? = null,
     onCloseFailure: () -> Unit = {},
     failure: @Composable (runId: Long) -> Unit = {},
+    /** Ayarlar ekranı (S10); parametresi geri dönüş. Varsayılan yer tutucu (testler). */
+    settings: @Composable (onBack: () -> Unit) -> Unit = { SettingsPlaceholder(onBack = it) },
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Devices) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
@@ -110,7 +112,7 @@ fun AppNav(
         onClose = { if (failureRunId != null) onCloseFailure() else settingsOpen = false },
         top = {
             val id = lastFailure
-            if (failureOnTop && id != null) failure(id) else SettingsPlaceholder(onBack = { settingsOpen = false })
+            if (failureOnTop && id != null) failure(id) else settings { settingsOpen = false }
         },
         base = {
         Box(Modifier.fillMaxSize()) {
