@@ -62,21 +62,17 @@ import kotlinx.coroutines.delay
 @Composable
 fun FailureScreen(ui: FailureUi?, onBack: () -> Unit, onRetry: (FailureUi) -> Unit) {
     val haptics = LocalHaptics.current
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        Box(Modifier.padding(horizontal = WolDimens.ScreenHorizontal, vertical = WolDimens.TopExtra)) {
-            GlassSurface(shape = CircleShape, modifier = Modifier.size(44.dp).pressable(onClick = onBack, onClickLabel = "Geri")) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    SymbolIcon(Sym.arrow_back_ios_new, contentDescription = "Geri", size = 18.dp)
-                }
-            }
-        }
         if (ui == null) return@Column
+        // Geri butonu üstte yüzer; içerik arkasından kayar (S10 cihaz testi).
         Column(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = WolDimens.ScreenHorizontal),
+                .padding(horizontal = WolDimens.ScreenHorizontal)
+                .padding(top = WolDimens.TopExtra + 44.dp + 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Reveal(0) { FailureOrb(ui) }
@@ -134,6 +130,8 @@ fun FailureScreen(ui: FailureUi?, onBack: () -> Unit, onRetry: (FailureUi) -> Un
                 }
             }
         }
+    }
+    com.kdgames.wake_on_lan.ui.settings.BackBubble(onBack, Modifier.statusBarsPadding().padding(horizontal = WolDimens.ScreenHorizontal, vertical = WolDimens.TopExtra))
     }
 }
 

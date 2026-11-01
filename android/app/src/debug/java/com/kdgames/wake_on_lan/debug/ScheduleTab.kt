@@ -171,9 +171,14 @@ fun ScheduleTab(
                                         ScheduleRun(scheduleId = s.id, occurrence = start, startedAt = start, endedAt = end, result = RunResult.FAILED, attemptsJson = RunAttempts.encode(attempts)),
                                     )
                                     notifier.failed(s.id, id, names[s.deviceId] ?: "Cihaz", s.action, attempts)
+                                    // Beklemeden başarısız ekranı (S10, Kaan): bildirime dokunmuş gibi uygulamayı açar.
+                                    context.startActivity(
+                                        com.kdgames.wake_on_lan.MainActivity.failureIntent(context, id)
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                                    )
                                 }
                             }
-                        }) { Text("Sahte FAILED üret") }
+                        }) { Text("Başarısız yap · ekranı aç") }
                     }
                 }
             }

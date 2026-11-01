@@ -66,8 +66,8 @@ fun FloatingNavBar(
     onSelect: (MainTab) -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Parmakla geçiş (S10): göstergeye eklenecek sekme kayması (−1..1) ve "animasyonsuz otur" bayrağı. */
-    drag: () -> Float = { 0f },
+    /** Parmakla geçiş (S10): göstergenin sekme biriminde mutlak konumu (null = normal) ve "animasyonsuz otur". */
+    position: () -> Float? = { null },
     snapping: () -> Boolean = { false },
 ) {
     val haptics = LocalHaptics.current
@@ -84,7 +84,7 @@ fun FloatingNavBar(
             variant = GlassVariant.Dock,
             modifier = Modifier.weight(1f).height(WolDimens.NavHeight),
         ) {
-            TabPill(selected = selected, drag = drag, snapping = snapping, onSelect = { tab ->
+            TabPill(selected = selected, position = position, snapping = snapping, onSelect = { tab ->
                 if (tab != selected) {
                     haptics.tick()
                     onSelect(tab)
@@ -96,7 +96,7 @@ fun FloatingNavBar(
 }
 
 @Composable
-private fun TabPill(selected: MainTab, drag: () -> Float, snapping: () -> Boolean, onSelect: (MainTab) -> Unit) {
+private fun TabPill(selected: MainTab, position: () -> Float?, snapping: () -> Boolean, onSelect: (MainTab) -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     // Gösterge konumu sekme biriminde; parmakla sürüklerken drag() ile bire bir kayar, dokununca bouncy.
     val base = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(selected.ordinal.toFloat()) }
@@ -109,7 +109,7 @@ private fun TabPill(selected: MainTab, drag: () -> Float, snapping: () -> Boolea
         val tabPx = with(androidx.compose.ui.platform.LocalDensity.current) { tabWidth.toPx() }
         Box(
             Modifier
-                .offset { androidx.compose.ui.unit.IntOffset(((base.value + drag()) * tabPx).roundToInt(), 0) }
+                .offset { androidx.compose.ui.unit.IntOffset(((position() ?: base.value) * tabPx).roundToInt(), 0) }
                 .width(tabWidth)
                 .fillMaxHeight()
                 .clip(CircleShape)
@@ -120,7 +120,7 @@ private fun TabPill(selected: MainTab, drag: () -> Float, snapping: () -> Boolea
             MainTab.entries.forEach { tab ->
                 val isSelected = tab == selected
                 // Renk göstergenin o anki konumuna göre: sürüklerken iki sekme arasında akar.
-                val near = (1f - kotlin.math.abs(base.value + drag() - tab.ordinal)).coerceIn(0f, 1f)
+                val near = (1f - kotlin.math.abs((position() ?: base.value) - tab.ordinal)).coerceIn(0f, 1f)
                 val contentColor = androidx.compose.ui.graphics.lerp(WolColors.TextSecondary, WolColors.TextPrimary, near)
                 Column(
                     modifier = Modifier

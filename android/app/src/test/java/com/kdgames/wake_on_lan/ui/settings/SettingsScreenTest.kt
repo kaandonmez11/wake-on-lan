@@ -158,7 +158,8 @@ class SettingsScreenTest {
         assertEquals(TIPS.count { it.warning }, compose.onAllNodesWithTag("warning_row").fetchSemanticsNodes().size)
         assertEquals(TIPS.count { !it.warning }, compose.onAllNodesWithTag("tip_row").fetchSemanticsNodes().size)
         compose.onNodeWithText("BIOS'ta Wake-on-LAN açık olmalı").performScrollTo().assertExists()
-        compose.onNodeWithTag("credit").performScrollTo().assertTextEquals("Designed and developed by Kaan Donmez.")
+        compose.onNodeWithTag("credit").performScrollTo().assertTextEquals("Kaan Donmez")
+        compose.onNodeWithText("DESIGNED AND DEVELOPED BY").assertExists()
         compose.onNodeWithText("Titreşim").assertDoesNotExist()
         assertEquals("https://www.linkedin.com/in/akaandonmez/", CREDIT_URL)
     }

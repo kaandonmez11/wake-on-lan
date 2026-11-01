@@ -119,3 +119,15 @@ _2026-11-01 · Claude_
   - 5 ipucu: kablolu bağlantı, router'da sabit IP, Modern Bekleme'li PC, `wolagent reset`, basılı tutma / yatay kaydırma.
 - Testler 311/311 (boşluğa dokununca odak, ipucu/uyarı satırları, imza).
 
+**Tur 2 (Kaan, 2026-11-01):** 1–3, 5–8 geçti. Notlar ve yapılanlar:
+- **Kaydırma sonu flaşı:** sekme değiştiği karede arka plan ve gösterge yeni duruma bir kare geç oturuyordu, arada eski görüntü çiziliyordu. Sürükleme hedefi artık sürükleme sıfırlanana dek sabit; gösterge mutlak konumla çiziliyor. Böylece flaş olmuyor.
+- **İmza:** lisans satırlarından ayrı, kartın dışında ve ortalı: ince Buz çizgisi, aralıklı "DESIGNED AND DEVELOPED BY", altında büyük, Buz gradient'li ve altı çizili "Kaan Donmez" (LinkedIn).
+- **Ayarlar'daki boş şerit:** geri butonu artık içeriğin üstünde yüzüyor, içerik arkasından kayıyor. Başarısız ekranında da aynısı.
+- **Üst/alt kenar bulanıklığı (iOS gibi):**
+  - `EdgeBlur`: Haze kademeli bulanıklık + hafif kararma, durum çubuğu ve alt bölge yüksekliğinde.
+  - Sekmelerde arka plan + sekme içeriği bulanıklaşıyor, yüzen nav üstte ve etkilenmiyor.
+  - Push ekranlarında (Ayarlar, Başarısız) arka plan + o ekranın içeriği bulanıklaşıyor; alttaki sekmeler karışmıyor (zIndex seçimi).
+  - Toast'lar bulanıklığın üstünde (AppNav overlay).
+- **Debug:** zamanlayıcı başına "Başarısız yap · ekranı aç": FAILED kaydı + bildirim üretip başarısız ekranını doğrudan açıyor (Kaan: 12 dk beklemeden).
+- Testler 311/311. Bellek 106 MB PSS (S06 tabanı 126 MB).
+

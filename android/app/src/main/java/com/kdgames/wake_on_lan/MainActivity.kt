@@ -128,8 +128,10 @@ class MainActivity : ComponentActivity() {
                                 onEdit = { openSheet(SheetMode.Edit(it)) },
                                 onDelete = { id -> deleteDevice = state.devices.firstOrNull { it.id == id }?.device },
                                 onOpenSettings = openSettings,
+                                showToastHost = false,
                             )
                         },
+                        overlay = { com.kdgames.wake_on_lan.ui.components.GlassToastHost(toasts, Modifier.align(androidx.compose.ui.Alignment.TopCenter)) },
                         settings = { back ->
                             com.kdgames.wake_on_lan.ui.settings.SettingsScreen(
                                 state = settingsState,

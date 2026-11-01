@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.hazeSource
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.pressable
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
@@ -116,7 +117,15 @@ fun PushHost(
                         if (edgeLine > 0.003f) drawRect(Color.White.copy(alpha = edgeLine), size = androidx.compose.ui.geometry.Size(1.dp.toPx(), size.height))
                     },
             ) {
-                top()
+                // Üst/alt kenar bulanıklığı: arka plan (0) + bu ekranın içeriği (2); alttaki sekmeler (1) karışmaz.
+                val haze = com.kdgames.wake_on_lan.ui.components.LocalHazeState.current
+                if (haze != null) {
+                    Box(Modifier.fillMaxSize().then(Modifier.hazeSource(haze, zIndex = 2f))) { top() }
+                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 14.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it != 1f })
+                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = false, extra = 20.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it != 1f })
+                } else {
+                    top()
+                }
             }
         }
     }

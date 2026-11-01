@@ -100,27 +100,21 @@ fun SettingsScreen(state: SettingsUi, actions: SettingsActions) {
         onPauseOrDispose { }
     }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-    Column(
+    // Geri butonu içeriğin üstünde yüzer; içerik arkasından kayar, üstte boş şerit kalmaz (S10 cihaz testi).
+    Box(
         Modifier
             .fillMaxSize()
             // Sayı alanındayken boş bir yere dokununca odak kalkar, değer doğrulanır (S10 cihaz testi).
-            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
-            .statusBarsPadding(),
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
     ) {
-        Box(Modifier.padding(horizontal = WolDimens.ScreenHorizontal, vertical = WolDimens.TopExtra)) {
-            GlassSurface(shape = CircleShape, modifier = Modifier.size(44.dp).pressable(onClick = actions.onBack, onClickLabel = "Geri")) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    SymbolIcon(Sym.arrow_back_ios_new, contentDescription = "Geri", size = 18.dp)
-                }
-            }
-        }
         Column(
             Modifier
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = WolDimens.ScreenHorizontal),
+                .padding(horizontal = WolDimens.ScreenHorizontal)
+                .padding(top = WolDimens.TopExtra + 44.dp + 14.dp),
         ) {
             Text("Ayarlar", style = WolType.PageTitle, color = WolColors.TextPrimary, modifier = Modifier.semantics { heading() })
             Spacer(Modifier.height(18.dp))
@@ -170,7 +164,19 @@ fun SettingsScreen(state: SettingsUi, actions: SettingsActions) {
             }
 
             Section("Hakkında") { AboutBlock() }
-            Spacer(Modifier.height(24.dp))
+            CreditBlock()
+            Spacer(Modifier.height(32.dp))
+        }
+        BackBubble(actions.onBack, Modifier.statusBarsPadding().padding(horizontal = WolDimens.ScreenHorizontal, vertical = WolDimens.TopExtra))
+    }
+}
+
+/** Yüzen cam geri butonu (Ayarlar, Başarısız ekranı). */
+@Composable
+internal fun BackBubble(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    GlassSurface(shape = CircleShape, modifier = modifier.size(44.dp).pressable(onClick = onBack, onClickLabel = "Geri")) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            SymbolIcon(Sym.arrow_back_ios_new, contentDescription = "Geri", size = 18.dp)
         }
     }
 }
@@ -424,32 +430,55 @@ private fun AboutBlock() {
     }
     val files = remember { runCatching { context.assets.list("licenses")?.sorted().orEmpty() }.getOrDefault(emptyList()) }
     SettingRow("WoL Denetim Merkezi", "Sürüm $version") {}
-    Credit()
     files.forEach { f ->
         Divider()
         LicenseRow(f)
     }
 }
 
-/** "Designed and developed by Kaan Donmez." · ad altı çizili, dokununca LinkedIn. */
+/**
+ * İmza (S10, Kaan): lisans satırlarından ayrışsın diye kartın dışında, ortalı. İnce Buz çizgisi, aralıklı küçük
+ * başlık, altında büyük ve altı çizili ad; ada dokununca LinkedIn.
+ */
+@Composable
+private fun CreditBlock() {
+    val ice = DevicePalette.Ice
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp).testTag("credit_block"), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.width(36.dp).height(3.dp).clip(RoundedCornerShape(50)).drawBehind { drawRect(Brush.horizontalGradient(listOf(ice.start, ice.end))) })
+        Spacer(Modifier.height(14.dp))
+        Text(
+            "DESIGNED AND DEVELOPED BY",
+            style = WolType.Label.copy(letterSpacing = androidx.compose.ui.unit.TextUnit(2f, androidx.compose.ui.unit.TextUnitType.Sp)),
+            color = WolColors.TextTertiary,
+        )
+        Spacer(Modifier.height(6.dp))
+        Credit()
+    }
+}
+
+/** "Kaan Donmez." · ad altı çizili, Buz gradient'i, dokununca LinkedIn. Erişilebilirlik metni tam cümle. */
 @Composable
 private fun Credit() {
+    val ice = DevicePalette.Ice
     val text = androidx.compose.ui.text.buildAnnotatedString {
-        append("Designed and developed by ")
         withLink(
             androidx.compose.ui.text.LinkAnnotation.Url(
                 CREDIT_URL,
                 androidx.compose.ui.text.TextLinkStyles(
                     style = androidx.compose.ui.text.SpanStyle(
-                        color = WolColors.TextPrimary,
+                        brush = Brush.horizontalGradient(listOf(ice.start, ice.end)),
                         textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
                     ),
                 ),
             ),
         ) { append("Kaan Donmez") }
-        append(".")
     }
-    Text(text, style = WolType.BodySmall, color = WolColors.TextSecondary, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp).testTag("credit"))
+    Text(
+        text,
+        style = WolType.CardName,
+        modifier = Modifier
+            .testTag("credit"),
+    )
 }
 
 internal const val CREDIT_URL = "https://www.linkedin.com/in/akaandonmez/"

@@ -36,6 +36,7 @@ import com.kdgames.wake_on_lan.ui.background.LivingBackground
 import com.kdgames.wake_on_lan.ui.background.Scene
 import com.kdgames.wake_on_lan.ui.components.LocalHazeState
 import com.kdgames.wake_on_lan.ui.components.TabScaffold
+import com.kdgames.wake_on_lan.ui.components.EdgeBlur
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
 import com.kdgames.wake_on_lan.ui.theme.REDUCED_CROSSFADE_MS
 import com.kdgames.wake_on_lan.ui.theme.SpringToken
@@ -69,6 +70,8 @@ fun AppNav(
     failure: @Composable (runId: Long) -> Unit = {},
     /** Ayarlar ekranı (S10); parametresi geri dönüş. Varsayılan yer tutucu (testler). */
     settings: @Composable (onBack: () -> Unit) -> Unit = { SettingsPlaceholder(onBack = it) },
+    /** Kenar bulanıklığının üstünde kalması gerekenler (ör. toast'lar). */
+    overlay: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Devices) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
@@ -110,10 +113,10 @@ fun AppNav(
             // Parmakla sekme geçişinde sahne sürüklemeye bire bir bağlı (S10, Kaan).
             scrub = remember(swipe) {
                 com.kdgames.wake_on_lan.ui.background.SceneScrub(
-                    target = { swipe.dragTarget()?.let { if (it == MainTab.Devices) Scene.Devices else Scene.Automation } },
+                    target = { swipe.scrubTarget()?.let { if (it == MainTab.Devices) Scene.Devices else Scene.Automation } },
                     progress = { kotlin.math.abs(swipe.offset.value) },
                     snapping = { swipe.committing },
-                    targetTint = { if (swipe.dragTarget() == MainTab.Devices) swipe.devicesTint else Color.Unspecified },
+                    targetTint = { if (swipe.scrubTarget() == MainTab.Devices) swipe.devicesTint else Color.Unspecified },
                 )
             },
         )
@@ -149,6 +152,10 @@ fun AppNav(
                     }
                 }
             }
+            // iOS gibi üst/alt kenar bulanıklığı (S10, Kaan): arka plan + sekme içeriği; yüzen nav üstte, etkilenmez.
+            EdgeBlur(hazeState, top = true, extra = 14.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it < 2f })
+            EdgeBlur(hazeState, top = false, extra = 112.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it < 2f })
+            overlay()
             FloatingNavBar(
                 selected = tab,
                 onSelect = {
@@ -157,7 +164,7 @@ fun AppNav(
                 },
                 onAdd = { if (tab == MainTab.Automation) onAddSchedule() else onAddDevice() },
                 modifier = Modifier.align(Alignment.BottomCenter),
-                drag = { if (swipe.dragTarget() != null) -swipe.offset.value else 0f },
+                position = { swipe.offset.value.takeIf { it != 0f }?.let { swipe.from.ordinal - it } },
                 snapping = { swipe.committing },
             )
         }
@@ -232,11 +239,13 @@ private class TabSwipe {
 
     fun neighbor(from: MainTab, f: Float): MainTab? = MainTab.entries.getOrNull(from.ordinal + if (f < 0f) 1 else -1)
 
-    /** Sürükleme sürerken (sekme henüz değişmedi) gidilen komşu sekme; yoksa null. */
-    fun dragTarget(): MainTab? {
+    /**
+     * Sürüklenen komşu sekme. Bitişte sekme değiştikten sonra da (sürükleme sıfırlanana dek) aynı hedefi verir:
+     * yeni sahnenin oturduğu karede eski görüntüye dönüş (flaş) olmaz (S10 cihaz testi).
+     */
+    fun scrubTarget(): MainTab? {
         val f = offset.value
-        if (f == 0f || from != current) return null
-        return neighbor(from, f)
+        return if (f == 0f) null else neighbor(from, f)
     }
 }
 

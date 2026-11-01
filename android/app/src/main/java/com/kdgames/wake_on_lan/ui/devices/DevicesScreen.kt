@@ -101,6 +101,8 @@ fun DevicesScreen(
     onDelete: (Long) -> Unit = {},
     events: Flow<DomainEvent>? = null,
     toasts: ToastHostState = remember { ToastHostState() },
+    /** false: toast'ları dışarıdaki host çizer (AppNav overlay, kenar bulanıklığının üstünde). */
+    showToastHost: Boolean = true,
 ) {
     val haptics = LocalHaptics.current
     val reduceMotion = LocalReduceMotion.current
@@ -212,7 +214,8 @@ fun DevicesScreen(
         }
         androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) { ring.target?.let { with(ring) { draw(it) } } }
       }
-        GlassToastHost(toasts, Modifier.align(Alignment.TopCenter))
+        // Uygulamada toast'lar kenar bulanıklığının üstünde (AppNav overlay) çizilir; testlerde burada.
+        if (showToastHost) GlassToastHost(toasts, Modifier.align(Alignment.TopCenter))
     }
 
     confirmCard?.let { ui ->
