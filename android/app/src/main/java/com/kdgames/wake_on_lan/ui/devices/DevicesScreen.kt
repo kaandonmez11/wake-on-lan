@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.overscroll
+import androidx.compose.foundation.withoutVisualEffect
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -134,10 +136,15 @@ fun DevicesScreen(
         }
     }
 
+    // Kenar esnemesi (overscroll stretch) liste yerine liste + halkayı saran kutuya uygulanır: halka tüm kartların
+    // üstünde ayrı katmanda kalır (komşu kart gölgeleri kenarlarını örtmez) ve kartlarla birlikte esner (S09, Kaan).
+    val overscroll = androidx.compose.foundation.rememberOverscrollEffect()
     Box(modifier.fillMaxSize().onGloballyPositioned { boxCoords[0] = it }) {
+      Box(Modifier.fillMaxSize().then(if (overscroll != null) Modifier.overscroll(overscroll) else Modifier)) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
+            overscrollEffect = overscroll?.withoutVisualEffect(),
             contentPadding = PaddingValues(
                 start = WolDimens.ScreenHorizontal,
                 end = WolDimens.ScreenHorizontal,
@@ -199,13 +206,12 @@ fun DevicesScreen(
                         .onGloballyPositioned { coords ->
                             val box = boxCoords[0]
                             if (box != null && box.isAttached && coords.isAttached) cardRects[ui.id] = box.localBoundingBoxOf(coords, clipBounds = false)
-                        }
-                        // Halka hedef kartın kendi çiziminde: listenin kenar esnemesi (overscroll stretch) yalnız liste
-                        // içeriğine uygulanır; ayrı katmandaki halka kartla esnemiyordu (S09 cihaz testi, Kaan).
-                        .then(if (ui.id == ring.target) Modifier.zIndex(1f).drawWithContent { drawContent(); with(ring) { draw(ui.id) } } else Modifier),
+                        },
                 )
             }
         }
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) { ring.target?.let { with(ring) { draw(it) } } }
+      }
         GlassToastHost(toasts, Modifier.align(Alignment.TopCenter))
     }
 
@@ -223,8 +229,8 @@ fun DevicesScreen(
 /**
  * Seçili kartın etrafında 2 beyaz halka (spec 10.2). Seçim değişince eski karttan yeniye `bouncy` ile kayar.
  * Konum iki kartın **canlı** konumları arasında 0→1 ilerlemeyle hesaplanır: hero boyut değiştirip kartlar
- * kayarken halka yarıda kesilip yeniden başlamaz (S06 cihaz testi). Halkayı hedef kart çizer ([draw]); böylece
- * listenin kenar esnemesiyle kartla birlikte esner (S09). Konumlar yalnız çizimde okunur.
+ * kayarken halka yarıda kesilip yeniden başlamaz (S06 cihaz testi). Halka kartların üstündeki katmanda çizilir;
+ * kenar esnemesi ikisini saran kutuya uygulandığından kartlarla birlikte esner (S09). Konumlar yalnız çizimde okunur.
  */
 @androidx.compose.runtime.Stable
 private class SelectionRingState(
@@ -236,7 +242,7 @@ private class SelectionRingState(
     var from: Rect? = null
     var drawn: Rect? = null
 
-    /** Hedef kartın çiziminde (kartın kendi koordinatlarında) çağrılır. */
+    /** Kartları saran kutunun koordinatlarında çizer. */
     fun DrawScope.draw(cardId: Long) {
         val to = rects[cardId] ?: return
         val start = from ?: to
@@ -255,7 +261,7 @@ private class SelectionRingState(
             val g = gap.toPx()
             drawRoundRect(
                 color = Color.White.copy(alpha = ringAlpha * a),
-                topLeft = Offset(r.left - to.left - g, r.top - to.top - g),
+                topLeft = Offset(r.left - g, r.top - g),
                 size = Size(r.width + 2 * g, r.height + 2 * g),
                 cornerRadius = CornerRadius(corner + g),
                 style = Stroke(1.5.dp.toPx()),

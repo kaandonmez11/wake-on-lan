@@ -13,7 +13,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S06 | 6 | Cihazlar ekranı (+ Windows güç ikonları) | ✅ |
 | S07 | 7 | Cihaz paneli + tarama | ✅ |
 | S08 | 8a | Otomasyon 1: zaman tetikli | ✅ |
-| S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ☐ |
+| S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ✅ |
 | S10 | 9 | Ayarlar | ☐ |
 | S11 | 10 | Tam ekran kapılar + onboarding | ☐ |
 | S12 | 11 | Hızlı Ayarlar tile'ları | ☐ |
@@ -135,7 +135,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] WIFI_CONNECT (PendingIntent callback, 10 dk kilit, skipNextEvent)
 - [x] Debug › Zamanlayıcı genişletmesi
 - [x] Doğrulanacaklar raporu · testler yeşil · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)**
 
 ## S10 — Ayarlar
 - [ ] SettingsScreen (push + predictive back)

@@ -189,3 +189,10 @@ Hazırlık: WoL Debug › **Sahte PC** › "Sahte PC ekle".
 - **Seçim halkası:** ayrı katmanda çizildiği için listenin kenar esnemesi ona uygulanmıyordu. Artık hedef kartın kendi çiziminde (üstte), kartla birlikte esniyor; kartlar arası `bouncy` kayma aynen.
 - Testler 298/298 (sekme kaydırma testi eklendi).
 
+**Tur 2 (Kaan, 2026-11-01):** A–D, 9a, 9b, 10, 11, 12 geçti. Not: açılışta seçim halkasının yalnız köşeleri görünüyor, kenarlar sonra geliyordu.
+- **Neden:** halka tur 1'de hedef kartın çizimine taşınmıştı. Liste öğeleri sırayla çizildiğinden sonraki kartların gölgesi (32 dp) halkanın düz kenarlarını örtüyordu; `zIndex` öğe içinde kaldığı için sırayı değiştirmiyordu.
+- **Çözüm:** halka yeniden tüm kartların üstündeki katmanda. Kenar esnemesi `rememberOverscrollEffect` ile listeyle halkayı saran kutuya uygulanıyor; liste efekti yalnız girdi için kullanıyor (`withoutVisualEffect`). Halka hem hep üstte hem kartlarla birlikte esniyor. 298/298.
+
+### Cihaz testi
+✅ 2026-11-01, Kaan: sahte PC ile #1–12 ve düzeltme turları geçti (açılış halkası düzeltmesi bu sürümde).
+
