@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -144,7 +145,7 @@ fun ScheduleTab(
             }
         }
         item { Text("Zamanlayıcılar", style = MaterialTheme.typography.titleMedium) }
-        items(list, key = { it.id }) { s ->
+        items(list, key = { "schedule-${it.id}" }) { s ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("#${s.id} · ${names[s.deviceId] ?: "?"} · ${s.action} · ${ScheduleEngine.triggerLabel(s)}${if (!s.enabled) " · KAPALI" else ""}")
@@ -206,11 +207,11 @@ fun ScheduleTab(
             )
         }
         if (log.isEmpty()) item { Text("Henüz Wi-Fi tetiği yok", color = Muted) }
-        items(log, key = { "log-$it" }) { line ->
+        itemsIndexed(log, key = { i, _ -> "log-$i" }) { _, line ->
             Text(line, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = if ("tetiklendi" in line) Pass else Muted)
         }
         item { Text("Son çalışmalar", style = MaterialTheme.typography.titleMedium) }
-        items(runs, key = { it.id }) { r ->
+        items(runs, key = { "run-${it.id}" }) { r ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(

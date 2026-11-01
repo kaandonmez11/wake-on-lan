@@ -131,3 +131,13 @@ _2026-11-01 · Claude_
 - **Debug:** zamanlayıcı başına "Başarısız yap · ekranı aç": FAILED kaydı + bildirim üretip başarısız ekranını doğrudan açıyor (Kaan: 12 dk beklemeden).
 - Testler 311/311. Bellek 106 MB PSS (S06 tabanı 126 MB).
 
+**Tur 3 (Kaan, 2026-11-01):** 1–4 ve 6 geçti; 7 tam ekran olduğu için kaydırılamıyor (Kaan geçti saydı). Notlar ve yapılanlar:
+- **Çökme (Debug › Zamanlayıcı):** "Başarısız yap" yeni çalışma kayıtları üretince çalışma no 11, zamanlayıcı no 11 ile aynı liste anahtarını kullandı ("Key 11 was already used"). Anahtarlar türe göre ayrıldı (`schedule-`, `run-`, günlük satırı sırası).
+- **Ayarlar'ı sağa çekerek kapatma:** push ekranı her yerden yatay sürüklenebiliyor ve parmağı takip ediyor. %35'i geçince ya da hızlı fırlatınca kapanıyor, yoksa yaylanarak oturuyor. Yatay kayan çip satırları önce alıyor.
+- **İmza:** "KAAN DONMEZ" başlıkla aynı stil ve renkte (büyük harf, aralıklı), altı çizili, biraz daha büyük. Renkli çubuk kaldırıldı.
+- **Bulanıklık kenarları:**
+  - Sağ/sol siyah kısımlar: bulanıklık ekran dışını siyah sayıyordu → kenar pikselleri tekrarlanıyor (`BlurredEdgeTreatment.Rectangle`).
+  - Ayarlar/Başarısız'daki açık şerit: push ekranının %30 karartması bulanıklık kaynağının dışındaydı → kaynağın içine alındı.
+  - Geçiş daha uzun (üst +28, alt +36 dp) ve ease-in-out azalıyor; kararma üç duraklı.
+- Testler 312/312 (push sürükleyerek kapatma testi).
+

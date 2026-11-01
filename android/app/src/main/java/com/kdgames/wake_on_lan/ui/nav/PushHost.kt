@@ -31,6 +31,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.hazeSource
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.launch
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.pressable
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
@@ -59,6 +62,7 @@ fun PushHost(
 ) {
     val reduceMotion = LocalReduceMotion.current
     val progress = remember { Animatable(if (open) 1f else 0f) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(open) { progress.animateTo(if (open) 1f else 0f, motionSpec(SpringToken.Smooth, reduceMotion)) }
 
     PredictiveBackHandler(enabled = open) { events ->
@@ -99,10 +103,29 @@ fun PushHost(
                 Modifier
                     .fillMaxSize()
                     .graphicsLayer { translationX = size.width * (1f - progress.value) }
+                    // Ekranı parmakla sağa çekerek kapatma (S10, Kaan): parmağı takip eder; %35'i geçince ya da
+                    // hızlı fırlatınca kapanır, yoksa yaylanarak geri oturur. Yatay kayan içerik (çip satırı) önce alır.
+                    .pointerInput(open) {
+                        if (!open) return@pointerInput
+                        val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                        detectHorizontalDragGestures(
+                            onDragStart = { tracker.resetTracking() },
+                            onDragEnd = {
+                                val v = tracker.calculateVelocity().x / size.width.coerceAtLeast(1)
+                                if (1f - progress.value > 0.35f || v > 1.0f) onClose()
+                                else scope.launch { progress.animateTo(1f, motionSpec(SpringToken.Snappy, reduceMotion), initialVelocity = -v) }
+                            },
+                            onDragCancel = { scope.launch { progress.animateTo(1f, motionSpec(SpringToken.Snappy, reduceMotion)) } },
+                        ) { change, dx ->
+                            tracker.addPosition(change.uptimeMillis, change.position)
+                            change.consume()
+                            val next = (progress.value - dx / size.width.coerceAtLeast(1)).coerceIn(0f, 1f)
+                            scope.launch { progress.snapTo(next) }
+                        }
+                    }
                     .drawBehind {
                         // Arka plan sabit kaldığı için panelin kaydığını belli eden ince cam tabaka + sol kenar gölgesi.
                         val p = progress.value
-                        drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f))
                         val edge = 18.dp.toPx()
                         val a = 0.35f * kotlin.math.sin(Math.PI.toFloat() * p.coerceIn(0f, 1f))
                         if (a > 0.005f) {
@@ -119,12 +142,14 @@ fun PushHost(
             ) {
                 // Üst/alt kenar bulanıklığı: arka plan (0) + bu ekranın içeriği (2); alttaki sekmeler (1) karışmaz.
                 val haze = com.kdgames.wake_on_lan.ui.components.LocalHazeState.current
+                // İnce cam karartma kaynağın içinde: kenar bulanıklığı aynı tonu görür, açık şerit oluşmaz (S10 cihaz testi).
+                val dim = Modifier.drawBehind { drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f)) }
                 if (haze != null) {
-                    Box(Modifier.fillMaxSize().then(Modifier.hazeSource(haze, zIndex = 2f))) { top() }
-                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 14.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it != 1f })
-                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = false, extra = 20.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it != 1f })
+                    Box(Modifier.fillMaxSize().hazeSource(haze, zIndex = 2f).then(dim)) { top() }
+                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it != 1f })
+                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = false, extra = 36.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it != 1f })
                 } else {
-                    top()
+                    Box(Modifier.fillMaxSize().then(dim)) { top() }
                 }
             }
         }

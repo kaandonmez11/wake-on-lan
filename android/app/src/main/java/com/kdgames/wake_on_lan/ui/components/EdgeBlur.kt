@@ -47,13 +47,23 @@ fun EdgeBlur(
                     blurRadius(18.dp)
                     noiseFactor(0f)
                     backgroundColor(WolColors.Background)
-                    progressive(HazeProgressive.verticalGradient(startIntensity = if (top) 1f else 0f, endIntensity = if (top) 0f else 1f))
+                    // Kenar pikselleri tekrarlanır: ekran dışı siyah sayılmaz, sağ/sol kenarda kararma olmaz.
+                    blurredEdgeTreatment(androidx.compose.ui.draw.BlurredEdgeTreatment.Rectangle)
+                    // Yumuşak (ease-in-out) azalma: bulanık bölgeden net içeriğe çizgisiz geçiş.
+                    progressive(
+                        HazeProgressive.verticalGradient(
+                            easing = androidx.compose.animation.core.CubicBezierEasing(0.45f, 0f, 0.55f, 1f),
+                            startIntensity = if (top) 1f else 0f,
+                            endIntensity = if (top) 0f else 1f,
+                        ),
+                    )
                 },
             )
             .drawBehind {
                 // Okunurluk için kenara doğru hafif kararma.
-                val dark = WolColors.Background.copy(alpha = 0.45f)
-                drawRect(Brush.verticalGradient(if (top) listOf(dark, Color.Transparent) else listOf(Color.Transparent, dark)))
+                val dark = WolColors.Background.copy(alpha = 0.40f)
+                val mid = WolColors.Background.copy(alpha = 0.12f)
+                drawRect(Brush.verticalGradient(if (top) listOf(dark, mid, Color.Transparent) else listOf(Color.Transparent, mid, dark)))
             },
     )
 }

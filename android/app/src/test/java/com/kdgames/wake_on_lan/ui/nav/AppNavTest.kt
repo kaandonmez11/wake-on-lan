@@ -1,5 +1,7 @@
 package com.kdgames.wake_on_lan.ui.nav
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeLeft
@@ -108,5 +110,23 @@ class AppNavTest {
         root.performTouchInput { swipeRight(startX = width * 0.1f, endX = width * 0.8f) }
         compose.waitForIdle()
         tab("Cihazlar").assertIsSelected()
+    }
+
+    @Test
+    fun pushEkraniSagaCekinceKapanir_azCekinceKalir() {
+        var closed = 0
+        compose.setContent {
+            WolTheme {
+                PushHost(open = true, onClose = { closed++ }, base = {}, top = { androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) })
+            }
+        }
+        compose.waitForIdle()
+        val root = compose.onRoot()
+        root.performTouchInput { swipe(Offset(width * 0.3f, height * 0.5f), Offset(width * 0.4f, height * 0.5f), durationMillis = 600) }
+        compose.waitForIdle()
+        assertEquals(0, closed)
+        root.performTouchInput { swipeRight(startX = width * 0.1f, endX = width * 0.9f) }
+        compose.waitForIdle()
+        assertEquals(1, closed)
     }
 }

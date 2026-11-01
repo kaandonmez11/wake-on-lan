@@ -437,48 +437,32 @@ private fun AboutBlock() {
 }
 
 /**
- * İmza (S10, Kaan): lisans satırlarından ayrışsın diye kartın dışında, ortalı. İnce Buz çizgisi, aralıklı küçük
- * başlık, altında büyük ve altı çizili ad; ada dokununca LinkedIn.
+ * İmza (S10, Kaan): kartın dışında, ortalı. "DESIGNED AND DEVELOPED BY" ve altında aynı stil/renkte, biraz daha
+ * büyük ve altı çizili "KAAN DONMEZ"; ada dokununca LinkedIn.
  */
 @Composable
 private fun CreditBlock() {
-    val ice = DevicePalette.Ice
+    val label = WolType.Label.copy(letterSpacing = androidx.compose.ui.unit.TextUnit(2f, androidx.compose.ui.unit.TextUnitType.Sp))
     Column(Modifier.fillMaxWidth().padding(top = 6.dp).testTag("credit_block"), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.width(36.dp).height(3.dp).clip(RoundedCornerShape(50)).drawBehind { drawRect(Brush.horizontalGradient(listOf(ice.start, ice.end))) })
-        Spacer(Modifier.height(14.dp))
-        Text(
-            "DESIGNED AND DEVELOPED BY",
-            style = WolType.Label.copy(letterSpacing = androidx.compose.ui.unit.TextUnit(2f, androidx.compose.ui.unit.TextUnitType.Sp)),
-            color = WolColors.TextTertiary,
-        )
+        Text("DESIGNED AND DEVELOPED BY", style = label, color = WolColors.TextTertiary)
         Spacer(Modifier.height(6.dp))
-        Credit()
-    }
-}
-
-/** "Kaan Donmez." · ad altı çizili, Buz gradient'i, dokununca LinkedIn. Erişilebilirlik metni tam cümle. */
-@Composable
-private fun Credit() {
-    val ice = DevicePalette.Ice
-    val text = androidx.compose.ui.text.buildAnnotatedString {
-        withLink(
-            androidx.compose.ui.text.LinkAnnotation.Url(
-                CREDIT_URL,
-                androidx.compose.ui.text.TextLinkStyles(
-                    style = androidx.compose.ui.text.SpanStyle(
-                        brush = Brush.horizontalGradient(listOf(ice.start, ice.end)),
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+        val text = androidx.compose.ui.text.buildAnnotatedString {
+            withLink(
+                androidx.compose.ui.text.LinkAnnotation.Url(
+                    CREDIT_URL,
+                    androidx.compose.ui.text.TextLinkStyles(
+                        style = androidx.compose.ui.text.SpanStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline),
                     ),
                 ),
-            ),
-        ) { append("Kaan Donmez") }
+            ) { append("KAAN DONMEZ") }
+        }
+        Text(
+            text,
+            style = label.copy(fontSize = androidx.compose.ui.unit.TextUnit(14f, androidx.compose.ui.unit.TextUnitType.Sp)),
+            color = WolColors.TextTertiary,
+            modifier = Modifier.testTag("credit"),
+        )
     }
-    Text(
-        text,
-        style = WolType.CardName,
-        modifier = Modifier
-            .testTag("credit"),
-    )
 }
 
 internal const val CREDIT_URL = "https://www.linkedin.com/in/akaandonmez/"
