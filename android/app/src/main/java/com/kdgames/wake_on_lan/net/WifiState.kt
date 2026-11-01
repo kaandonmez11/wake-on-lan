@@ -22,6 +22,8 @@ data class WifiState(
      * gizli gelirse ağı bununla tanır (S09).
      */
     val fingerprint: String? = null,
+    /** SSID gizli geldi; ad ağ imzasından bulundu (KnownNetworks). */
+    val ssidGuessed: Boolean = false,
 ) {
     companion object {
         val Disconnected = WifiState()

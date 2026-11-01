@@ -11,6 +11,10 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.composed
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import kotlinx.coroutines.launch
+import com.kdgames.wake_on_lan.ui.theme.motionSpec
 import com.kdgames.wake_on_lan.ui.theme.LocalAnimationsActive
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -75,6 +79,8 @@ fun AppNav(
     val pushOpen = settingsOpen || failureRunId != null
     var tabDirection by remember { mutableIntStateOf(1) }
     val hazeState = rememberHazeState()
+    val swipe = remember { TabSwipe() }
+    swipe.current = tab
     val reduceMotion = LocalReduceMotion.current
     val shiftPx = with(LocalDensity.current) { TabShift.roundToPx() }
     LaunchedEffect(showDevicesRequest) {
@@ -111,10 +117,18 @@ fun AppNav(
             // İki sekme de canlı tutulur: Cihazlar'a dönüş her seferinde grid ve kartları sıfırdan kurmaz
             // (S06: Otomasyon → Cihazlar gecikiyordu). Gizli sekmede sonsuz döngüler durur, dokunuş ve
             // erişilebilirlik ona ulaşmaz.
-            Box(Modifier.fillMaxSize().hazeSource(hazeState, zIndex = 1f)) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState, zIndex = 1f)
+                    .tabSwipe(swipe) { target ->
+                        tabDirection = if (target.ordinal > tab.ordinal) 1 else -1
+                        tab = target
+                    },
+            ) {
                 MainTab.entries.forEach { t ->
                     key(t) {
-                        TabLayer(active = tab == t, direction = tabDirection, shiftPx = shiftPx) {
+                        TabLayer(active = tab == t, direction = tabDirection, shiftPx = shiftPx, self = t, swipe = swipe) {
                             when (t) {
                                 MainTab.Devices -> devices { settingsOpen = true }
                                 MainTab.Automation -> automation { settingsOpen = true }
@@ -144,11 +158,13 @@ fun AppNav(
  * çıkarken fade + ters yöne kayma; hepsi `smooth` spring. Değerler yalnız katman aşamasında okunur.
  */
 @Composable
-private fun TabLayer(active: Boolean, direction: Int, shiftPx: Int, content: @Composable () -> Unit) {
+private fun TabLayer(active: Boolean, direction: Int, shiftPx: Int, self: MainTab, swipe: TabSwipe, content: @Composable () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val progress = remember { Animatable(if (active) 1f else 0f) }
     LaunchedEffect(active) {
-        progress.animateTo(if (active) 1f else 0f, if (reduceMotion) tween(REDUCED_CROSSFADE_MS) else SpringToken.Smooth.spec())
+        // Parmakla geçişte ekran zaten son hâlinde: animasyon tekrar oynatılmaz.
+        if (swipe.committing) progress.snapTo(if (active) 1f else 0f)
+        else progress.animateTo(if (active) 1f else 0f, if (reduceMotion) tween(REDUCED_CROSSFADE_MS) else SpringToken.Smooth.spec())
     }
     val shown by remember { derivedStateOf { progress.value > 0.001f } }
     Box(
@@ -165,10 +181,95 @@ private fun TabLayer(active: Boolean, direction: Int, shiftPx: Int, content: @Co
                     scaleY = s
                     transformOrigin = TopCenter
                 }
+                // Parmakla sürükleme (S09, Kaan): bırakılan sekme parmakla kayıp solar, komşusu yandan gelir.
+                val f = swipe.offset.value
+                if (f != 0f) {
+                    val from = swipe.from
+                    val parallax = size.width * SWIPE_PARALLAX
+                    if (self == from) {
+                        if (swipe.neighbor(from, f) != null) alpha = p * (1f - kotlin.math.abs(f))
+                        translationX += f * parallax
+                    } else if (self == swipe.neighbor(from, f)) {
+                        val side = if (self.ordinal > from.ordinal) 1f else -1f
+                        alpha = maxOf(p, kotlin.math.abs(f))
+                        translationX = (f + side) * parallax
+                        scaleX = 1f
+                        scaleY = 1f
+                    }
+                }
             }
             .then(if (active) Modifier else Modifier.clearAndSetSemantics { }.blockTouches()),
     ) {
         CompositionLocalProvider(LocalAnimationsActive provides (active || shown)) { content() }
+    }
+}
+
+private const val SWIPE_PARALLAX = 0.3f
+
+/** Sekmeler arası parmakla geçiş durumu. [offset]: -1..1 genişlik oranı (negatif = parmak sola = sonraki sekme). */
+@androidx.compose.runtime.Stable
+private class TabSwipe {
+    val offset = Animatable(0f)
+    var from = MainTab.Devices
+    var current = MainTab.Devices
+    var committing = false
+
+    fun neighbor(from: MainTab, f: Float): MainTab? = MainTab.entries.getOrNull(from.ordinal + if (f < 0f) 1 else -1)
+}
+
+/**
+ * Yatay sürükleme ile sekme değişimi: parmağı takip eder; genişliğin %30 kadarını geçince ya da hızlı fırlatınca
+ * geçer (smooth), yoksa yaylanarak geri döner. Komşu yoksa kenarda hafif lastik etkisi.
+ */
+private fun Modifier.tabSwipe(swipe: TabSwipe, onCommit: (MainTab) -> Unit): Modifier = composed {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val reduceMotion = LocalReduceMotion.current
+    val commit by androidx.compose.runtime.rememberUpdatedState(onCommit)
+    pointerInput(Unit) {
+        val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+        detectHorizontalDragGestures(
+            onDragStart = {
+                tracker.resetTracking()
+                if (!swipe.committing) {
+                    swipe.from = swipe.current
+                    scope.launch { swipe.offset.stop() }
+                }
+            },
+            onDragCancel = { if (!swipe.committing) scope.launch { swipe.offset.animateTo(0f, motionSpec(SpringToken.Snappy, reduceMotion)) } },
+            onDragEnd = {
+                if (!swipe.committing) {
+                    val w = size.width.toFloat().coerceAtLeast(1f)
+                    val v = tracker.calculateVelocity().x / w
+                    val f = swipe.offset.value
+                    val target = swipe.neighbor(swipe.from, f)
+                    val fling = kotlin.math.abs(v) > 1.2f && kotlin.math.sign(v) == kotlin.math.sign(f)
+                    if (target != null && f != 0f && (kotlin.math.abs(f) > 0.3f || fling)) {
+                        swipe.committing = true
+                        scope.launch {
+                            swipe.offset.animateTo(if (f < 0f) -1f else 1f, motionSpec(SpringToken.Smooth, reduceMotion), initialVelocity = v)
+                            commit(target)
+                            // Yeni sekmenin katmanı son hâline oturana dek bekle, sonra sürüklemeyi sıfırla.
+                            androidx.compose.runtime.withFrameNanos { }
+                            androidx.compose.runtime.withFrameNanos { }
+                            swipe.offset.snapTo(0f)
+                            swipe.committing = false
+                        }
+                    } else {
+                        scope.launch { swipe.offset.animateTo(0f, motionSpec(SpringToken.Snappy, reduceMotion), initialVelocity = v) }
+                    }
+                }
+            },
+        ) { change, dx ->
+            if (!swipe.committing) {
+                tracker.addPosition(change.uptimeMillis, change.position)
+                change.consume()
+                val w = size.width.toFloat().coerceAtLeast(1f)
+                val next = swipe.offset.value + dx / w
+                val f = if (swipe.neighbor(swipe.from, next) == null) (swipe.offset.value + dx / w * 0.25f).coerceIn(-0.12f, 0.12f)
+                else next.coerceIn(-1f, 1f)
+                scope.launch { swipe.offset.snapTo(f) }
+            }
+        }
     }
 }
 

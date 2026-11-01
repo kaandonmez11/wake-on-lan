@@ -32,6 +32,7 @@ import javax.inject.Singleton
 class NetworkMonitor @Inject constructor(
     @ApplicationContext private val context: Context,
     @AppScope scope: CoroutineScope,
+    private val known: KnownNetworks,
 ) : WifiChangeTime, WifiStateSource {
     @Volatile private var lastNetwork: Network? = null
     @Volatile private var lastBssid: String? = null
@@ -57,6 +58,17 @@ class NetworkMonitor @Inject constructor(
         restarts.update { it + 1 }
     }
 
+    /** SSID okunduysa imzasıyla öğrenilir; gizliyse (arka plan, yeniden bağlanma) bilinen ağın adı kullanılır. */
+    private fun withKnownSsid(s: WifiState): WifiState {
+        val fp = s.fingerprint ?: return s
+        if (s.ssid != null) {
+            known.learn(fp, s.ssid)
+            return s
+        }
+        val guess = known.ssidFor(fp) ?: return s
+        return s.copy(ssid = guess, ssidGuessed = true)
+    }
+
     private fun wifiUpdates() = callbackFlow {
         var current: Network? = null
         var caps: NetworkCapabilities? = null
@@ -80,7 +92,7 @@ class NetworkMonitor @Inject constructor(
             val v4 = link?.linkAddresses?.firstOrNull { it.address is Inet4Address }
             val rssi = info?.rssi?.takeIf { it != INVALID_RSSI }
             trySend(
-                WifiState.from(
+                withKnownSsid(WifiState.from(
                     network = network,
                     rawSsid = info?.ssid,
                     rssi = rssi,
@@ -91,7 +103,7 @@ class NetworkMonitor @Inject constructor(
                     prefixLength = v4?.prefixLength,
                     gateway = link?.routes?.firstOrNull { it.isDefaultRoute && it.gateway is Inet4Address }?.gateway?.hostAddress,
                     dhcpServer = link?.dhcpServerAddress?.hostAddress,
-                ),
+                )),
             )
         }
 

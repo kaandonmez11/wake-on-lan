@@ -183,10 +183,21 @@ fun ScheduleTab(
             val known = wifiLog.known()
             Text(
                 if (known.isEmpty()) "Öğrenilen ağ imzası yok (uygulama ön plandayken SSID okununca öğrenilir)"
-                else "Öğrenilen ağlar: " + known.entries.joinToString { "${it.key} [${it.value}]" },
+                else "Öğrenilen ağlar: " + known.entries.joinToString { "${it.value} [${it.key}]" },
                 color = Muted,
                 fontFamily = FontFamily.Monospace,
                 style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        item {
+            val armed = wifiLog.armed
+            Text(
+                when {
+                    !wifiLog.wanted -> "Sistem kaydı: yok (açık Eve gelince zamanlayıcısı yok)"
+                    armed -> "Sistem kaydı: KURULU · bir sonraki Wi-Fi bağlantısı yakalanır"
+                    else -> "Sistem kaydı: bekliyor · Wi-Fi'dan çıkınca kurulur (uygulama açıksa hemen, değilse ≤15 dk)"
+                },
+                color = if (armed || !wifiLog.wanted) Pass else Warn,
             )
         }
         if (log.isEmpty()) item { Text("Henüz Wi-Fi tetiği yok", color = Muted) }

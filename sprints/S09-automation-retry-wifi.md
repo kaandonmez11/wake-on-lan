@@ -170,3 +170,22 @@ Hazırlık: WoL Debug › **Sahte PC** › "Sahte PC ekle".
 | 10 | 10 dk dolmadan: Sahte PC "Şimdi kapat", Wi-Fi kapat-aç | Tetiklenmez; günlükte "10 dk kilidi" |
 | 11 | 10 dk sonra kartta "Sonrakini atla", Wi-Fi kapat-aç | Çalışmaz; son çalışma `SKIPPED_BY_USER`; kart normale döner |
 | 12 | "Hiç açılmaz" + "Şimdi tetikle", 2. denemeden önce telefonu yeniden başlat | Açılınca zincir kaldığı yerden sürer (Debug'da denemeler artar) |
+
+### Cihaz testi düzeltmeleri
+**Tur 1 (Kaan, 2026-11-01):** 1, 2, 4–8 geçti; 3 yarım; 9 tutarsız ("5-6 denemede bir kez"); 10–12 daha ayrıntılı tarif istendi. Ek istek: sekmeler arası kaydırma. Ek hata: kenar esnemesinde seçim halkası esnemiyor.
+- **#3:** geri hareketinde yarıdan az çekip bırakınca ekran artık kapanmıyor, geri oturuyor (ilerleme < 0,5).
+- **Sekmeler arası kaydırma:**
+  - Cihazlar ↔ Otomasyon ekrandan yatay kaydırılarak geçiliyor, parmağı takip ediyor: bırakılan sekme %30 paralaksla kayıp soluyor, komşusu yandan geliyor.
+  - %30'u geçince ya da hızlı fırlatınca geçiyor, yoksa yaylanarak geri dönüyor. Kenarda lastik etkisi var, nav göstergesi kayıyor.
+- **#9 kök nedeni** (`dumpsys connectivity` + logcat): Android PendingIntent ağ kaydını **her teslimattan sonra kendisi siliyor**. Wi-Fi'dayken yeniden kaydolmak hemen bir "yankı" teslimatı doğuruyor. Tek "başarılı" tetik de aslında uygulama açılırken yenilenen kaydın yankısıydı. Yeni düzen (K28 güncellendi):
+  - Kayıt **Wi-Fi'dan çıkınca** kuruluyor: uygulama açıksa bağlantı kopar kopmaz, değilse 15 dk'da bir (WorkManager) ve açılışta.
+  - Uygulama açıkken yeni Wi-Fi bağlantısı doğrudan yakalanıyor.
+  - Aynı bağlantı tek kez işleniyor.
+  - Debug'da "Sistem kaydı: KURULU / bekliyor" satırı var; günlük hangi yoldan geldiğini yazıyor ("uygulama açıkken" / "sistem").
+  - Ara sürümdeki kayıt döngüsü (yankıya yeniden kayıt) yakalandı, düzeltildi.
+- **Wi-Fi adı bazen gelmiyor:** Android arka planda yeniden bağlanınca SSID'yi gizli veriyor ve öne gelince yenilemiyor.
+  - Ağ imzası → SSID eşlemesi (`KnownNetworks`) her okunuşta öğreniliyor; ad gizli gelirse bilinen ağın adı gösteriliyor.
+  - Uygulama öne gelince ad yoksa callback tazeleniyor.
+- **Seçim halkası:** ayrı katmanda çizildiği için listenin kenar esnemesi ona uygulanmıyordu. Artık hedef kartın kendi çiziminde (üstte), kartla birlikte esniyor; kartlar arası `bouncy` kayma aynen.
+- Testler 298/298 (sekme kaydırma testi eklendi).
+

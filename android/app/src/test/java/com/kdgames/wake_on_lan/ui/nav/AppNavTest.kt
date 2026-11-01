@@ -1,5 +1,11 @@
 package com.kdgames.wake_on_lan.ui.nav
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
@@ -80,5 +86,27 @@ class AppNavTest {
         compose.onNode(hasContentDescription("Cihaz ekle") and hasClickAction()).performClick()
         compose.waitForIdle()
         assertEquals(1, added)
+    }
+
+    @Test
+    fun yatayKaydirmaylaSekmeDegisir_kisaKaydirmaGeriDoner() {
+        compose.setContent { WolTheme { AppNav() } }
+        val root = compose.onRoot()
+        // Kısa sürükleme (genişliğin ~%10'u, yavaş): geçmez.
+        root.performTouchInput { swipe(Offset(width * 0.6f, height * 0.5f), Offset(width * 0.5f, height * 0.5f), durationMillis = 600) }
+        compose.waitForIdle()
+        tab("Cihazlar").assertIsSelected()
+        // Sola kaydır: Otomasyon.
+        root.performTouchInput { swipeLeft(startX = width * 0.9f, endX = width * 0.2f) }
+        compose.waitForIdle()
+        tab("Otomasyon").assertIsSelected()
+        compose.onNode(hasText("Zamanlayıcılar telefondan çalışır, Wi-Fi şart")).assertExists()
+        // Otomasyon'da daha sola gidilmez (lastik), sağa kaydırınca Cihazlar.
+        root.performTouchInput { swipeLeft(startX = width * 0.9f, endX = width * 0.2f) }
+        compose.waitForIdle()
+        tab("Otomasyon").assertIsSelected()
+        root.performTouchInput { swipeRight(startX = width * 0.1f, endX = width * 0.8f) }
+        compose.waitForIdle()
+        tab("Cihazlar").assertIsSelected()
     }
 }

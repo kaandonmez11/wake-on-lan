@@ -49,6 +49,9 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -110,6 +113,7 @@ fun DevicesScreen(
     // hem ölçüme hem çizime uygulanıp halkayı kaydırıyordu (S06 cihaz testi).
     val boxCoords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
     var confirmCard by remember { mutableStateOf<DeviceUi?>(null) }
+    val ring = rememberSelectionRing(selectedId = selected?.id, rects = cardRects, visible = state.devices.size > 1)
     val currentDevices by rememberUpdatedState(state.devices)
 
     LaunchedEffect(events) {
@@ -195,11 +199,13 @@ fun DevicesScreen(
                         .onGloballyPositioned { coords ->
                             val box = boxCoords[0]
                             if (box != null && box.isAttached && coords.isAttached) cardRects[ui.id] = box.localBoundingBoxOf(coords, clipBounds = false)
-                        },
+                        }
+                        // Halka hedef kartın kendi çiziminde: listenin kenar esnemesi (overscroll stretch) yalnız liste
+                        // içeriğine uygulanır; ayrı katmandaki halka kartla esnemiyordu (S09 cihaz testi, Kaan).
+                        .then(if (ui.id == ring.target) Modifier.zIndex(1f).drawWithContent { drawContent(); with(ring) { draw(ui.id) } } else Modifier),
                 )
             }
         }
-        SelectionRing(selectedId = selected?.id, rects = cardRects, visible = state.devices.size > 1)
         GlassToastHost(toasts, Modifier.align(Alignment.TopCenter))
     }
 
@@ -217,34 +223,23 @@ fun DevicesScreen(
 /**
  * Seçili kartın etrafında 2 beyaz halka (spec 10.2). Seçim değişince eski karttan yeniye `bouncy` ile kayar.
  * Konum iki kartın **canlı** konumları arasında 0→1 ilerlemeyle hesaplanır: hero boyut değiştirip kartlar
- * kayarken halka yarıda kesilip yeniden başlamaz (S06 cihaz testi). Konumlar yalnız çizimde okunur.
+ * kayarken halka yarıda kesilip yeniden başlamaz (S06 cihaz testi). Halkayı hedef kart çizer ([draw]); böylece
+ * listenin kenar esnemesiyle kartla birlikte esner (S09). Konumlar yalnız çizimde okunur.
  */
-@Composable
-private fun SelectionRing(selectedId: Long?, rects: Map<Long, Rect>, visible: Boolean) {
-    val reduceMotion = LocalReduceMotion.current
-    val progress = remember { Animatable(1f) }
-    val target = remember { longArrayOf(Long.MIN_VALUE) }
-    // Art arda dokunuşta halka eski karta sıçramaz: yeni hedefe o an çizildiği yerden gider.
-    val from = remember { arrayOf<Rect?>(null) }
-    val drawn = remember { arrayOf<Rect?>(null) }
-    val alpha = animateFloatAsState(if (visible && selectedId != null) 1f else 0f, motionSpec(SpringToken.Snappy, reduceMotion), label = "ringAlpha")
-    LaunchedEffect(selectedId) {
-        val id = selectedId ?: return@LaunchedEffect
-        if (target[0] == Long.MIN_VALUE || drawn[0] == null) {
-            target[0] = id
-            return@LaunchedEffect
-        }
-        if (target[0] == id) return@LaunchedEffect
-        from[0] = drawn[0]
-        target[0] = id
-        progress.snapTo(0f)
-        progress.animateTo(1f, motionSpec(SpringToken.Bouncy, reduceMotion))
-        from[0] = null
-    }
-    Canvas(Modifier.fillMaxSize()) {
-        val a = alpha.value
-        val to = rects[target[0]] ?: return@Canvas
-        val start = from[0] ?: to
+@androidx.compose.runtime.Stable
+private class SelectionRingState(
+    private val rects: Map<Long, Rect>,
+    private val progress: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    private val alpha: androidx.compose.runtime.State<Float>,
+) {
+    var target by mutableStateOf<Long?>(null)
+    var from: Rect? = null
+    var drawn: Rect? = null
+
+    /** Hedef kartın çiziminde (kartın kendi koordinatlarında) çağrılır. */
+    fun DrawScope.draw(cardId: Long) {
+        val to = rects[cardId] ?: return
+        val start = from ?: to
         val t = progress.value
         val r = Rect(
             left = start.left + (to.left - start.left) * t,
@@ -252,20 +247,45 @@ private fun SelectionRing(selectedId: Long?, rects: Map<Long, Rect>, visible: Bo
             right = start.right + (to.right - start.right) * t,
             bottom = start.bottom + (to.bottom - start.bottom) * t,
         )
-        drawn[0] = r
-        if (a <= 0.01f) return@Canvas
+        drawn = r
+        val a = alpha.value
+        if (a <= 0.01f) return
         val corner = WolDimens.CornerCard.toPx()
         listOf(3.dp to 0.95f, 7.dp to 0.35f).forEach { (gap, ringAlpha) ->
             val g = gap.toPx()
             drawRoundRect(
                 color = Color.White.copy(alpha = ringAlpha * a),
-                topLeft = Offset(r.left - g, r.top - g),
+                topLeft = Offset(r.left - to.left - g, r.top - to.top - g),
                 size = Size(r.width + 2 * g, r.height + 2 * g),
                 cornerRadius = CornerRadius(corner + g),
                 style = Stroke(1.5.dp.toPx()),
             )
         }
     }
+}
+
+@Composable
+private fun rememberSelectionRing(selectedId: Long?, rects: Map<Long, Rect>, visible: Boolean): SelectionRingState {
+    val reduceMotion = LocalReduceMotion.current
+    val progress = remember { Animatable(1f) }
+    val alpha = animateFloatAsState(if (visible && selectedId != null) 1f else 0f, motionSpec(SpringToken.Snappy, reduceMotion), label = "ringAlpha")
+    val ring = remember(rects) { SelectionRingState(rects, progress, alpha) }
+    LaunchedEffect(selectedId) {
+        val id = selectedId ?: return@LaunchedEffect
+        val previous = ring.target
+        // Art arda dokunuşta halka eski karta sıçramaz: yeni hedefe o an çizildiği yerden gider.
+        if (previous == null || ring.drawn == null) {
+            ring.target = id
+            return@LaunchedEffect
+        }
+        if (previous == id) return@LaunchedEffect
+        ring.from = ring.drawn
+        ring.target = id
+        progress.snapTo(0f)
+        progress.animateTo(1f, motionSpec(SpringToken.Bouncy, reduceMotion))
+        ring.from = null
+    }
+    return ring
 }
 
 /** Spec 10.1 Wi-Fi pill: seviye ikonu (crossfade + 0.9→1), SSID · Mbps · IP (sayılar mono). */

@@ -40,7 +40,7 @@ class WifiTriggerRulesTest {
     @Test
     fun `SSID tirnakli gelir, gizliyse ag imzasindan bulunur`() {
         val fp = WifiState.fingerprint("192.168.1.1", "192.168.1.1", 24)!!
-        val known = mapOf("Ev-WiFi" to fp, "Ofis" to "gw=10.0.0.1;dhcp=10.0.0.1;p=16")
+        val known = mapOf(fp to "Ev-WiFi", "gw=10.0.0.1;dhcp=10.0.0.1;p=16" to "Ofis")
         assertEquals(WifiTriggerRules.Resolved("Ev-WiFi", WifiTriggerRules.Source.SSID), WifiTriggerRules.resolve("\"Ev-WiFi\"", null, known))
         assertEquals(WifiTriggerRules.Resolved("Ev-WiFi", WifiTriggerRules.Source.FINGERPRINT), WifiTriggerRules.resolve(WifiState.UNKNOWN_SSID, fp, known))
         assertEquals(WifiTriggerRules.Source.NONE, WifiTriggerRules.resolve(null, "gw=172.16.0.1;dhcp=;p=24", known).source)

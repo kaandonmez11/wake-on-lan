@@ -42,6 +42,9 @@ import com.kdgames.wake_on_lan.ui.theme.WolType
 import com.kdgames.wake_on_lan.ui.theme.motionSpec
 import kotlinx.coroutines.CancellationException
 
+/** Geri hareketinde kapanma eşiği (sistem ilerlemesi 0..1). */
+private const val CLOSE_THRESHOLD = 0.5f
+
 /**
  * iOS tarzı push (spec 12.2): üst ekran sağdan girer, alttaki %30 paralaksla sola kayar ve kararır.
  * Predictive back: geri hareketi parmağı takip eder; bırakınca kapanır ya da geri oturur.
@@ -59,8 +62,14 @@ fun PushHost(
 
     PredictiveBackHandler(enabled = open) { events ->
         try {
-            events.collect { e -> progress.snapTo(1f - e.progress * 0.9f) }
-            onClose()
+            var last = 0f
+            events.collect { e ->
+                last = e.progress
+                progress.snapTo(1f - e.progress * 0.9f)
+            }
+            // iOS gibi (S09 cihaz testi, Kaan): yarıdan az çekip bırakınca ekran geri oturur, kapanmaz.
+            if (last < CLOSE_THRESHOLD) progress.animateTo(1f, motionSpec(SpringToken.Snappy, reduceMotion))
+            else onClose()
         } catch (e: CancellationException) {
             progress.animateTo(1f, motionSpec(SpringToken.Snappy, reduceMotion))
             throw e

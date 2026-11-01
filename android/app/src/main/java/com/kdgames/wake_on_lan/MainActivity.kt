@@ -40,6 +40,16 @@ class MainActivity : ComponentActivity() {
     private val editorViewModel: com.kdgames.wake_on_lan.ui.automation.ScheduleEditorViewModel by viewModels()
     private val failureViewModel: com.kdgames.wake_on_lan.ui.automation.FailureViewModel by viewModels()
 
+    @javax.inject.Inject lateinit var wifiSource: com.kdgames.wake_on_lan.net.WifiStateSource
+
+    override fun onStart() {
+        super.onStart()
+        // Arka planda yeniden bağlanınca Android SSID'yi gizli verir ve öne gelince kendiliğinden yenilemez
+        // (S09 cihaz testi): ad bilinmiyorsa ya da tahminse callback tazelenir.
+        val w = wifiSource.state.value
+        if (w.connected && (w.ssid == null || w.ssidGuessed)) wifiSource.refresh()
+    }
+
     /** Açık başarısız ekranı (bildirimden gelir; spec 10.4). */
     private val failureRun = mutableStateOf<Long?>(null)
 

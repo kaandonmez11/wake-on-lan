@@ -12,6 +12,7 @@ import android.net.wifi.WifiInfo
 import com.kdgames.wake_on_lan.data.db.Schedule
 import com.kdgames.wake_on_lan.domain.model.ScheduleType
 import com.kdgames.wake_on_lan.net.AppScope
+import com.kdgames.wake_on_lan.net.KnownNetworks
 import com.kdgames.wake_on_lan.net.NetworkMonitor
 import com.kdgames.wake_on_lan.net.WifiState
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,10 +44,10 @@ object WifiTriggerRules {
 
     data class Resolved(val ssid: String?, val source: Source)
 
-    /** [known]: SSID → ağ imzası (ön planda öğrenilen). */
+    /** [known]: ağ imzası → SSID (ön planda öğrenilen, KnownNetworks). */
     fun resolve(ssid: String?, fingerprint: String?, known: Map<String, String>): Resolved {
         WifiState.cleanSsid(ssid)?.let { return Resolved(it, Source.SSID) }
-        if (fingerprint != null) known.entries.firstOrNull { it.value == fingerprint }?.let { return Resolved(it.key, Source.FINGERPRINT) }
+        if (fingerprint != null) known[fingerprint]?.let { return Resolved(it, Source.FINGERPRINT) }
         return Resolved(null, Source.NONE)
     }
 
@@ -72,7 +73,7 @@ object WifiTriggerRules {
 
 /** Debug › Zamanlayıcı: "eve gelince" günlüğü (son 30 satır; süreç ölse de kalır). */
 @Singleton
-class WifiTriggerLog @Inject constructor(@ApplicationContext context: Context) {
+class WifiTriggerLog @Inject constructor(@ApplicationContext context: Context, private val knownNetworks: KnownNetworks) {
     private val prefs = context.getSharedPreferences("wifi_trigger", Context.MODE_PRIVATE)
     private val _lines = MutableStateFlow(read())
     val lines: StateFlow<List<String>> = _lines.asStateFlow()
@@ -87,84 +88,139 @@ class WifiTriggerLog @Inject constructor(@ApplicationContext context: Context) {
 
     private fun read(): List<String> = prefs.getString(KEY_LOG, null)?.split("\n")?.filter { it.isNotBlank() }.orEmpty()
 
-    /** SSID → ağ imzası. */
-    fun known(): Map<String, String> = prefs.getStringSet(KEY_KNOWN, emptySet()).orEmpty()
-        .mapNotNull { e -> e.split('\t', limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }.toMap()
+    /** Ağ imzası → SSID (ön planda öğrenilen). */
+    fun known(): Map<String, String> = knownNetworks.all()
 
-    @Synchronized
-    fun learn(ssid: String, fingerprint: String) {
-        val current = known()
-        if (current[ssid] == fingerprint) return
-        val next = (current + (ssid to fingerprint)).entries.toList().takeLast(MAX_KNOWN).map { "${it.key}\t${it.value}" }.toSet()
-        prefs.edit().putStringSet(KEY_KNOWN, next).apply()
-    }
+    /** Açık bir "eve gelince" zamanlayıcısı var mı. */
+    var wanted: Boolean
+        get() = prefs.getBoolean(KEY_WANTED, false)
+        set(value) = prefs.edit().putBoolean(KEY_WANTED, value).apply()
 
-    /** Callback kaydı önceki süreçten beri var mı. */
-    var registered: Boolean
-        get() = prefs.getBoolean(KEY_REGISTERED, false)
-        set(value) = prefs.edit().putBoolean(KEY_REGISTERED, value).apply()
+    /** Sistem kaydı kurulu mu (her teslimattan sonra sistem siler). Debug'da gösterilir. */
+    var armed: Boolean
+        get() = prefs.getBoolean(KEY_ARMED, false)
+        set(value) = prefs.edit().putBoolean(KEY_ARMED, value).apply()
 
-    /** Aynı bağlantı için ikinci kez karar verilmez (kayıt anındaki yankı, yetenek değişimleri). */
+    /** Aynı bağlantı için ikinci kez karar verilmez (kayıt anındaki yankı, iki yoldan gelen aynı olay). */
     @Synchronized
     fun markHandled(handle: Long): Boolean {
         if (prefs.getLong(KEY_HANDLE, 0) == handle) return false
-        prefs.edit().putLong(KEY_HANDLE, handle).apply()
+        prefs.edit().putLong(KEY_HANDLE, handle).commit()
         return true
     }
 
     private companion object {
         const val KEY_LOG = "log"
-        const val KEY_KNOWN = "known"
         const val KEY_HANDLE = "lastHandle"
-        const val KEY_REGISTERED = "registered"
+        const val KEY_WANTED = "wanted"
+        const val KEY_ARMED = "armed"
         const val MAX = 30
-        const val MAX_KNOWN = 8
     }
 }
 
 /**
- * `registerNetworkCallback(request, PendingIntent)` kaydı (spec 9.4). Açık WIFI zamanlayıcısı varken kayıtlı;
- * süreç ölse de sistem Wi-Fi bağlanınca [WifiTriggerReceiver]'ı çağırır. Kayıt anında bağlı olunan ağ
- * "görüldü" sayılır: zamanlayıcıyı evde kurmak onu hemen tetiklemez.
+ * "Eve gelince" algılaması (spec 9.4), iki yoldan:
+ * 1. `registerNetworkCallback(request, PendingIntent)`: süreç ölüyken de sistem [WifiTriggerReceiver]'ı çağırır.
+ *    Android bu kaydı **her teslimattan sonra kendisi siler** (S09 cihaz testi, `dumpsys connectivity`); Wi-Fi'dayken
+ *    yeniden kaydolmak hemen bir yankı teslimatı doğurur. Bu yüzden kayıt **Wi-Fi'dan çıkınca** kurulur ("kurulu"):
+ *    süreç canlıyken bağlantı kopar kopmaz, değilse en geç 15 dk'da bir ([WifiTriggerKeeper]) ve açılışta.
+ * 2. Süreç canlıyken NetworkMonitor'ın gördüğü her yeni Wi-Fi bağlantısı doğrudan işlenir.
+ * Aynı bağlantı tek kez işlenir (ağ tanıtıcısı). Zamanlayıcıyı evde kurmak onu hemen çalıştırmaz.
  */
 @Singleton
 class WifiTriggerRegistrar @Inject constructor(
     @ApplicationContext private val context: Context,
     private val monitor: NetworkMonitor,
     private val log: WifiTriggerLog,
-    @AppScope scope: CoroutineScope,
+    @AppScope private val scope: CoroutineScope,
 ) : WifiTriggerSync {
     private val connectivity = context.getSystemService(ConnectivityManager::class.java)
-    private var registered: Boolean? = null
+    private var synced: Boolean? = null
 
     init {
-        // Ön planda SSID okunabilirken ağ imzası öğrenilir.
         scope.launch {
+            // Bu süreçte görülen ilk bağlantı "eve gelmek" değildir (zaten bağlıydık); sonrakiler canlı geçiştir.
+            var seen = false
+            var last: Network? = null
             monitor.state.collect { s ->
-                val ssid = s.ssid
-                val fp = s.fingerprint
-                if (ssid != null && fp != null) log.learn(ssid, fp)
+                val n = s.network?.takeIf { s.connected && s.phoneIp != null }
+                if (!s.connected) {
+                    // Wi-Fi koptu: bir sonraki bağlanış için sistem kaydını kur.
+                    // Kopan ağ birkaç sn listede kalabilir: kısa aralarla dene.
+                    if (last != null && log.wanted) scope.launch {
+                        for (wait in listOf(1_500L, 5_000L, 15_000L)) {
+                            kotlinx.coroutines.delay(wait)
+                            if (monitor.state.value.connected) break
+                            arm("Wi-Fi koptu")
+                            if (log.armed) break
+                        }
+                    }
+                    last = null
+                    return@collect
+                }
+                if (n == null || n == last) return@collect
+                last = n
+                if (!seen) {
+                    seen = true
+                    return@collect
+                }
+                if (log.wanted && log.markHandled(n.networkHandle)) {
+                    scope.launch { runCatching { WifiArrival.handle(context, context.scheduleDeps(), n, "uygulama açıkken") } }
+                }
             }
         }
     }
 
     @Synchronized
     override fun sync(needed: Boolean, force: Boolean) {
-        if (registered == needed && !force) return
+        if (synced == needed && !force) return
+        val wasWanted = log.wanted
+        log.wanted = needed
+        synced = needed
+        if (!needed) {
+            runCatching { connectivity.unregisterNetworkCallback(pending()) }
+            log.armed = false
+            WifiTriggerKeeper.cancel(context)
+            return
+        }
+        WifiTriggerKeeper.schedule(context)
+        // Açılışta sistem kayıtları silinmiştir.
+        if (force) log.armed = false
+        val wifiNow = wifiNetworkNow()
+        if (wifiNow != null) {
+            // Yeni kurulan zamanlayıcı (evdeyken) ya da açılış: şu anki bağlantı "eve gelmek" sayılmaz.
+            if (!wasWanted || force) log.markHandled(wifiNow.networkHandle)
+            return
+        }
+        arm(if (force) "açılış" else "kurulum")
+    }
+
+    /** Wi-Fi'da değilken sistem kaydını kurar (yankı olmaz). Keeper ve "Wi-Fi koptu" çağırır. */
+    @Synchronized
+    fun arm(reason: String) {
+        if (!log.wanted || wifiNetworkNow() != null) return
         runCatching { connectivity.unregisterNetworkCallback(pending()) }
-        if (needed) {
-            // Yeni kurulan zamanlayıcı ya da açılış: o an bağlı olunan ağ "eve gelmek" sayılmaz. Süreç yeniden
-            // başlarken (kayıt zaten vardı) işaretlenmez; yoksa alıcının işleyeceği bağlantı yarışta kaybolur.
-            if (force || !log.registered) monitor.state.value.network?.let { log.markHandled(it.networkHandle) }
+        runCatching {
             val request = NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                 .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build()
             connectivity.registerNetworkCallback(request, pending())
-        }
-        registered = needed
-        log.registered = needed
+        }.onSuccess {
+            if (!log.armed) log.add("Kuruldu ($reason): bir sonraki Wi-Fi bağlantısı beklenecek")
+            log.armed = true
+        }.onFailure { log.add("Kurulamadı: ${it.javaClass.simpleName}") }
     }
+
+    /** Sistem kaydı teslim edip sildi. */
+    fun delivered() {
+        log.armed = false
+    }
+
+    @Suppress("DEPRECATION")
+    private fun wifiNetworkNow(): Network? = runCatching {
+        connectivity.allNetworks.firstOrNull { connectivity.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
+    }.getOrNull()
 
     private fun pending(): PendingIntent = PendingIntent.getBroadcast(
         context,
@@ -180,31 +236,57 @@ class WifiTriggerRegistrar @Inject constructor(
     }
 }
 
+/** 15 dk'da bir: Wi-Fi'da değilsek "eve gelince" kaydını kurar (yalnız açık WIFI zamanlayıcısı varken). */
+class WifiTriggerKeeper(context: Context, params: androidx.work.WorkerParameters) : androidx.work.CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        applicationContext.scheduleDeps().wifiTrigger().arm("15 dk kontrolü")
+        return Result.success()
+    }
+
+    companion object {
+        private const val NAME = "wifi-trigger-keeper"
+
+        fun schedule(context: Context) {
+            val request = androidx.work.PeriodicWorkRequestBuilder<WifiTriggerKeeper>(15, java.util.concurrent.TimeUnit.MINUTES).build()
+            runCatching { androidx.work.WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, androidx.work.ExistingPeriodicWorkPolicy.KEEP, request) }
+        }
+
+        fun cancel(context: Context) {
+            runCatching { androidx.work.WorkManager.getInstance(context).cancelUniqueWork(NAME) }
+        }
+    }
+}
+
 /** Wi-Fi bağlandı (PendingIntent callback): SSID eşleşen "eve gelince" zamanlayıcıları çalışır. */
 class WifiTriggerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val network = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK, Network::class.java) ?: return
         val deps = context.scheduleDeps()
-        val log = deps.wifiLog()
-        if (!log.markHandled(network.networkHandle)) return
+        // Sistem kaydı bu teslimattan sonra siler; Wi-Fi kopunca yeniden kurulur.
+        deps.wifiTrigger().delivered()
+        val fresh = deps.wifiLog().markHandled(network.networkHandle)
+        if (!fresh) return
         val pending = goAsync()
         deps.scope().launch {
             try {
-                withTimeoutOrNull(8_000) { handle(context, deps, network) }
+                withTimeoutOrNull(8_000) { WifiArrival.handle(context, deps, network, "sistem") }
             } finally {
                 pending.finish()
             }
         }
     }
+}
 
-    private suspend fun handle(context: Context, deps: ScheduleEntryPoint, network: Network) {
+/** Yeni Wi-Fi bağlantısını işler: SSID'yi bulur, eşleşen zamanlayıcıları çalıştırır, günlüğe yazar. */
+internal object WifiArrival {
+    suspend fun handle(context: Context, deps: ScheduleEntryPoint, network: Network, via: String) {
         val log = deps.wifiLog()
         // NetworkMonitor (konum bayraklı callback) bu ağı birkaç yüz ms içinde yayınlar.
         val state = withTimeoutOrNull(4_000) { deps.monitor().state.first { it.network == network && it.phoneIp != null } }
-        val rawSsid = state?.ssid ?: runCatching {
+        val raw = if (state?.ssidGuessed == true) null else state?.ssid ?: runCatching {
             (context.getSystemService(ConnectivityManager::class.java).getNetworkCapabilities(network)?.transportInfo as? WifiInfo)?.ssid
         }.getOrNull()
-        val resolved = WifiTriggerRules.resolve(rawSsid, state?.fingerprint, log.known())
+        val resolved = WifiTriggerRules.resolve(raw, state?.fingerprint, log.known())
         val how = when (resolved.source) {
             WifiTriggerRules.Source.SSID -> "SSID okundu"
             WifiTriggerRules.Source.FINGERPRINT -> "SSID gizli · ağ imzasından"
@@ -216,6 +298,6 @@ class WifiTriggerReceiver : BroadcastReceiver() {
             if (decision == WifiTriggerRules.Decision.FIRE) ScheduleDispatch.start(context, deps, s, now)
             "#${s.id} ${WifiTriggerRules.label(decision)}"
         }
-        log.add("Bağlandı: ${resolved.ssid ?: "?"} ($how) → ${results.joinToString(", ").ifEmpty { "zamanlayıcı yok" }}")
+        log.add("Bağlandı ($via): ${resolved.ssid ?: "?"} · $how → ${results.joinToString(", ").ifEmpty { "zamanlayıcı yok" }}")
     }
 }
