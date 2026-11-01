@@ -1,5 +1,7 @@
 package com.kdgames.wake_on_lan.ui.nav
 
+import kotlin.math.roundToInt
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -64,6 +66,9 @@ fun FloatingNavBar(
     onSelect: (MainTab) -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Parmakla geçiş (S10): göstergeye eklenecek sekme kayması (−1..1) ve "animasyonsuz otur" bayrağı. */
+    drag: () -> Float = { 0f },
+    snapping: () -> Boolean = { false },
 ) {
     val haptics = LocalHaptics.current
     Row(
@@ -79,7 +84,7 @@ fun FloatingNavBar(
             variant = GlassVariant.Dock,
             modifier = Modifier.weight(1f).height(WolDimens.NavHeight),
         ) {
-            TabPill(selected = selected, onSelect = { tab ->
+            TabPill(selected = selected, drag = drag, snapping = snapping, onSelect = { tab ->
                 if (tab != selected) {
                     haptics.tick()
                     onSelect(tab)
@@ -91,18 +96,20 @@ fun FloatingNavBar(
 }
 
 @Composable
-private fun TabPill(selected: MainTab, onSelect: (MainTab) -> Unit) {
+private fun TabPill(selected: MainTab, drag: () -> Float, snapping: () -> Boolean, onSelect: (MainTab) -> Unit) {
     val reduceMotion = LocalReduceMotion.current
+    // Gösterge konumu sekme biriminde; parmakla sürüklerken drag() ile bire bir kayar, dokununca bouncy.
+    val base = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(selected.ordinal.toFloat()) }
+    androidx.compose.runtime.LaunchedEffect(selected) {
+        if (snapping()) base.snapTo(selected.ordinal.toFloat())
+        else base.animateTo(selected.ordinal.toFloat(), motionSpec(SpringToken.Bouncy, reduceMotion))
+    }
     BoxWithConstraints(Modifier.fillMaxHeight().padding(IndicatorInset)) {
         val tabWidth = maxWidth / MainTab.entries.size
-        val indicatorX by animateDpAsState(
-            targetValue = tabWidth * selected.ordinal,
-            animationSpec = motionSpec(SpringToken.Bouncy, reduceMotion),
-            label = "navIndicator",
-        )
+        val tabPx = with(androidx.compose.ui.platform.LocalDensity.current) { tabWidth.toPx() }
         Box(
             Modifier
-                .offset(x = indicatorX)
+                .offset { androidx.compose.ui.unit.IntOffset(((base.value + drag()) * tabPx).roundToInt(), 0) }
                 .width(tabWidth)
                 .fillMaxHeight()
                 .clip(CircleShape)
@@ -112,11 +119,9 @@ private fun TabPill(selected: MainTab, onSelect: (MainTab) -> Unit) {
         Row(Modifier.fillMaxWidth().fillMaxHeight().selectableGroup()) {
             MainTab.entries.forEach { tab ->
                 val isSelected = tab == selected
-                val contentColor by animateColorAsState(
-                    targetValue = if (isSelected) WolColors.TextPrimary else WolColors.TextSecondary,
-                    animationSpec = motionSpec(SpringToken.Snappy, reduceMotion),
-                    label = "tabColor",
-                )
+                // Renk göstergenin o anki konumuna göre: sürüklerken iki sekme arasında akar.
+                val near = (1f - kotlin.math.abs(base.value + drag() - tab.ordinal)).coerceIn(0f, 1f)
+                val contentColor = androidx.compose.ui.graphics.lerp(WolColors.TextSecondary, WolColors.TextPrimary, near)
                 Column(
                     modifier = Modifier
                         .width(tabWidth)

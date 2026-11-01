@@ -83,6 +83,7 @@ fun AppNav(
     val hazeState = rememberHazeState()
     val swipe = remember { TabSwipe() }
     swipe.current = tab
+    swipe.devicesTint = devicesTint
     val reduceMotion = LocalReduceMotion.current
     val shiftPx = with(LocalDensity.current) { TabShift.roundToPx() }
     LaunchedEffect(showDevicesRequest) {
@@ -106,6 +107,15 @@ fun AppNav(
             continuous = pushOpen,
             modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
             tint = if (!pushOpen && tab == MainTab.Devices) devicesTint else Color.Unspecified,
+            // Parmakla sekme geçişinde sahne sürüklemeye bire bir bağlı (S10, Kaan).
+            scrub = remember(swipe) {
+                com.kdgames.wake_on_lan.ui.background.SceneScrub(
+                    target = { swipe.dragTarget()?.let { if (it == MainTab.Devices) Scene.Devices else Scene.Automation } },
+                    progress = { kotlin.math.abs(swipe.offset.value) },
+                    snapping = { swipe.committing },
+                    targetTint = { if (swipe.dragTarget() == MainTab.Devices) swipe.devicesTint else Color.Unspecified },
+                )
+            },
         )
       PushHost(
         open = pushOpen,
@@ -147,6 +157,8 @@ fun AppNav(
                 },
                 onAdd = { if (tab == MainTab.Automation) onAddSchedule() else onAddDevice() },
                 modifier = Modifier.align(Alignment.BottomCenter),
+                drag = { if (swipe.dragTarget() != null) -swipe.offset.value else 0f },
+                snapping = { swipe.committing },
             )
         }
         },
@@ -216,7 +228,16 @@ private class TabSwipe {
     var current = MainTab.Devices
     var committing = false
 
+    var devicesTint = Color.Unspecified
+
     fun neighbor(from: MainTab, f: Float): MainTab? = MainTab.entries.getOrNull(from.ordinal + if (f < 0f) 1 else -1)
+
+    /** Sürükleme sürerken (sekme henüz değişmedi) gidilen komşu sekme; yoksa null. */
+    fun dragTarget(): MainTab? {
+        val f = offset.value
+        if (f == 0f || from != current) return null
+        return neighbor(from, f)
+    }
 }
 
 /**

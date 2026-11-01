@@ -103,3 +103,19 @@ _2026-11-01 · Claude_
 
 ### Açık kalanlar
 - Tile'lar (S12) slot/mod değerlerini kullanacak.
+
+### Cihaz testi düzeltmeleri
+**Tur 1 (Kaan, 2026-11-01):** 1–6, 8–11 geçti; 7 ve 12 notlu. Ek istekler: sekme kaydırmasında gösterge/arka plan parmağa bağlı olsun, titreşim ayarı kalksın, Hakkında'ya imza, ipuçları ve uyarılar bölümü.
+- **Sekme kaydırması:**
+  - Alttaki sekme göstergesi ve canlı arka plan artık sürüklemeye bire bir bağlı (ileri-geri sarılabiliyor).
+  - Gösterge `Animatable` + `drag()`. Arka plan `SceneScrub`: odaklar hedef sahneye sürükleme oranında yaklaşıyor; Cihazlar'ın renk tonu da dahil.
+  - Bırakınca kalan yolu yayla tamamlıyor, sekme değişince animasyon tekrar oynamadan oturuyor.
+  - Sekme yazı/ikon rengi göstergenin konumuna göre akıyor.
+- **#7:** "dk" etiketi "+" butonundan sonra. Sayı alanındayken boş bir yere dokununca odak kalkıyor ve değer doğrulanıyor.
+- **#12 / titreşim:** Kaan'ın isteğiyle titreşim ayarı tamamen kaldırıldı; titreşimler hep açık.
+- **Hakkında:** sürümün altında "Designed and developed by Kaan Donmez." (ad altı çizili, dokununca LinkedIn).
+- **İpuçları ve uyarılar** ("Diğer"in yerine):
+  - 5 sarı uyarı: BIOS WoL, ağ kartı ayarları, Hızlı Başlat, aynı Wi-Fi ağı, pil kısıtlaması.
+  - 5 ipucu: kablolu bağlantı, router'da sabit IP, Modern Bekleme'li PC, `wolagent reset`, basılı tutma / yatay kaydırma.
+- Testler 311/311 (boşluğa dokununca odak, ipucu/uyarı satırları, imza).
+

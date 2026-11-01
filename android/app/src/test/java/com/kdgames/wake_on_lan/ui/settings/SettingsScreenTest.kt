@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
@@ -38,7 +39,6 @@ class SettingsScreenTest {
     private val shutdown = mutableListOf<Pair<Long, ShutdownMode>>()
     private val slots = mutableListOf<Pair<Int, Long?>>()
     private var mode: TileMode? = null
-    private var haptics: Boolean? = null
 
     /** ViewModel ile aynı kural: RetryPolicy.validate. */
     private fun show() {
@@ -52,7 +52,6 @@ class SettingsScreenTest {
                         onShutdownMode = { id, m -> shutdown += id to m; devices = devices.map { if (it.id == id) it.copy(shutdownMode = m) else it } },
                         onTileSlot = { s, id -> slots += s to id },
                         onTileMode = { mode = it },
-                        onHaptics = { haptics = it },
                     ),
                 )
             }
@@ -125,8 +124,6 @@ class SettingsScreenTest {
         assertEquals(TileMode.C, mode)
         compose.onNodeWithTag("slot_0_1").performScrollTo().performClick()
         assertEquals(listOf(0 to 1L), slots)
-        compose.onNodeWithTag("haptics_switch").performScrollTo().performClick()
-        assertEquals(false, haptics)
     }
 
     @Test
@@ -141,5 +138,28 @@ class SettingsScreenTest {
         compose.waitForIdle()
         compose.onNodeWithTag("perm_granted_EXACT_ALARM").assertExists()
         compose.onNodeWithTag("perm_granted_LOCATION").assertExists()
+    }
+
+    @Test
+    fun `bosluga dokununca odak kalkar ve gecersiz deger geri doner`() {
+        show()
+        compose.onNodeWithTag("interval").performClick()
+        compose.onNodeWithTag("interval").performTextReplacement("45")
+        // Başlığa (tıklanamaz boş alan) dokun.
+        compose.onNodeWithText("Ayarlar").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("interval").assertTextEquals("2")
+        assertEquals(2, settings.retryIntervalMin)
+    }
+
+    @Test
+    fun `ipuclari ve uyarilar, imza baglantisi`() {
+        show()
+        assertEquals(TIPS.count { it.warning }, compose.onAllNodesWithTag("warning_row").fetchSemanticsNodes().size)
+        assertEquals(TIPS.count { !it.warning }, compose.onAllNodesWithTag("tip_row").fetchSemanticsNodes().size)
+        compose.onNodeWithText("BIOS'ta Wake-on-LAN açık olmalı").performScrollTo().assertExists()
+        compose.onNodeWithTag("credit").performScrollTo().assertTextEquals("Designed and developed by Kaan Donmez.")
+        compose.onNodeWithText("Titreşim").assertDoesNotExist()
+        assertEquals("https://www.linkedin.com/in/akaandonmez/", CREDIT_URL)
     }
 }

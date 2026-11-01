@@ -51,6 +51,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -60,7 +63,6 @@ import com.kdgames.wake_on_lan.data.db.Device
 import com.kdgames.wake_on_lan.data.repo.RetryPolicy
 import com.kdgames.wake_on_lan.domain.model.ShutdownMode
 import com.kdgames.wake_on_lan.domain.model.TileMode
-import com.kdgames.wake_on_lan.ui.automation.GradientSwitch
 import com.kdgames.wake_on_lan.ui.components.GlassSurface
 import com.kdgames.wake_on_lan.ui.components.pressable
 import com.kdgames.wake_on_lan.ui.theme.DevicePalette
@@ -85,7 +87,6 @@ class SettingsActions(
     val onShutdownMode: (Long, ShutdownMode) -> Unit = { _, _ -> },
     val onTileSlot: (Int, Long?) -> Unit = { _, _ -> },
     val onTileMode: (TileMode) -> Unit = {},
-    val onHaptics: (Boolean) -> Unit = {},
 )
 
 /**
@@ -98,7 +99,14 @@ fun SettingsScreen(state: SettingsUi, actions: SettingsActions) {
         actions.onRefreshPermissions()
         onPauseOrDispose { }
     }
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    Column(
+        Modifier
+            .fillMaxSize()
+            // Sayı alanındayken boş bir yere dokununca odak kalkar, değer doğrulanır (S10 cihaz testi).
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
+            .statusBarsPadding(),
+    ) {
         Box(Modifier.padding(horizontal = WolDimens.ScreenHorizontal, vertical = WolDimens.TopExtra)) {
             GlassSurface(shape = CircleShape, modifier = Modifier.size(44.dp).pressable(onClick = actions.onBack, onClickLabel = "Geri")) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -154,29 +162,10 @@ fun SettingsScreen(state: SettingsUi, actions: SettingsActions) {
                 TileModeRow(state.settings.tileMode, actions.onTileMode)
             }
 
-            Section("Diğer") {
-                val haptics = LocalHaptics.current
-                SettingRow("Titreşim", "Dokunuş ve basılı tutma geri bildirimi") {
-                    GradientSwitch(
-                        checked = state.settings.hapticsEnabled,
-                        palette = DevicePalette.Ice,
-                        onCheckedChange = { on ->
-                            // Açarken hemen hissettir; kapatırken sessiz.
-                            if (on) { haptics.enabled = true; haptics.tick() }
-                            actions.onHaptics(on)
-                        },
-                        modifier = Modifier.testTag("haptics_switch"),
-                    )
-                }
-                Divider()
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-                    SymbolIcon(Sym.lightbulb, contentDescription = null, size = 18.dp, tint = WolColors.Amber)
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Router'da bu PC'lere sabit IP (DHCP rezervasyonu) vermen önerilir. IP değişirse uygulama yeni adresi kendisi bulur ama birkaç saniye sürebilir.",
-                        style = WolType.BodySmall,
-                        color = WolColors.TextSecondary,
-                    )
+            Section("İpuçları ve uyarılar") {
+                TIPS.forEachIndexed { i, tip ->
+                    if (i > 0) Divider()
+                    TipRow(tip)
                 }
             }
 
@@ -435,9 +424,65 @@ private fun AboutBlock() {
     }
     val files = remember { runCatching { context.assets.list("licenses")?.sorted().orEmpty() }.getOrDefault(emptyList()) }
     SettingRow("WoL Denetim Merkezi", "Sürüm $version") {}
+    Credit()
     files.forEach { f ->
         Divider()
         LicenseRow(f)
+    }
+}
+
+/** "Designed and developed by Kaan Donmez." · ad altı çizili, dokununca LinkedIn. */
+@Composable
+private fun Credit() {
+    val text = androidx.compose.ui.text.buildAnnotatedString {
+        append("Designed and developed by ")
+        withLink(
+            androidx.compose.ui.text.LinkAnnotation.Url(
+                CREDIT_URL,
+                androidx.compose.ui.text.TextLinkStyles(
+                    style = androidx.compose.ui.text.SpanStyle(
+                        color = WolColors.TextPrimary,
+                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                    ),
+                ),
+            ),
+        ) { append("Kaan Donmez") }
+        append(".")
+    }
+    Text(text, style = WolType.BodySmall, color = WolColors.TextSecondary, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp).testTag("credit"))
+}
+
+internal const val CREDIT_URL = "https://www.linkedin.com/in/akaandonmez/"
+
+/** İpucu ya da uyarı (S10, Kaan): uyarılar önemli koşullar, ipuçları kolaylıklar. */
+internal data class Tip(val warning: Boolean, val title: String, val text: String)
+
+internal val TIPS = listOf(
+    Tip(true, "BIOS'ta Wake-on-LAN açık olmalı", "BIOS/UEFI'de \"Wake on LAN\" ya da \"Power On by PCI-E\" kapalıysa kapalı PC paketi duymaz."),
+    Tip(true, "Ağ kartı ayarları", "Aygıt Yöneticisi › ağ kartı: \"Magic Packet ile uyandır\" ve Güç Yönetimi'nde \"Bu aygıtın bilgisayarı uyandırmasına izin ver\" açık olmalı."),
+    Tip(true, "Hızlı Başlat kapalı olmalı", "Windows'ta Hızlı Başlat açıkken kapatılan PC çoğu zaman uyanmaz: Denetim Masası › Güç Seçenekleri › Güç düğmelerinin yapacaklarını seçin."),
+    Tip(true, "Aynı Wi-Fi ağında ol", "Uyandırma ve komutlar yalnız PC ile aynı ağdayken çalışır; mobil veriden ya da misafir ağından ulaşılamaz."),
+    Tip(true, "Pil \"Kısıtlanmamış\" olsun", "Pil kısıtlıysa zamanlayıcılar ve \"Eve gelince\" gecikebilir ya da hiç çalışmayabilir (İzinler › Pil)."),
+    Tip(false, "PC'yi kabloyla bağla", "Kablolu (Ethernet) bağlantı en güveniliridir; çoğu Wi-Fi kartı PC kapalıyken paketi dinlemez."),
+    Tip(false, "Router'da sabit IP", "Bu PC'lere DHCP rezervasyonuyla sabit IP ver. IP değişirse uygulama yeni adresi kendisi bulur ama birkaç saniye sürebilir."),
+    Tip(false, "Modern Bekleme'li PC'ler", "Bu PC'ler uykudan paketle uyanmaz; telefondaki \"Uyku\" bu yüzden Hazırda Beklet olarak çalışır ve PC sonra uyandırılabilir."),
+    Tip(false, "\"Başka telefona eşli\" görünürse", "PC'de yönetici olarak `wolagent reset` çalıştır; uygulama PC'yi yeniden eşler."),
+    Tip(false, "Hızlı kullanım", "Kartlara basılı tutarak düzenle/sil; Cihazlar ile Otomasyon arasında ekranı yatay kaydırarak geç."),
+)
+
+@Composable
+private fun TipRow(tip: Tip) {
+    val color = if (tip.warning) WolColors.Amber else DevicePalette.Ice.start
+    Row(Modifier.fillMaxWidth().padding(16.dp).testTag(if (tip.warning) "warning_row" else "tip_row"), verticalAlignment = Alignment.Top) {
+        Box(Modifier.size(28.dp).clip(CircleShape).background(color.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
+            SymbolIcon(if (tip.warning) Sym.warning else Sym.lightbulb, contentDescription = if (tip.warning) "Uyarı" else "İpucu", size = 16.dp, tint = color)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(tip.title, style = WolType.BodyLarge, color = WolColors.TextPrimary)
+            Spacer(Modifier.height(2.dp))
+            Text(tip.text, style = WolType.BodySmall, color = WolColors.TextSecondary)
+        }
     }
 }
 

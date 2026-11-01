@@ -88,8 +88,4 @@ class SettingsViewModel @Inject constructor(
     fun setTileMode(mode: TileMode) {
         viewModelScope.launch { store.setTileMode(mode) }
     }
-
-    fun setHaptics(enabled: Boolean) {
-        viewModelScope.launch { store.setHapticsEnabled(enabled) }
-    }
 }

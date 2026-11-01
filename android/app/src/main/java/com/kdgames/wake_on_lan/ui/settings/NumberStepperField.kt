@@ -187,10 +187,10 @@ fun NumberStepperField(
             // Odak dışında haneler yuvarlanır (spec 12.3).
             if (!focused) RollingNumber(current, style)
         }
-        Spacer(Modifier.width(6.dp))
-        Text("dk", style = WolType.BodySmall, color = WolColors.TextTertiary)
         Spacer(Modifier.width(8.dp))
         StepButton(up = true, enabled = current < range.last, description = "$description artır", tag = "${tag}_plus") { step(1) }
+        Spacer(Modifier.width(8.dp))
+        Text("dk", style = WolType.BodySmall, color = WolColors.TextTertiary)
     }
 }
 

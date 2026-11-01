@@ -72,10 +72,7 @@ class MainActivity : ComponentActivity() {
             WolTheme {
                 // Kök yalnız tonu okur; tam durum yalnız Cihazlar içeriğinde okunur (S06 FPS taraması).
                 val tint by devicesViewModel.tint.collectAsStateWithLifecycle()
-                // Titreşim anahtarı (S10): Haptics bayrağına bağlı.
                 val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
-                val haptics = com.kdgames.wake_on_lan.ui.theme.LocalHaptics.current
-                androidx.compose.runtime.SideEffect { if (settingsState.loaded) haptics.enabled = settingsState.settings.hapticsEnabled }
                 val toasts = remember { ToastHostState() }
                 val motion = rememberSheetMotion()
                 val editorMotion = rememberSheetMotion()
@@ -146,7 +143,6 @@ class MainActivity : ComponentActivity() {
                                         onShutdownMode = settingsViewModel::setShutdownMode,
                                         onTileSlot = settingsViewModel::setTileSlot,
                                         onTileMode = settingsViewModel::setTileMode,
-                                        onHaptics = settingsViewModel::setHaptics,
                                     )
                                 },
                             )
