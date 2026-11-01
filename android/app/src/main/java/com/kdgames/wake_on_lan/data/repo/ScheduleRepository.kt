@@ -53,6 +53,19 @@ class ScheduleRepository @Inject constructor(private val db: AppDatabase) {
 
     suspend fun getRun(id: Long): ScheduleRun? = runs.getById(id)
 
+    fun observeRun(id: Long): Flow<ScheduleRun?> = runs.observeById(id)
+
+    suspend fun runFor(scheduleId: Long, occurrence: Long): ScheduleRun? = runs.forOccurrence(scheduleId, occurrence)
+
+    /** Süren retry zincirleri (spec 9.4). */
+    suspend fun runningRuns(): List<ScheduleRun> = runs.running()
+
+    /** Zamanlayıcı başına sonuçlanmış son çalışma. */
+    fun observeLatestOutcomes(): Flow<List<ScheduleRun>> = runs.observeLatestOutcomes()
+
+    /** Debug: sahte çalışma kaydı ("Sahte FAILED üret"). */
+    suspend fun insertRun(run: ScheduleRun): Long = runs.insert(run)
+
     /** Debug › Zamanlayıcı: tüm zamanlayıcıların son çalışmaları. */
     fun observeRecentRuns(limit: Int = 20): Flow<List<ScheduleRun>> = runs.observeRecent(limit)
 

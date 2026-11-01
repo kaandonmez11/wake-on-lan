@@ -44,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -83,6 +84,7 @@ fun AutomationScreen(
     onSkip: (Long) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onDelete: (Long) -> Unit = {},
+    onOpenFailure: (Long) -> Unit = {},
 ) {
     val reduceMotion = LocalReduceMotion.current
     LazyColumn(
@@ -119,6 +121,7 @@ fun AutomationScreen(
                 onToggle = { onToggle(card.id, it) },
                 onSkip = { onSkip(card.id) },
                 onDelete = { onDelete(card.id) },
+                onOpenFailure = onOpenFailure,
                 modifier = Modifier.animateItem(
                     fadeInSpec = motionSpec(SpringToken.Smooth, reduceMotion),
                     placementSpec = motionSpec(SpringToken.Smooth, reduceMotion),
@@ -234,6 +237,7 @@ fun ScheduleCard(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
     onDelete: () -> Unit = {},
+    onOpenFailure: (Long) -> Unit = {},
 ) {
     val reduceMotion = LocalReduceMotion.current
     val haptics = LocalHaptics.current
@@ -296,7 +300,40 @@ fun ScheduleCard(
             ) {
                 NextRow(card, onSkip = { haptics.tick(); onSkip() })
             }
+            // Son çalışma başarısız (spec 10.3): sonraki başarılı çalışmada yaylanarak kapanır.
+            // Kapanırken son metin çizilmeye devam eder.
+            var lastFailure by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(card.failure) }
+            if (card.failure != null) lastFailure = card.failure
+            AnimatedVisibility(
+                visible = card.failure != null,
+                enter = fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) + expandVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+                exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+            ) {
+                lastFailure?.let { f -> FailureRow(f, onOpen = { haptics.tick(); onOpenFailure(f.runId) }) }
+            }
         }
+    }
+}
+
+@Composable
+private fun FailureRow(failure: FailureLine, onOpen: () -> Unit) {
+    Row(
+        Modifier
+            .padding(top = 10.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(WolColors.Danger.copy(alpha = 0.14f))
+            .pressable(onClick = onOpen, onClickLabel = "Detay")
+            .testTag("failure_row")
+            .padding(start = 14.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SymbolIcon(Sym.warning, contentDescription = null, size = 16.dp, tint = WolColors.Danger)
+        Spacer(Modifier.width(8.dp))
+        Text(failure.text, style = WolType.BodySmall, color = WolColors.Danger, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
+        Text("Detay", style = WolType.Chip, color = WolColors.DangerLight)
+        SymbolIcon(Sym.chevron_right, contentDescription = null, size = 16.dp, tint = WolColors.DangerLight)
     }
 }
 

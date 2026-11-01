@@ -58,12 +58,15 @@ class DebugActivity : ComponentActivity() {
     @Inject lateinit var domainEvents: DomainEvents
     @Inject lateinit var scheduleRepository: com.kdgames.wake_on_lan.data.repo.ScheduleRepository
     @Inject lateinit var scheduleService: com.kdgames.wake_on_lan.domain.schedule.ScheduleService
+    @Inject lateinit var retryAlarms: com.kdgames.wake_on_lan.domain.schedule.AndroidRetryAlarms
+    @Inject lateinit var wifiLog: com.kdgames.wake_on_lan.domain.schedule.WifiTriggerLog
+    @Inject lateinit var fakePc: DebugFakePc
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val deps = DebugDeps(deviceRepository, settingsStore, keyVault, networkMonitor, wolSender, tcpProbe, icmpProbe, agentClient, netBiosProbe,
-            statusEngine, wakeCoordinator, powerCoordinator, agentLinker, domainEvents, scheduleRepository, scheduleService)
+            statusEngine, wakeCoordinator, powerCoordinator, agentLinker, domainEvents, scheduleRepository, scheduleService, retryAlarms, wifiLog, fakePc)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 DebugRoot(deps)
@@ -90,6 +93,9 @@ class DebugDeps(
     val events: DomainEvents,
     val schedules: com.kdgames.wake_on_lan.data.repo.ScheduleRepository,
     val scheduleService: com.kdgames.wake_on_lan.domain.schedule.ScheduleService,
+    val retryAlarms: com.kdgames.wake_on_lan.domain.schedule.AndroidRetryAlarms,
+    val wifiLog: com.kdgames.wake_on_lan.domain.schedule.WifiTriggerLog,
+    val fakePc: DebugFakePc,
 )
 
 private enum class DebugTab(val title: String) {
@@ -100,6 +106,7 @@ private enum class DebugTab(val title: String) {
     Agent("Agent"),
     Status("Durum"),
     Schedule("Zamanlayıcı"),
+    FakePc("Sahte PC"),
 }
 
 @Composable
@@ -119,7 +126,8 @@ private fun DebugRoot(deps: DebugDeps) {
                 DebugTab.Network -> NetworkTab(deps.network, deps.wol, deps.tcp, deps.icmp)
                 DebugTab.Agent -> AgentTab(deps.agent, deps.netBios, deps.network, deps.linker.phoneKeys, deps.vault)
                 DebugTab.Status -> StatusTab(deps.devices, deps.engine, deps.wake, deps.power, deps.linker, deps.events)
-                DebugTab.Schedule -> ScheduleTab(deps.schedules, deps.devices, deps.scheduleService)
+                DebugTab.Schedule -> ScheduleTab(deps.schedules, deps.devices, deps.scheduleService, deps.retryAlarms, deps.wifiLog)
+                DebugTab.FakePc -> FakePcTab(deps.fakePc, deps.devices)
             }
         }
     }

@@ -40,10 +40,15 @@ data class ScheduleCardUi(
     val nextLine: String?,
     val skipped: Boolean,
     val skipButton: String,
+    /** Son sonuçlanmış çalışma FAILED ise kırmızı satır (spec 10.3); sonraki başarıda kalkar. */
+    val failure: FailureLine? = null,
 ) {
     val id: Long get() = schedule.id
     val enabled: Boolean get() = schedule.enabled
 }
+
+/** "⚠ Son çalışma başarısız · Bugün 18:42 · Detay" → başarısız ekranı. */
+data class FailureLine(val runId: Long, val text: String)
 
 data class AutomationUiState(
     val wifi: WifiState = WifiState.Disconnected,
@@ -63,7 +68,7 @@ object ScheduleLabels {
         else -> ActionTone.NEUTRAL
     }
 
-    fun card(s: Schedule, device: Device?, now: Long, zone: ZoneId): ScheduleCardUi = ScheduleCardUi(
+    fun card(s: Schedule, device: Device?, now: Long, zone: ZoneId, lastOutcome: com.kdgames.wake_on_lan.data.db.ScheduleRun? = null): ScheduleCardUi = ScheduleCardUi(
         schedule = s,
         deviceName = device?.name ?: "Cihaz",
         iconKey = device?.iconKey ?: "pc",
@@ -74,6 +79,9 @@ object ScheduleLabels {
         nextLine = ScheduleEngine.nextLine(s, now, zone),
         skipped = ScheduleEngine.isSkipped(s, now),
         skipButton = ScheduleEngine.skipButton(s, now, zone),
+        failure = lastOutcome?.takeIf { it.result == com.kdgames.wake_on_lan.domain.model.RunResult.FAILED }?.let {
+            FailureLine(it.id, com.kdgames.wake_on_lan.domain.schedule.FailureLabels.cardLine(it.startedAt, now, zone))
+        },
     )
 }
 
@@ -98,11 +106,13 @@ class AutomationViewModel @Inject constructor(
         devices.observeDevices(),
         wifi.state,
         ticks,
-    ) { list, devs, w, (now, zone) ->
+        schedules.observeLatestOutcomes(),
+    ) { list, devs, w, (now, zone), outcomes ->
         val byId = devs.associateBy { it.id }
+        val last = outcomes.associateBy { it.scheduleId }
         AutomationUiState(
             wifi = w,
-            cards = list.map { ScheduleLabels.card(it, byId[it.deviceId], now, zone) },
+            cards = list.map { ScheduleLabels.card(it, byId[it.deviceId], now, zone, last[it.id]) },
             hasDevices = devs.isNotEmpty(),
             exactAlarmsAllowed = service.canScheduleExact(),
             loaded = true,

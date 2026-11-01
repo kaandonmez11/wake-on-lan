@@ -17,6 +17,11 @@ data class WifiState(
     val prefixLength: Int? = null,
     /** /31 ve /32'de ya da IP yokken null. */
     val broadcast: String? = null,
+    /**
+     * Ağ imzası (ağ geçidi + DHCP sunucusu + önek): konum izni gerektirmez. "Eve gelince" arka planda SSID
+     * gizli gelirse ağı bununla tanır (S09).
+     */
+    val fingerprint: String? = null,
 ) {
     companion object {
         val Disconnected = WifiState()
@@ -34,6 +39,8 @@ data class WifiState(
             linkSpeedMbps: Int?,
             ipv4: String?,
             prefixLength: Int?,
+            gateway: String? = null,
+            dhcpServer: String? = null,
         ): WifiState = WifiState(
             connected = true,
             network = network,
@@ -46,7 +53,12 @@ data class WifiState(
             broadcast = if (ipv4 != null && prefixLength != null && prefixLength in 0..30) {
                 runCatching { BroadcastResolver.compute(ipv4, prefixLength) }.getOrNull()
             } else null,
+            fingerprint = fingerprint(gateway, dhcpServer, prefixLength),
         )
+
+        /** Ağ geçidi yoksa imza yok. */
+        fun fingerprint(gateway: String?, dhcpServer: String?, prefixLength: Int?): String? =
+            gateway?.takeIf { it.isNotBlank() && it != "0.0.0.0" }?.let { "gw=$it;dhcp=${dhcpServer.orEmpty()};p=${prefixLength ?: ""}" }
 
         /** Tırnakları atar; gizli/boş SSID → null. */
         fun cleanSsid(raw: String?): String? {
@@ -70,4 +82,7 @@ fun interface WifiChangeTime {
 /** Güncel Wi-Fi durumu kaynağı (NetworkMonitor; testte sabit akış). */
 interface WifiStateSource {
     val state: kotlinx.coroutines.flow.StateFlow<WifiState>
+
+    /** Konum izni verilince SSID'nin yeniden okunması için. */
+    fun refresh() {}
 }

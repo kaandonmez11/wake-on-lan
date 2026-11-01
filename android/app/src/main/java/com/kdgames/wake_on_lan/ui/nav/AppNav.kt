@@ -59,9 +59,20 @@ fun AppNav(
     showDevicesRequest: Int = 0,
     devices: @Composable (openSettings: () -> Unit) -> Unit = { DevicesPlaceholder() },
     automation: @Composable (openSettings: () -> Unit) -> Unit = { AutomationScreen(onOpenSettings = it) },
+    /** Açık başarısız ekranı (spec 10.4; bildirimden ya da karttaki "Detay"dan). null = kapalı. */
+    failureRunId: Long? = null,
+    onCloseFailure: () -> Unit = {},
+    failure: @Composable (runId: Long) -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Devices) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    // Kapanış animasyonu boyunca son içerik çizilmeye devam eder.
+    var lastFailure by remember { mutableStateOf<Long?>(null) }
+    if (failureRunId != null) lastFailure = failureRunId
+    var failureOnTop by remember { mutableStateOf(false) }
+    if (failureRunId != null && !failureOnTop) failureOnTop = true
+    LaunchedEffect(settingsOpen) { if (settingsOpen && failureRunId == null) failureOnTop = false }
+    val pushOpen = settingsOpen || failureRunId != null
     var tabDirection by remember { mutableIntStateOf(1) }
     val hazeState = rememberHazeState()
     val reduceMotion = LocalReduceMotion.current
@@ -80,18 +91,21 @@ fun AppNav(
         // akarak dönüşür ve sürekli canlı moda geçer (S06 cihaz testi, spec 12.4).
         LivingBackground(
             scene = when {
-                settingsOpen -> Scene.FullScreen
+                pushOpen -> Scene.FullScreen
                 tab == MainTab.Devices -> Scene.Devices
                 else -> Scene.Automation
             },
-            continuous = settingsOpen,
+            continuous = pushOpen,
             modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
-            tint = if (!settingsOpen && tab == MainTab.Devices) devicesTint else Color.Unspecified,
+            tint = if (!pushOpen && tab == MainTab.Devices) devicesTint else Color.Unspecified,
         )
       PushHost(
-        open = settingsOpen,
-        onClose = { settingsOpen = false },
-        top = { SettingsPlaceholder(onBack = { settingsOpen = false }) },
+        open = pushOpen,
+        onClose = { if (failureRunId != null) onCloseFailure() else settingsOpen = false },
+        top = {
+            val id = lastFailure
+            if (failureOnTop && id != null) failure(id) else SettingsPlaceholder(onBack = { settingsOpen = false })
+        },
         base = {
         Box(Modifier.fillMaxSize()) {
             // İki sekme de canlı tutulur: Cihazlar'a dönüş her seferinde grid ve kartları sıfırdan kurmaz

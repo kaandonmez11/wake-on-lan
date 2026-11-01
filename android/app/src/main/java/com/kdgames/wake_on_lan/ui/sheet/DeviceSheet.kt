@@ -435,7 +435,7 @@ private fun ScanRow(entry: ScanEntry, picked: Boolean, onPick: () -> Unit) {
 }
 
 @Composable
-private fun SheetField(
+internal fun SheetField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,

@@ -53,7 +53,9 @@ class NetworkMonitor @Inject constructor(
      * Callback'i yeniden kaydeder. İzin verildikten ya da konum servisi açıldıktan sonra çağrılır;
      * Android var olan callback'e SSID'yi kendiliğinden yeniden göndermez.
      */
-    fun refresh() = restarts.update { it + 1 }
+    override fun refresh() {
+        restarts.update { it + 1 }
+    }
 
     private fun wifiUpdates() = callbackFlow {
         var current: Network? = null
@@ -87,6 +89,8 @@ class NetworkMonitor @Inject constructor(
                     linkSpeedMbps = info?.linkSpeed,
                     ipv4 = v4?.address?.hostAddress,
                     prefixLength = v4?.prefixLength,
+                    gateway = link?.routes?.firstOrNull { it.isDefaultRoute && it.gateway is Inet4Address }?.gateway?.hostAddress,
+                    dhcpServer = link?.dhcpServerAddress?.hostAddress,
                 ),
             )
         }

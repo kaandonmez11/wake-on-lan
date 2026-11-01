@@ -38,6 +38,16 @@ class MainActivity : ComponentActivity() {
     private val sheetViewModel: DeviceSheetViewModel by viewModels()
     private val automationViewModel: com.kdgames.wake_on_lan.ui.automation.AutomationViewModel by viewModels()
     private val editorViewModel: com.kdgames.wake_on_lan.ui.automation.ScheduleEditorViewModel by viewModels()
+    private val failureViewModel: com.kdgames.wake_on_lan.ui.automation.FailureViewModel by viewModels()
+
+    /** Açık başarısız ekranı (bildirimden gelir; spec 10.4). */
+    private val failureRun = mutableStateOf<Long?>(null)
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.failureRunId()?.let { failureRun.value = it }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge-to-edge: şeffaf sistem çubukları, açık (beyaz) ikonlar (spec 10).
@@ -46,6 +56,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) intent?.failureRunId()?.let { failureRun.value = it }
         setContent {
             WolTheme {
                 // Kök yalnız tonu okur; tam durum yalnız Cihazlar içeriğinde okunur (S06 FPS taraması).
@@ -107,10 +118,29 @@ class MainActivity : ComponentActivity() {
                                 onOpenSettings = openSettings,
                             )
                         },
+                        failureRunId = failureRun.value,
+                        onCloseFailure = { failureRun.value = null },
+                        failure = { id ->
+                            androidx.compose.runtime.LaunchedEffect(id) { failureViewModel.open(id) }
+                            val ui by failureViewModel.state.collectAsStateWithLifecycle()
+                            com.kdgames.wake_on_lan.ui.automation.FailureScreen(
+                                ui = ui?.takeIf { it.runId == id },
+                                onBack = { failureRun.value = null },
+                                onRetry = { f ->
+                                    // Elle akış (spec 10.4): Cihazlar'a geçilir, hero o cihazda akışı gösterir.
+                                    failureRun.value = null
+                                    devicesViewModel.select(f.deviceId)
+                                    if (f.action == com.kdgames.wake_on_lan.domain.model.PowerAction.WAKE) devicesViewModel.wake(f.deviceId)
+                                    else devicesViewModel.power(f.deviceId, f.action)
+                                    showDevices++
+                                },
+                            )
+                        },
                         automation = { openSettings ->
                             val state by automationViewModel.state.collectAsStateWithLifecycle()
                             com.kdgames.wake_on_lan.ui.automation.AutomationScreen(
                                 state = state,
+                                onOpenFailure = { failureRun.value = it },
                                 onAdd = { openEditor(com.kdgames.wake_on_lan.ui.automation.EditorMode.Add) },
                                 onEdit = { openEditor(com.kdgames.wake_on_lan.ui.automation.EditorMode.Edit(it)) },
                                 onToggle = automationViewModel::setEnabled,
@@ -133,6 +163,7 @@ class MainActivity : ComponentActivity() {
                                 onSave = { editorViewModel.save(closeEditor) },
                                 onDelete = { editorViewModel.delete(closeEditor) },
                                 onClose = closeEditor,
+                                onLocationGranted = editorViewModel::locationGranted,
                             )
                         },
                     )
@@ -166,5 +197,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        private const val EXTRA_FAILURE_RUN = "failureRunId"
+
+        /** Başarısız bildirimine dokununca (spec 9.4 → 10.4). */
+        fun failureIntent(context: android.content.Context, runId: Long): android.content.Intent =
+            android.content.Intent(context, MainActivity::class.java)
+                .setData(android.net.Uri.parse("wol://failure/$runId"))
+                .putExtra(EXTRA_FAILURE_RUN, runId)
+
+        private fun android.content.Intent.failureRunId(): Long? =
+            getLongExtra(EXTRA_FAILURE_RUN, -1).takeIf { it >= 0 }
     }
 }

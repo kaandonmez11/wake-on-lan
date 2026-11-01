@@ -64,6 +64,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kdgames.wake_on_lan.domain.model.PowerAction
+import com.kdgames.wake_on_lan.domain.model.ScheduleType
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import com.kdgames.wake_on_lan.domain.schedule.ScheduleEngine
 import com.kdgames.wake_on_lan.ui.components.AnimatedText
 import com.kdgames.wake_on_lan.ui.components.WinPowerIcon
@@ -96,6 +100,8 @@ class EditorActions(
     val onSave: () -> Unit,
     val onDelete: () -> Unit,
     val onClose: () -> Unit,
+    /** Konum izni verildi ("Eve gelince" için SSID okunabilir). */
+    val onLocationGranted: () -> Unit = {},
 )
 
 private val ACTIONS = listOf(PowerAction.WAKE, PowerAction.LOCK, PowerAction.SLEEP, PowerAction.HIBERNATE, PowerAction.RESTART, PowerAction.SHUTDOWN)
@@ -147,14 +153,35 @@ private fun EditorBody(state: EditorUiState, actions: EditorActions, bodyScroll:
         ActionPicker(state, palette) { a -> actions.onEdit { copy(action = a) } }
         Spacer(Modifier.height(20.dp))
         SectionLabel("Tetikleyici")
-        TriggerSegment(palette)
+        TriggerSegment(state.form.type, palette, actions) { t -> actions.onEdit { copy(type = t) } }
         Spacer(Modifier.height(20.dp))
-        SectionLabel("Günler")
-        DayPicker(state.form.daysMask, palette, actions.onToggleDay) { mask -> actions.onEdit { copy(daysMask = mask) } }
-        Spacer(Modifier.height(20.dp))
-        SectionLabel("Saat")
-        TimePicker(state.form.minuteOfDay, actions.onShiftMinutes)
-        Spacer(Modifier.height(20.dp))
+        val reduceMotion = LocalReduceMotion.current
+        // Saat ↔ Eve gelince: bölümler yaylanarak açılıp kapanır (spec 12.3).
+        AnimatedVisibility(
+            visible = state.form.type == ScheduleType.TIME,
+            enter = fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) + expandVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+            exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+        ) {
+            Column {
+                SectionLabel("Günler")
+                DayPicker(state.form.daysMask, palette, actions.onToggleDay) { mask -> actions.onEdit { copy(daysMask = mask) } }
+                Spacer(Modifier.height(20.dp))
+                SectionLabel("Saat")
+                TimePicker(state.form.minuteOfDay, actions.onShiftMinutes)
+                Spacer(Modifier.height(20.dp))
+            }
+        }
+        AnimatedVisibility(
+            visible = state.form.type == ScheduleType.WIFI_CONNECT,
+            enter = fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) + expandVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+            exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+        ) {
+            Column {
+                SectionLabel("Wi-Fi ağı")
+                SsidPicker(state, onChange = { v -> actions.onEdit { copy(ssid = v) } })
+                Spacer(Modifier.height(20.dp))
+            }
+        }
         SectionLabel("Bildirim")
         NotifyRow(state.form.notify, palette) { on -> actions.onEdit { copy(notify = on) } }
         Spacer(Modifier.height(24.dp))
@@ -250,37 +277,132 @@ private fun ActionTile(action: PowerAction, selected: Boolean, available: Boolea
     }
 }
 
+/**
+ * Saat / Eve gelince segmenti. Seçim zemini `bouncy` ile kayar. Konum izni yoksa "Eve gelince" soluk; dokununca
+ * izin istenir (Android Wi-Fi adını yalnız konum izniyle verir, spec 14).
+ */
 @Composable
-private fun TriggerSegment(palette: DevicePalette) {
+private fun TriggerSegment(type: ScheduleType, palette: DevicePalette, actions: EditorActions, onSelect: (ScheduleType) -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    val haptics = LocalHaptics.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    fun granted() = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    var location by remember { mutableStateOf(granted()) }
+    var denied by remember { mutableStateOf(false) }
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
+        location = ok
+        denied = !ok
+        if (ok) {
+            actions.onLocationGranted()
+            onSelect(ScheduleType.WIFI_CONNECT)
+        }
+    }
+    val wifi = type == ScheduleType.WIFI_CONNECT
+    val pos by animateFloatAsState(if (wifi) 1f else 0f, motionSpec(SpringToken.Bouncy, reduceMotion), label = "trigger")
+    val wifiAlpha by animateFloatAsState(if (location) 1f else 0.5f, motionSpec(SpringToken.Snappy, reduceMotion), label = "wifiAlpha")
     val shape = RoundedCornerShape(50)
-    Row(
-        Modifier.fillMaxWidth().clip(shape).background(Color.White.copy(alpha = 0.06f)).padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Box(
-            Modifier
-                .weight(1f)
-                .height(40.dp)
-                .clip(shape)
-                .drawBehind { drawRect(cssLinearGradient(135f, size, 0f to palette.start.copy(alpha = 0.35f), 1f to palette.end.copy(alpha = 0.25f))) }
-                .semantics { selected = true },
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SymbolIcon(Sym.schedule, contentDescription = null, size = 16.dp)
-                Spacer(Modifier.width(6.dp))
-                Text("Saat", style = WolType.Chip, color = WolColors.TextPrimary)
+    Column {
+        Box(Modifier.fillMaxWidth().clip(shape).background(Color.White.copy(alpha = 0.06f)).padding(4.dp)) {
+            // Kayan seçim zemini (yalnız çizim aşamasında okunur).
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .drawBehind {
+                        val w = (size.width - 4.dp.toPx()) / 2
+                        val x = (w + 4.dp.toPx()) * pos
+                        drawRoundRect(
+                            cssLinearGradient(135f, androidx.compose.ui.geometry.Size(w, size.height), 0f to palette.start.copy(alpha = 0.35f), 1f to palette.end.copy(alpha = 0.25f)),
+                            topLeft = androidx.compose.ui.geometry.Offset(x, 0f),
+                            size = androidx.compose.ui.geometry.Size(w, size.height),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2),
+                        )
+                    },
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                SegmentOption(Sym.schedule, "Saat", selected = !wifi, modifier = Modifier.weight(1f).testTag("trigger_time")) {
+                    if (wifi) { haptics.tick(); onSelect(ScheduleType.TIME) }
+                }
+                SegmentOption(Sym.home, "Eve gelince", selected = wifi, modifier = Modifier.weight(1f).graphicsLayer { alpha = wifiAlpha }.testTag("trigger_wifi")) {
+                    when {
+                        wifi -> Unit
+                        granted() -> { location = true; haptics.tick(); onSelect(ScheduleType.WIFI_CONNECT) }
+                        denied -> context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}"))
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                        else -> launcher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                }
             }
         }
-        // "Eve gelince" S09'da: görünür ama pasif.
-        Box(
-            Modifier.weight(1f).height(40.dp).graphicsLayer { alpha = 0.45f }.semantics { disabled() },
-            contentAlignment = Alignment.Center,
+        AnimatedVisibility(
+            visible = !location,
+            enter = fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) + expandVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+            exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SymbolIcon(Sym.home, contentDescription = null, size = 16.dp)
+            Text(
+                if (denied) "Konum izni kapalı · dokun, ayarlardan aç (Wi-Fi adını okumak için)"
+                else "Eve gelince için konum izni gerekir: Android Wi-Fi adını ancak böyle gösterir",
+                style = WolType.BodySmall,
+                color = WolColors.Amber,
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SegmentOption(symbol: String, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    val color by animateColorAsState(if (selected) WolColors.TextPrimary else WolColors.TextSecondary, motionSpec(SpringToken.Snappy, reduceMotion), label = "segColor")
+    Box(
+        modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(50))
+            .pressable(onClick = onClick, onClickLabel = label)
+            .semantics { this.selected = selected },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SymbolIcon(symbol, contentDescription = null, size = 16.dp, tint = color, filled = selected)
+            Spacer(Modifier.width(6.dp))
+            Text(label, style = WolType.Chip, color = color)
+        }
+    }
+}
+
+/** SSID alanı (varsayılan: şu anki ağ) + "Şu anki ağ: X" kısayolu. */
+@Composable
+private fun SsidPicker(state: EditorUiState, onChange: (String) -> Unit) {
+    val haptics = LocalHaptics.current
+    val reduceMotion = LocalReduceMotion.current
+    Column {
+        com.kdgames.wake_on_lan.ui.sheet.SheetField(
+            label = "Ağ adı (SSID)",
+            value = state.form.ssid,
+            onValueChange = { onChange(it.take(32)) },
+            placeholder = "Ev-WiFi",
+            tag = "ssid_field",
+            mono = true,
+        )
+        val current = state.currentSsid
+        AnimatedVisibility(
+            visible = current != null && current != state.form.ssid.trim(),
+            enter = fadeIn(motionSpec(SpringToken.Smooth, reduceMotion)) + expandVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+            exit = fadeOut(motionSpec(SpringToken.Snappy, reduceMotion)) + shrinkVertically(motionSpec(SpringToken.Smooth, reduceMotion)),
+        ) {
+            Row(
+                Modifier
+                    .padding(top = 8.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .pressable(onClick = { haptics.tick(); current?.let(onChange) }, onClickLabel = "Şu anki ağı seç")
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SymbolIcon(Sym.network_wifi_3_bar, contentDescription = null, size = 16.dp, tint = WolColors.TextSecondary)
                 Spacer(Modifier.width(6.dp))
-                Text("Eve gelince · yakında", style = WolType.Chip, color = WolColors.TextSecondary)
+                Text("Şu anki ağ: ${current.orEmpty()}", style = WolType.Chip, color = WolColors.TextSecondary)
             }
         }
     }

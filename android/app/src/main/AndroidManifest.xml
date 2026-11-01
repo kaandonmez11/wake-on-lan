@@ -44,6 +44,16 @@
             android:name=".domain.schedule.ScheduleAlarmReceiver"
             android:exported="false" />
 
+        <!-- Retry zinciri alarmı (S09). -->
+        <receiver
+            android:name=".domain.schedule.RetryAlarmReceiver"
+            android:exported="false" />
+
+        <!-- "Eve gelince": Wi-Fi bağlanınca sistemin gönderdiği PendingIntent (S09). -->
+        <receiver
+            android:name=".domain.schedule.WifiTriggerReceiver"
+            android:exported="false" />
+
         <!-- Açılış, güncelleme, saat ve saat dilimi değişimi → tüm alarmlar yeniden. -->
         <receiver
             android:name=".domain.schedule.BootReceiver"

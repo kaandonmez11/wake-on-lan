@@ -104,6 +104,9 @@ interface ScheduleRunDao {
     @Query("SELECT * FROM ScheduleRun WHERE id = :id")
     suspend fun getById(id: Long): ScheduleRun?
 
+    @Query("SELECT * FROM ScheduleRun WHERE id = :id")
+    fun observeById(id: Long): Flow<ScheduleRun?>
+
     @Query("SELECT * FROM ScheduleRun WHERE scheduleId = :scheduleId ORDER BY startedAt DESC, id DESC LIMIT 1")
     suspend fun latest(scheduleId: Long): ScheduleRun?
 
@@ -115,6 +118,23 @@ interface ScheduleRunDao {
 
     @Query("SELECT COUNT(*) FROM ScheduleRun WHERE scheduleId = :scheduleId")
     suspend fun count(scheduleId: Long): Int
+
+    @Query("SELECT * FROM ScheduleRun WHERE scheduleId = :scheduleId AND occurrence = :occurrence ORDER BY id DESC LIMIT 1")
+    suspend fun forOccurrence(scheduleId: Long, occurrence: Long): ScheduleRun?
+
+    @Query("SELECT * FROM ScheduleRun WHERE result = 'RUNNING' ORDER BY id")
+    suspend fun running(): List<ScheduleRun>
+
+    /** Her zamanlayıcının sonuçlanmış (SUCCESS/FAILED) son çalışması: kartta "Son çalışma başarısız" satırı. */
+    @Query(
+        """
+        SELECT * FROM ScheduleRun r WHERE r.id = (
+            SELECT id FROM ScheduleRun WHERE scheduleId = r.scheduleId AND result IN ('SUCCESS', 'FAILED')
+            ORDER BY startedAt DESC, id DESC LIMIT 1
+        )
+        """,
+    )
+    fun observeLatestOutcomes(): Flow<List<ScheduleRun>>
 
     /** K15: zamanlayıcı başına en yeni [keep] kayıt kalır. */
     @Query(

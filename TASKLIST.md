@@ -128,13 +128,13 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)** (4 tur; bildirim ayarı, bağlam menüleri, sekmeye göre + eklendi)
 
 ## S09 — Otomasyon 2
-- [ ] Retry zinciri (K13) + attemptsJson + NO_WIFI
-- [ ] Notifier + bildirim kanalı
-- [ ] ScheduleFailureScreen (push + predictive back)
-- [ ] Kartta başarısız satırı
-- [ ] WIFI_CONNECT (PendingIntent callback, 10 dk kilit, skipNextEvent)
-- [ ] Debug › Zamanlayıcı genişletmesi
-- [ ] Doğrulanacaklar raporu · testler yeşil · commit
+- [x] Retry zinciri (K13) + attemptsJson + NO_WIFI
+- [x] Notifier + bildirim kanalı
+- [x] ScheduleFailureScreen (push + predictive back)
+- [x] Kartta başarısız satırı
+- [x] WIFI_CONNECT (PendingIntent callback, 10 dk kilit, skipNextEvent)
+- [x] Debug › Zamanlayıcı genişletmesi
+- [x] Doğrulanacaklar raporu · testler yeşil · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S10 — Ayarlar
@@ -160,7 +160,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [ ] Tile metinleri/state eşlemesi, onStartListening turları
 - [ ] Kapalıya dokun → uyandır (kilit ekranında) + VerifyWorker
 - [ ] Mod A TilePowerActivity, Mod B dialog, Mod C çift dokunuş
-- [ ] Doğrulanacaklar raporu · testler yeşil · commit
+- [x] Doğrulanacaklar raporu · testler yeşil · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S13 — Cila

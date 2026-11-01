@@ -163,7 +163,9 @@ class ScheduleEditorTest {
         schedules = ScheduleRepository(db)
         deviceId = runBlocking { (devices.add(DeviceInput("Ofis PC", "192.168.1.26", "D8:BB:C1:0A:2F:91")) as SaveResult.Saved).id }
         val now = LocalDateTime.of(2026, 10, 28, 12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        vm = ScheduleEditorViewModel(schedules, devices, WallClock { now })
+        vm = ScheduleEditorViewModel(schedules, devices, WallClock { now }, object : com.kdgames.wake_on_lan.net.WifiStateSource {
+            override val state = kotlinx.coroutines.flow.MutableStateFlow(com.kdgames.wake_on_lan.net.WifiState(connected = true, ssid = "Ev-WiFi"))
+        })
     }
 
     @After
