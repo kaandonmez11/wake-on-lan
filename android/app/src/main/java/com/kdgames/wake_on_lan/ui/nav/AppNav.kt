@@ -153,8 +153,8 @@ fun AppNav(
                 }
             }
             // iOS gibi üst/alt kenar bulanıklığı (S10, Kaan): arka plan + sekme içeriği; yüzen nav üstte, etkilenmez.
-            EdgeBlur(hazeState, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it < 2f })
-            EdgeBlur(hazeState, top = false, extra = 112.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it < 2f })
+            EdgeBlur(hazeState, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it == 1f })
+            EdgeBlur(hazeState, top = false, extra = 112.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it == 1f })
             overlay()
             FloatingNavBar(
                 selected = tab,

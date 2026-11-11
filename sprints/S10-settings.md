@@ -148,3 +148,5 @@ _2026-11-01 · Claude_
 ### Cihaz testi
 ✅ 2026-11-11, Kaan: #1–12 ve dört düzeltme turu geçti. Notlar: #12 titreşim ayarı Kaan'ın isteğiyle kaldırıldı; tile çip satırı yatay kaymıyor (sağa çekme ekranı kapatıyor), Kaan dokunarak seçtiği için kabul etti.
 
+**Kapanış sonrası not (Kaan, 2026-11-11):** ana ekranda üst bulanıklığın solunda koyu, basamaklı bir leke vardı. Kenar bulanıklığı artık yalnız içerik katmanını bulanıklaştırıyor, zemini saydam; canlı arka plan bulanıklaştırılmadan alttan görünüyor. Push ekranlarının karartması yeniden dış kutuda. 312/312. Cihazda doğrulanmadı (Kaan bakacak).
+

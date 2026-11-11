@@ -46,7 +46,10 @@ fun EdgeBlur(
                 style = HazeBlurStyle {
                     blurRadius(18.dp)
                     noiseFactor(0f)
-                    backgroundColor(WolColors.Background)
+                    // Yalnız içerik katmanı bulanıklaşır, zemini saydam: canlı arka plan (zaten yumuşak gradient)
+                    // bulanıklaştırılmadan alttan görünür. Arka planı da bulanıklaştırmak ekran kenarında koyu,
+                    // basamaklı bir leke bırakıyordu (S10 cihaz testi, Kaan).
+                    backgroundColor(Color.Transparent)
                     // Kenar pikselleri tekrarlanır: ekran dışı siyah sayılmaz, sağ/sol kenarda kararma olmaz.
                     blurredEdgeTreatment(androidx.compose.ui.draw.BlurredEdgeTreatment.Rectangle)
                     // Yumuşak (ease-in-out) azalma: bulanık bölgeden net içeriğe çizgisiz geçiş.

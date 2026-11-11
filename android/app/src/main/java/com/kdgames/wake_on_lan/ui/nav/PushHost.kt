@@ -127,6 +127,7 @@ fun PushHost(
                     .drawBehind {
                         // Arka plan sabit kaldığı için panelin kaydığını belli eden ince cam tabaka + sol kenar gölgesi.
                         val p = progress.value
+                        drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f))
                         val edge = 18.dp.toPx()
                         val a = 0.35f * kotlin.math.sin(Math.PI.toFloat() * p.coerceIn(0f, 1f))
                         if (a > 0.005f) {
@@ -143,18 +144,18 @@ fun PushHost(
             ) {
                 // Üst/alt kenar bulanıklığı: arka plan (0) + bu ekranın içeriği (2); alttaki sekmeler (1) karışmaz.
                 val haze = com.kdgames.wake_on_lan.ui.components.LocalHazeState.current
-                // İnce cam karartma kaynağın içinde: kenar bulanıklığı aynı tonu görür, açık şerit oluşmaz (S10 cihaz testi).
-                val dim = Modifier.drawBehind { drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f)) }
+                // Karartma dış kutuda: kenar bulanıklığı yalnız içeriği bulanıklaştırır, zemin her yerde aynı ton.
+                val dim = Modifier
                 // Ekranın alt butonları (Başarısız: Tamam / Tekrar dene) bulanıklığın üstünde kalır: ekran onları
                 // [LocalPushOverlay] ile buraya verir, yüzen nav gibi net çizilir (S10 cihaz testi, Kaan).
                 val overlay = remember { PushOverlay() }
                 CompositionLocalProvider(LocalPushOverlay provides overlay) {
                     if (haze != null) {
                         Box(Modifier.fillMaxSize().hazeSource(haze, zIndex = 2f).then(dim)) { top() }
-                        com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it != 1f })
+                        com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it == 2f })
                         com.kdgames.wake_on_lan.ui.components.EdgeBlur(
                             haze, top = false, extra = if (overlay.content != null) 96.dp else 36.dp,
-                            modifier = Modifier.align(Alignment.BottomCenter), include = { it != 1f },
+                            modifier = Modifier.align(Alignment.BottomCenter), include = { it == 2f },
                         )
                     } else {
                         Box(Modifier.fillMaxSize().then(dim)) { top() }
