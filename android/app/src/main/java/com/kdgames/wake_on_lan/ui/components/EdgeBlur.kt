@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kdgames.wake_on_lan.ui.theme.WolColors
@@ -20,6 +22,19 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
+
+/** Kenar bulanıklığı kaynaklarının ekran dışına taşma payı (bulanıklık yarıçapının ~3 katı). */
+val EdgeOverscan = 56.dp
+
+/**
+ * Kutuyu her yönden [by] kadar büyütür (yerleşimde yer kaplamadan). Bulanıklık kaynağı ekran kenarının ötesinde
+ * de piksel taşır; kenarda örnekleme ekran dışını siyah/koyu görmez.
+ */
+fun Modifier.overscan(by: Dp): Modifier = layout { measurable, constraints ->
+    val px = by.roundToPx()
+    val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth + 2 * px, constraints.maxHeight + 2 * px))
+    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(-px, -px) }
+}
 
 /**
  * iOS gibi ekranın üst ve alt kenarında kademeli bulanıklık (S10, Kaan): içerik kenara yaklaştıkça bulanıklaşıp
@@ -46,10 +61,10 @@ fun EdgeBlur(
                 style = HazeBlurStyle {
                     blurRadius(18.dp)
                     noiseFactor(0f)
-                    // Yalnız içerik katmanı bulanıklaşır, zemini saydam: canlı arka plan (zaten yumuşak gradient)
-                    // bulanıklaştırılmadan alttan görünür. Arka planı da bulanıklaştırmak ekran kenarında koyu,
-                    // basamaklı bir leke bırakıyordu (S10 cihaz testi, Kaan).
-                    backgroundColor(Color.Transparent)
+                    // Arka plan + içerik birlikte bulanıklaşır (opak sonuç). Yalnız içeriği bulanıklaştırmak yarı saydam
+                    // camı iki kez çizip bölgeyi açıyor, sınırda çizgi bırakıyordu (S10 cihaz testi, Kaan).
+                    // Ekran kenarındaki koyu leke için kaynaklar ekran dışına taşırılır ([overscan]).
+                    backgroundColor(WolColors.Background)
                     // Kenar pikselleri tekrarlanır: ekran dışı siyah sayılmaz, sağ/sol kenarda kararma olmaz.
                     blurredEdgeTreatment(androidx.compose.ui.draw.BlurredEdgeTreatment.Rectangle)
                     // Yumuşak (ease-in-out) azalma: bulanık bölgeden net içeriğe çizgisiz geçiş.

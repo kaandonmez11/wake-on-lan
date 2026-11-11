@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.hazeSource
+import com.kdgames.wake_on_lan.ui.components.overscan
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
@@ -127,7 +128,6 @@ fun PushHost(
                     .drawBehind {
                         // Arka plan sabit kaldığı için panelin kaydığını belli eden ince cam tabaka + sol kenar gölgesi.
                         val p = progress.value
-                        drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f))
                         val edge = 18.dp.toPx()
                         val a = 0.35f * kotlin.math.sin(Math.PI.toFloat() * p.coerceIn(0f, 1f))
                         if (a > 0.005f) {
@@ -144,18 +144,19 @@ fun PushHost(
             ) {
                 // Üst/alt kenar bulanıklığı: arka plan (0) + bu ekranın içeriği (2); alttaki sekmeler (1) karışmaz.
                 val haze = com.kdgames.wake_on_lan.ui.components.LocalHazeState.current
-                // Karartma dış kutuda: kenar bulanıklığı yalnız içeriği bulanıklaştırır, zemin her yerde aynı ton.
-                val dim = Modifier
+                // İnce cam karartma ayrı, ekran dışına taşan bir kaynak (1.5): kenar bulanıklığı her yerde aynı tonu görür.
+                val dim = Modifier.drawBehind { drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f)) }
                 // Ekranın alt butonları (Başarısız: Tamam / Tekrar dene) bulanıklığın üstünde kalır: ekran onları
                 // [LocalPushOverlay] ile buraya verir, yüzen nav gibi net çizilir (S10 cihaz testi, Kaan).
                 val overlay = remember { PushOverlay() }
                 CompositionLocalProvider(LocalPushOverlay provides overlay) {
                     if (haze != null) {
-                        Box(Modifier.fillMaxSize().hazeSource(haze, zIndex = 2f).then(dim)) { top() }
-                        com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it == 2f })
+                        Box(Modifier.fillMaxSize().overscan(com.kdgames.wake_on_lan.ui.components.EdgeOverscan).hazeSource(haze, zIndex = 1.5f).then(dim))
+                        Box(Modifier.fillMaxSize().hazeSource(haze, zIndex = 2f)) { top() }
+                        com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it != 1f })
                         com.kdgames.wake_on_lan.ui.components.EdgeBlur(
                             haze, top = false, extra = if (overlay.content != null) 96.dp else 36.dp,
-                            modifier = Modifier.align(Alignment.BottomCenter), include = { it == 2f },
+                            modifier = Modifier.align(Alignment.BottomCenter), include = { it != 1f },
                         )
                     } else {
                         Box(Modifier.fillMaxSize().then(dim)) { top() }

@@ -37,6 +37,8 @@ import com.kdgames.wake_on_lan.ui.background.Scene
 import com.kdgames.wake_on_lan.ui.components.LocalHazeState
 import com.kdgames.wake_on_lan.ui.components.TabScaffold
 import com.kdgames.wake_on_lan.ui.components.EdgeBlur
+import com.kdgames.wake_on_lan.ui.components.EdgeOverscan
+import com.kdgames.wake_on_lan.ui.components.overscan
 import com.kdgames.wake_on_lan.ui.theme.LocalReduceMotion
 import com.kdgames.wake_on_lan.ui.theme.REDUCED_CROSSFADE_MS
 import com.kdgames.wake_on_lan.ui.theme.SpringToken
@@ -108,7 +110,9 @@ fun AppNav(
                 else -> Scene.Automation
             },
             continuous = pushOpen,
-            modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
+            // Ekran dışına taşar: kenar bulanıklığı kenarda koyu leke bırakmaz (S10 cihaz testi).
+            modifier = Modifier.overscan(EdgeOverscan).hazeSource(hazeState, zIndex = 0f),
+            overscan = EdgeOverscan,
             tint = if (!pushOpen && tab == MainTab.Devices) devicesTint else Color.Unspecified,
             // Parmakla sekme geçişinde sahne sürüklemeye bire bir bağlı (S10, Kaan).
             scrub = remember(swipe) {
@@ -153,8 +157,8 @@ fun AppNav(
                 }
             }
             // iOS gibi üst/alt kenar bulanıklığı (S10, Kaan): arka plan + sekme içeriği; yüzen nav üstte, etkilenmez.
-            EdgeBlur(hazeState, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it == 1f })
-            EdgeBlur(hazeState, top = false, extra = 112.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it == 1f })
+            EdgeBlur(hazeState, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it < 2f })
+            EdgeBlur(hazeState, top = false, extra = 112.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it < 2f })
             overlay()
             FloatingNavBar(
                 selected = tab,

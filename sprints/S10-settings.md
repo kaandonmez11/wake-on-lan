@@ -150,3 +150,5 @@ _2026-11-01 · Claude_
 
 **Kapanış sonrası not (Kaan, 2026-11-11):** ana ekranda üst bulanıklığın solunda koyu, basamaklı bir leke vardı. Kenar bulanıklığı artık yalnız içerik katmanını bulanıklaştırıyor, zemini saydam; canlı arka plan bulanıklaştırılmadan alttan görünüyor. Push ekranlarının karartması yeniden dış kutuda. 312/312. Cihazda doğrulanmadı (Kaan bakacak).
 
+**Kapanış sonrası not 2 (Kaan, 2026-11-11):** önceki düzeltmeden sonra hero kartta bulanıklığın bittiği yerde çizgi oluştu (bulanık bölge daha açık). Neden: yalnız içerik bulanıklaşınca yarı saydam cam iki kez çiziliyordu. Geri alındı: arka plan + içerik yine birlikte (opak) bulanıklaşıyor. Kenardaki koyu basamaklı leke için kaynaklar ekran dışına taşırıldı (`Modifier.overscan`, 56 dp): canlı arka plan ve push karartması ekranın ötesinde de piksel taşıyor, odak konumları ekrana göre hesaplanıyor. 312/312. Cihazda Kaan doğrulayacak.
+

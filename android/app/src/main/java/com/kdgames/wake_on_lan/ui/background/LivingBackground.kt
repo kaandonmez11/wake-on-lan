@@ -94,6 +94,8 @@ fun LivingBackground(
     continuous: Boolean = false,
     tint: Color = Color.Unspecified,
     scrub: SceneScrub? = null,
+    /** Kutu her yönden bu kadar ekran dışına taşıyor ([overscan]); odak konumları ekrana göre hesaplanır. */
+    overscan: androidx.compose.ui.unit.Dp = androidx.compose.ui.unit.Dp(0f),
 ) {
     val reduceMotion = LocalReduceMotion.current
     val foci = scene.foci.mapIndexed { index, focus ->
@@ -142,7 +144,7 @@ fun LivingBackground(
                             val tf = target.foci[i]
                             v = v.lerp(FocusValues.of(tf, if (i == 1 && tTint != Color.Unspecified) tTint else tf.color), p)
                         }
-                        v.resolve(this, time, drift, i)
+                        v.resolve(this, time, drift, i, overscan.toPx())
                     }
                     if (shader != null && brush != null) {
                         shader.setFloatUniform("resolution", size.width, size.height)
@@ -216,14 +218,14 @@ private fun animateFocus(target: FocusValues, index: Int, snap: () -> Boolean): 
     return anim
 }
 
-private fun FocusValues.resolve(scope: DrawScope, time: Float, drift: Float, index: Int): ResolvedFocus = with(scope) {
+private fun FocusValues.resolve(scope: DrawScope, time: Float, drift: Float, index: Int, overscanPx: Float = 0f): ResolvedFocus = with(scope) {
     val r = radius * density
     val inset = x * density
     val fromLeft = inset + r
-    val fromRight = size.width - inset - r
+    val fromRight = size.width - 2 * overscanPx - inset - r
     val cx = fromLeft + (fromRight - fromLeft) * anchor
     val cy = y * density + r
-    var center = Offset(cx, cy)
+    var center = Offset(cx + overscanPx, cy + overscanPx)
     var scale = 1f
     if (drift > 0f) {
         val w = (2 * PI / DRIFT_PERIODS[index]).toFloat()
