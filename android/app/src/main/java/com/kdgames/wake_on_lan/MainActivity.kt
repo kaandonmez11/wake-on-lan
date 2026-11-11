@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private val editorViewModel: com.kdgames.wake_on_lan.ui.automation.ScheduleEditorViewModel by viewModels()
     private val failureViewModel: com.kdgames.wake_on_lan.ui.automation.FailureViewModel by viewModels()
     private val settingsViewModel: com.kdgames.wake_on_lan.ui.settings.SettingsViewModel by viewModels()
+    private val gateViewModel: com.kdgames.wake_on_lan.ui.gates.GateViewModel by viewModels()
 
     @javax.inject.Inject lateinit var wifiSource: com.kdgames.wake_on_lan.net.WifiStateSource
 
@@ -223,6 +224,18 @@ class MainActivity : ComponentActivity() {
                             deleteDevice?.let { devicesViewModel.delete(it.id) }
                             deleteDevice = null
                             toasts.show("Cihaz silindi", ToastKind.Info, Sym.delete)
+                        },
+                    )
+                    // Tam ekran kapılar ve onboarding (S11): her şeyin üstünde.
+                    val gate by gateViewModel.state.collectAsStateWithLifecycle()
+                    com.kdgames.wake_on_lan.ui.gates.GateHost(
+                        ui = gate,
+                        actions = remember {
+                            com.kdgames.wake_on_lan.ui.gates.GateActions(
+                                onRefresh = { gateViewModel.refreshPermissions(); settingsViewModel.refreshPermissions() },
+                                onOnboardingDone = gateViewModel::completeOnboarding,
+                                onLocationGranted = { wifiSource.refresh() },
+                            )
                         },
                     )
                 }

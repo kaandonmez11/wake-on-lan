@@ -148,11 +148,11 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)**
 
 ## S11 — Kapılar + onboarding
-- [ ] NoWifiScreen (halkalar, bilgi kartı)
-- [ ] NoPermissionScreen
-- [ ] Kapı yönetimi (giriş/çıkış animasyonu, öncelik)
-- [ ] Onboarding 3 sayfa
-- [ ] Testler yeşil · rapor · commit
+- [x] NoWifiScreen (halkalar, bilgi kartı)
+- [x] NoPermissionScreen
+- [x] Kapı yönetimi (giriş/çıkış animasyonu, öncelik)
+- [x] Onboarding 3 sayfa
+- [x] Testler yeşil · rapor · commit
 - [ ] **Cihaz testi (Kaan)**
 
 ## S12 — Tile'lar

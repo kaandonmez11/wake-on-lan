@@ -28,6 +28,8 @@ data class Settings(
     val tileMode: TileMode = TileMode.A,
     val phoneId: String? = null,
     val selectedDeviceId: Long? = null,
+    /** İlk açılış izin akışı tamamlandı (S11). */
+    val onboardingDone: Boolean = false,
 ) {
     companion object {
         const val TILE_SLOT_COUNT = 3
@@ -95,6 +97,10 @@ class SettingsStore @Inject constructor(
         dataStore.edit { it[Keys.TILE_MODE] = mode.name }
     }
 
+    suspend fun setOnboardingDone() {
+        dataStore.edit { it[Keys.ONBOARDING_DONE] = true }
+    }
+
     suspend fun setSelectedDevice(deviceId: Long?) {
         dataStore.edit { if (deviceId == null) it.remove(Keys.SELECTED_DEVICE) else it[Keys.SELECTED_DEVICE] = deviceId }
     }
@@ -107,6 +113,7 @@ class SettingsStore @Inject constructor(
         tileMode = prefs[Keys.TILE_MODE]?.let { name -> TileMode.entries.firstOrNull { it.name == name } } ?: TileMode.A,
         phoneId = prefs[Keys.PHONE_ID],
         selectedDeviceId = prefs[Keys.SELECTED_DEVICE],
+        onboardingDone = prefs[Keys.ONBOARDING_DONE] ?: false,
     )
 
     private object Keys {
@@ -116,6 +123,7 @@ class SettingsStore @Inject constructor(
         val TILE_MODE = stringPreferencesKey("tileMode")
         val PHONE_ID = stringPreferencesKey("phoneId")
         val SELECTED_DEVICE = longPreferencesKey("selectedDeviceId")
+        val ONBOARDING_DONE = booleanPreferencesKey("onboardingDone")
         val PENDING_UNPAIRS = stringSetPreferencesKey("pendingUnpairs")
         private val slots = List(Settings.TILE_SLOT_COUNT) { longPreferencesKey("tileSlot$it") }
         fun tileSlot(index: Int) = slots[index]

@@ -33,4 +33,58 @@ Wi-Fi yoksa ya da yerel ağ izni yoksa uygulama tam ekran ve animasyonlu bir kap
 Testler yeşil; cihaz testi #1–10 geçti.
 
 ## Sprint sonu raporu
-_(Claude doldurur)_
+_2026-11-11 · Claude_
+
+### Doğrulananlar
+Sprint dosyasında "Doğrulanacak" maddesi yok. Kullanılan platform parçaları:
+- **Wi-Fi paneli:** `Settings.Panel.ACTION_WIFI`; açılamazsa `ACTION_WIFI_SETTINGS`.
+- **Mobil veri / operatör:** varsayılan ağın `TRANSPORT_CELLULAR` taşıyıp taşımadığı (`registerDefaultNetworkCallback`) ve `TelephonyManager.networkOperatorName` (izin gerektirmez).
+- **Kalıcı ret:** izin isteği reddedilince `shouldShowRequestPermissionRationale` false ise sistem artık sormuyor → buton uygulama ayarlarını açıyor.
+- One UI 9'daki gerçek davranışı cihaz testi #3–9 gösterecek.
+
+### Yapılanlar
+- **Kapı yönetimi (`GateHost`, MainActivity'de her şeyin üstünde):**
+  - Öncelik: onboarding > yerel ağ izni > Wi-Fi (`Gates.decide`, saf).
+  - Giriş 1.04 → 1 ölçek + fade (`smooth`); çıkış yukarı 28 dp kayıp çözülme, alttaki ekran ortaya çıkar. Kapılar arası geçiş crossfade.
+  - Ayarlar, Başarısız ekranı ve panellerin de üstünde. Alttaki ekrana dokunuş geçmez; geri tuşu uygulamayı arka plana alır.
+  - Kendi sürekli canlı arka planı var (tam ekran sahnesi).
+  - Wi-Fi kapısı kopukluk 700 ms sürerse açılır (açılışta ve mesh node geçişinde yanıp sönmez); bağlantı gelince hemen kapanır.
+  - Ekrana her dönüşte izinler yeniden okunur.
+- **NoWifiScreen:** 124 cam daire + `wifi_off` + amber parlama; 3 halka sürekli dışa yayılır (0.6 → 1.6, 0.5 → 0, 2.4 sn, 0.8 sn faz); daire nefes alır. Başlık, açıklama, bilgi kartı ("Şu an mobil veri · {operatör}" / "Bağlantı yok", metin akarak değişir), "Wi-Fi ayarlarını aç", alt not.
+- **NoPermissionScreen:** aynı düzen, Buz renginde. "İzin ver" izni ister; kalıcı reddedildiyse buton "Uygulama ayarlarını aç" olur ve not yol tarifi verir.
+- **Onboarding:** ilk açılışta 3 sayfa (Yerel ağ · Konum · Bildirim).
+  - Her sayfa halkalı ikon + cam kart; sayfalar yatay `smooth` yayla kayar, noktalı gösterge `bouncy`.
+  - "İzin ver" izni ister, sonuç ne olursa olsun ilerler. İzin zaten varsa buton "Devam" (son sayfada "Başla").
+  - Konum ve Bildirim'de "Şimdi değil". Yerel ağ reddedilirse onboarding'den sonra izin kapısı çıkar.
+  - Tamamlanınca DataStore bayrağı (`onboardingDone`) yazılır, bir daha gösterilmez. Konum verilince Wi-Fi adı yeniden okunur.
+- **Animasyonları kaldır:** halkalar sabit ve soluk durur, giriş/çıkış kısa solma, sayfa geçişi kısa.
+
+### Testler
+- Android: **317/317 yeşil**. `GateTest` (Robolectric Compose, sahte Wi-Fi / izin / bayrak / mobil kaynakları):
+  - karar önceliği ve bilgi kartı metinleri;
+  - Wi-Fi kesilince NoWifi görünür, mobil veri kapanınca kart "Bağlantı yok" olur, Wi-Fi gelince kapı kaybolur;
+  - kısa kopukluk kapı açmaz;
+  - izin yokken NoPermission öncelikli, izin verilince Wi-Fi kapısına geçer;
+  - onboarding yalnız ilk açılışta: 3 sayfa, bayrak yazılır, bir daha çıkmaz.
+- `assembleDebug` ve `assembleRelease` temiz. Agent değişmedi.
+
+### Animasyon denetimi
+- Kapı giriş/çıkış tek `Animatable` (katman aşamasında ölçek, kayma, alfa). Kapılar arası `AnimatedContent`.
+- Halkalar çizim aşamasında tek döngüden; nefes katman ölçeği. Görünmeyen onboarding sayfasının döngüleri durur.
+- Bilgi kartı ve buton metni `AnimatedText`; "Şimdi değil" solarak gelir/gider.
+- Animasyonlu `dropShadow` yok.
+
+### Sapmalar
+- Wi-Fi kapısı 700 ms gecikmeli açılıyor (yanıp sönmeyi önlemek için).
+- İzin kapısında da halkalar var ("aynı düzen").
+- Onboarding'de izin reddedilse de ilerleniyor; yerel ağ için sonradan izin kapısı devreye giriyor.
+- **Mevcut kurulumlarda** (Kaan'ın telefonu) bayrak yok: onboarding bir kez görünür, izinler verili olduğu için "Devam, Devam, Başla" ile geçilir.
+
+### Kontrol raporu (K20)
+Şunlara baktım, tamam; sen de kontrol et:
+- Telefona kuruldu, açılışta çökme yok.
+- Kapı görünmezken kompozisyonda yer almıyor (arka plan döngüsü çalışmıyor).
+- Debug araçlarındaki izin butonları duruyor.
+
+### Açık kalanlar
+- Kapı açıkken alttaki ekranın sürekli animasyonları durdurulmuyor (kapı opak olduğu için görünmüyor); S13 performans cilasında bakılabilir.
