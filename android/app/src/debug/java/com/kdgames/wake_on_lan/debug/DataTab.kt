@@ -60,6 +60,7 @@ private val SampleNames = listOf("Ofis PC", "Oyun PC", "NAS", "Salon TV", "Çal�
 @Composable
 fun DataTab(devices: DeviceRepository, settings: SettingsStore, vault: KeyVault, linker: com.kdgames.wake_on_lan.domain.agent.AgentLinker) {
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val list by devices.observeDevices().collectAsState(initial = emptyList())
     val prefs by settings.settings.collectAsState(initial = Settings())
     var message by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
@@ -72,6 +73,21 @@ fun DataTab(devices: DeviceRepository, settings: SettingsStore, vault: KeyVault,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        item {
+            // S11 (Kaan): uygulamayı kaldırıp kurmadan onboarding'i yeniden dene. İzinlere ve verilere dokunmaz.
+            Spacer(Modifier.padding(top = 4.dp))
+            Text("Onboarding", style = MaterialTheme.typography.titleMedium)
+            Text(if (prefs.onboardingDone) "Tamamlandı" else "Gösterilecek", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(onClick = {
+                scope.launch {
+                    settings.setOnboardingDone(false)
+                    context.startActivity(
+                        android.content.Intent(context, com.kdgames.wake_on_lan.MainActivity::class.java)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    )
+                }
+            }) { Text("Onboarding ile aç") }
+        }
         item {
             Spacer(Modifier.padding(top = 4.dp))
             Text("Cihazlar (${list.size})", style = MaterialTheme.typography.titleMedium)

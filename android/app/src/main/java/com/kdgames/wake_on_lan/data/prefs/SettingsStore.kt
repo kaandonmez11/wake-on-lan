@@ -97,8 +97,9 @@ class SettingsStore @Inject constructor(
         dataStore.edit { it[Keys.TILE_MODE] = mode.name }
     }
 
-    suspend fun setOnboardingDone() {
-        dataStore.edit { it[Keys.ONBOARDING_DONE] = true }
+    /** [done]=false yalnız Debug "Onboarding'i yeniden göster" için. */
+    suspend fun setOnboardingDone(done: Boolean = true) {
+        dataStore.edit { it[Keys.ONBOARDING_DONE] = done }
     }
 
     suspend fun setSelectedDevice(deviceId: Long?) {
