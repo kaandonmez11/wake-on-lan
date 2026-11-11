@@ -15,7 +15,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S08 | 8a | Otomasyon 1: zaman tetikli | ✅ |
 | S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ✅ |
 | S10 | 9 | Ayarlar | ✅ |
-| S11 | 10 | Tam ekran kapılar + onboarding | ☐ |
+| S11 | 10 | Tam ekran kapılar + onboarding | ✅ |
 | S12 | 11 | Hızlı Ayarlar tile'ları | ☐ |
 | S13 | 12 | Cila, performans, erişilebilirlik, uygulama ikonu | ☐ |
 
@@ -153,7 +153,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Kapı yönetimi (giriş/çıkış animasyonu, öncelik)
 - [x] Onboarding 3 sayfa
 - [x] Testler yeşil · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)**
 
 ## S12 — Tile'lar
 - [ ] WolTileService1..3 + TileBinder

@@ -88,3 +88,7 @@ Sprint dosyasında "Doğrulanacak" maddesi yok. Kullanılan platform parçaları
 
 ### Açık kalanlar
 - Kapı açıkken alttaki ekranın sürekli animasyonları durdurulmuyor (kapı opak olduğu için görünmüyor); S13 performans cilasında bakılabilir.
+
+### Cihaz testi
+✅ 2026-11-11, Kaan: #1–10 geçti. #1 uygulamayı kaldırmadan, Debug › Veri › "Onboarding ile aç" ile denendi (Kaan'ın isteğiyle eklendi).
+
