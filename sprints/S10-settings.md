@@ -141,3 +141,7 @@ _2026-11-01 · Claude_
   - Geçiş daha uzun (üst +28, alt +36 dp) ve ease-in-out azalıyor; kararma üç duraklı.
 - Testler 312/312 (push sürükleyerek kapatma testi).
 
+**Tur 4 (Kaan, 2026-11-11):** 1, 2, 5, 6 geçti; 3 (tile çipleri yatay kaymıyor, ekran kapanıyor) Kaan dokunarak seçtiği için geçti saydı. Not: Başarısız ekranındaki alt butonlar bulanıklaşıyordu.
+- **Başarısız ekranı alt butonları:** push ekranı artık alt içeriğini `LocalPushOverlay` ile `PushHost`'a veriyor; `PushHost` onu kenar bulanıklığının üstüne, yüzen nav gibi net çiziyor. Alt bulanıklık bölgesi butonların arkasını kaplayacak kadar uzatıldı (96 dp); içerik butonların altında kalmasın diye kaydırma alanına ek boşluk eklendi. Testlerde (push dışında) butonlar yerinde çiziliyor.
+- Testler 312/312.
+

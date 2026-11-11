@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
@@ -144,17 +145,34 @@ fun PushHost(
                 val haze = com.kdgames.wake_on_lan.ui.components.LocalHazeState.current
                 // İnce cam karartma kaynağın içinde: kenar bulanıklığı aynı tonu görür, açık şerit oluşmaz (S10 cihaz testi).
                 val dim = Modifier.drawBehind { drawRect(Color(0xFF0C0D10).copy(alpha = 0.30f)) }
-                if (haze != null) {
-                    Box(Modifier.fillMaxSize().hazeSource(haze, zIndex = 2f).then(dim)) { top() }
-                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it != 1f })
-                    com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = false, extra = 36.dp, modifier = Modifier.align(Alignment.BottomCenter), include = { it != 1f })
-                } else {
-                    Box(Modifier.fillMaxSize().then(dim)) { top() }
+                // Ekranın alt butonları (Başarısız: Tamam / Tekrar dene) bulanıklığın üstünde kalır: ekran onları
+                // [LocalPushOverlay] ile buraya verir, yüzen nav gibi net çizilir (S10 cihaz testi, Kaan).
+                val overlay = remember { PushOverlay() }
+                CompositionLocalProvider(LocalPushOverlay provides overlay) {
+                    if (haze != null) {
+                        Box(Modifier.fillMaxSize().hazeSource(haze, zIndex = 2f).then(dim)) { top() }
+                        com.kdgames.wake_on_lan.ui.components.EdgeBlur(haze, top = true, extra = 28.dp, modifier = Modifier.align(Alignment.TopCenter), include = { it != 1f })
+                        com.kdgames.wake_on_lan.ui.components.EdgeBlur(
+                            haze, top = false, extra = if (overlay.content != null) 96.dp else 36.dp,
+                            modifier = Modifier.align(Alignment.BottomCenter), include = { it != 1f },
+                        )
+                    } else {
+                        Box(Modifier.fillMaxSize().then(dim)) { top() }
+                    }
+                    overlay.content?.invoke(this)
                 }
             }
         }
     }
 }
+
+/** Push ekranının kenar bulanıklığından etkilenmeyecek alt içeriği (butonlar); [PushHost] bulanıklığın üstüne çizer. */
+@androidx.compose.runtime.Stable
+class PushOverlay {
+    var content by androidx.compose.runtime.mutableStateOf<(@Composable androidx.compose.foundation.layout.BoxScope.() -> Unit)?>(null)
+}
+
+val LocalPushOverlay = androidx.compose.runtime.staticCompositionLocalOf<PushOverlay?> { null }
 
 /** Ayarlar ekranı yer tutucusu (içerik S10'da). */
 @Composable

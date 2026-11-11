@@ -61,16 +61,15 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun FailureScreen(ui: FailureUi?, onBack: () -> Unit, onRetry: (FailureUi) -> Unit) {
-    val haptics = LocalHaptics.current
     Box(Modifier.fillMaxSize()) {
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        if (ui == null) return@Column
+    if (ui != null) {
         // Geri butonu üstte yüzer; içerik arkasından kayar (S10 cihaz testi).
         Column(
             Modifier
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = WolDimens.ScreenHorizontal)
                 .padding(top = WolDimens.TopExtra + 44.dp + 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -96,39 +95,21 @@ fun FailureScreen(ui: FailureUi?, onBack: () -> Unit, onRetry: (FailureUi) -> Un
                 Spacer(Modifier.height(14.dp))
                 Reveal(3) { ChecksCard() }
             }
-            Spacer(Modifier.height(20.dp))
+            // Yüzen butonların altında kalmasın.
+            Spacer(Modifier.height(20.dp + 56.dp + 28.dp))
         }
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = WolDimens.ScreenHorizontal, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            GlassSurface(
-                shape = RoundedCornerShape(50),
-                modifier = Modifier.height(56.dp).weight(1f).pressable(onClick = { haptics.tick(); onBack() }, onClickLabel = "Tamam").testTag("failure_ok"),
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Tamam", style = WolType.BodyLarge, color = WolColors.TextPrimary)
-                }
-            }
-            Box(
-                Modifier
-                    .height(56.dp)
-                    .weight(1.4f)
-                    .clip(RoundedCornerShape(50))
-                    .drawBehind { drawRect(cssLinearGradient(135f, size, 0f to ui.palette.start, 1f to ui.palette.end)) }
-                    .pressable(onClick = { haptics.click(); onRetry(ui) }, onClickLabel = "Şimdi tekrar dene")
-                    .testTag("failure_retry"),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    SymbolIcon(Sym.refresh, contentDescription = null, size = 20.dp, tint = WolColors.OnGradient)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Şimdi tekrar dene", style = WolType.BodyLarge, color = WolColors.OnGradient, maxLines = 1)
-                }
-            }
+    }
+    // Alt butonlar: push ekranındaysa kenar bulanıklığının üstüne (PushOverlay), değilse burada.
+    val portal = com.kdgames.wake_on_lan.ui.nav.LocalPushOverlay.current
+    val current = androidx.compose.runtime.rememberUpdatedState(ui)
+    val retry = androidx.compose.runtime.rememberUpdatedState(onRetry)
+    val back = androidx.compose.runtime.rememberUpdatedState(onBack)
+    if (portal == null) {
+        FailureButtons(ui, onBack, onRetry, Modifier.align(Alignment.BottomCenter))
+    } else {
+        androidx.compose.runtime.DisposableEffect(portal) {
+            portal.content = { FailureButtons(current.value, back.value, retry.value, Modifier.align(Alignment.BottomCenter)) }
+            onDispose { portal.content = null }
         }
     }
     com.kdgames.wake_on_lan.ui.settings.BackBubble(onBack, Modifier.statusBarsPadding().padding(horizontal = WolDimens.ScreenHorizontal, vertical = WolDimens.TopExtra))
@@ -233,6 +214,45 @@ private fun ChecksCard() {
                     Spacer(Modifier.width(10.dp))
                     Text(c, style = WolType.Body, color = WolColors.TextSecondary)
                 }
+            }
+        }
+    }
+}
+
+/** "Tamam" (cam) + "Şimdi tekrar dene" (cihaz gradient'i), spec 10.4. */
+@Composable
+private fun FailureButtons(ui: FailureUi?, onBack: () -> Unit, onRetry: (FailureUi) -> Unit, modifier: Modifier = Modifier) {
+    if (ui == null) return
+    val haptics = LocalHaptics.current
+    Row(
+        modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = WolDimens.ScreenHorizontal, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        GlassSurface(
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.height(56.dp).weight(1f).pressable(onClick = { haptics.tick(); onBack() }, onClickLabel = "Tamam").testTag("failure_ok"),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Tamam", style = WolType.BodyLarge, color = WolColors.TextPrimary)
+            }
+        }
+        Box(
+            Modifier
+                .height(56.dp)
+                .weight(1.4f)
+                .clip(RoundedCornerShape(50))
+                .drawBehind { drawRect(cssLinearGradient(135f, size, 0f to ui.palette.start, 1f to ui.palette.end)) }
+                .pressable(onClick = { haptics.click(); onRetry(ui) }, onClickLabel = "Şimdi tekrar dene")
+                .testTag("failure_retry"),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SymbolIcon(Sym.refresh, contentDescription = null, size = 20.dp, tint = WolColors.OnGradient)
+                Spacer(Modifier.width(6.dp))
+                Text("Şimdi tekrar dene", style = WolType.BodyLarge, color = WolColors.OnGradient, maxLines = 1)
             }
         }
     }
