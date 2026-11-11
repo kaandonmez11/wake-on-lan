@@ -14,7 +14,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S07 | 7 | Cihaz paneli + tarama | ✅ |
 | S08 | 8a | Otomasyon 1: zaman tetikli | ✅ |
 | S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ✅ |
-| S10 | 9 | Ayarlar | ☐ |
+| S10 | 9 | Ayarlar | ✅ |
 | S11 | 10 | Tam ekran kapılar + onboarding | ☐ |
 | S12 | 11 | Hızlı Ayarlar tile'ları | ☐ |
 | S13 | 12 | Cila, performans, erişilebilirlik, uygulama ikonu | ☐ |
@@ -145,7 +145,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Tile slotları + mod
 - [x] Titreşim, ipucu, hakkında/lisanslar
 - [x] Testler yeşil · rapor · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)**
 
 ## S11 — Kapılar + onboarding
 - [ ] NoWifiScreen (halkalar, bilgi kartı)

@@ -145,3 +145,6 @@ _2026-11-01 · Claude_
 - **Başarısız ekranı alt butonları:** push ekranı artık alt içeriğini `LocalPushOverlay` ile `PushHost`'a veriyor; `PushHost` onu kenar bulanıklığının üstüne, yüzen nav gibi net çiziyor. Alt bulanıklık bölgesi butonların arkasını kaplayacak kadar uzatıldı (96 dp); içerik butonların altında kalmasın diye kaydırma alanına ek boşluk eklendi. Testlerde (push dışında) butonlar yerinde çiziliyor.
 - Testler 312/312.
 
+### Cihaz testi
+✅ 2026-11-11, Kaan: #1–12 ve dört düzeltme turu geçti. Notlar: #12 titreşim ayarı Kaan'ın isteğiyle kaldırıldı; tile çip satırı yatay kaymıyor (sağa çekme ekranı kapatıyor), Kaan dokunarak seçtiği için kabul etti.
+
