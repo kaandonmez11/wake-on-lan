@@ -96,3 +96,6 @@ _2026-11-11 · Claude_
 
 ### Açık kalanlar
 - Kilit ekranı davranışları ve mod B dialog'unun One UI'daki görünümü cihazda doğrulanmadı (cihaz testi).
+
+### Cihaz testi
+✅ 2026-11-11, Kaan: #1–12 geçti (sahte PC ile; kilit ekranından uyandırma, mod A/B/C dahil).

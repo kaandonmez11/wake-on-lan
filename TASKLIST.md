@@ -16,7 +16,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S09 | 8b | Otomasyon 2: retry, başarısız ekranı, eve gelince | ✅ |
 | S10 | 9 | Ayarlar | ✅ |
 | S11 | 10 | Tam ekran kapılar + onboarding | ✅ |
-| S12 | 11 | Hızlı Ayarlar tile'ları | ☐ |
+| S12 | 11 | Hızlı Ayarlar tile'ları | ✅ |
 | S13 | 12 | Cila, performans, erişilebilirlik, uygulama ikonu | ☐ |
 
 ---
@@ -161,7 +161,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Kapalıya dokun → uyandır (kilit ekranında) + VerifyWorker
 - [x] Mod A TilePowerActivity, Mod B dialog, Mod C çift dokunuş
 - [x] Doğrulanacaklar raporu · testler yeşil · commit
-- [ ] **Cihaz testi (Kaan)**
+- [x] **Cihaz testi (Kaan)**
 
 ## S13 — Cila
 - [x] Uygulama ikonu — S00'da Kaan'ın kaynaklarıyla yapıldı (S13'te yalnız debug ikonu bandı kaldı)
