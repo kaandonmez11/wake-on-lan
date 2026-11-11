@@ -39,6 +39,10 @@ fun FakePcTab(fake: DebugFakePc, devices: DeviceRepository) {
     val state by fake.state.collectAsState()
     val list by devices.observeDevices().collectAsState(initial = emptyList())
     val device = list.firstOrNull { fake.handles(it) }
+    // Eski sahte PC kaydında anahtar takma adı yoktu; güç komutları "Agent bulunamadı" diye reddediliyordu (S12).
+    LaunchedEffect(device?.id, device?.agentKeyAlias) {
+        if (device != null && device.agentKeyAlias == null) devices.updateDevice(device.copy(agentId = DebugFakePc.AGENT_ID, agentKeyAlias = DebugFakePc.KEY_ALIAS))
+    }
     // Geçişler (açılıyor/kapanıyor) zamanla uygulanır: ekran açıkken saniyede bir yenile.
     LaunchedEffect(Unit) {
         while (true) {
@@ -60,7 +64,7 @@ fun FakePcTab(fake: DebugFakePc, devices: DeviceRepository) {
                         scope.launch {
                             val r = devices.add(DeviceInput(DebugFakePc.NAME, DebugFakePc.IP, DebugFakePc.MAC, iconKey = "pc", colorIndex = 3))
                             if (r is SaveResult.Saved) devices.getDevice(r.id)?.let {
-                                devices.updateDevice(it.copy(agentId = DebugFakePc.AGENT_ID, hibernateAvailable = true))
+                                devices.updateDevice(it.copy(agentId = DebugFakePc.AGENT_ID, agentKeyAlias = DebugFakePc.KEY_ALIAS, hibernateAvailable = true))
                             }
                         }
                     }) { Text("Sahte PC ekle") }

@@ -41,6 +41,47 @@
             </intent-filter>
         </activity>
 
+        <!-- Tile güç paneli (S12, mod A): şeffaf, son uygulamalarda görünmez. -->
+        <activity
+            android:name=".tile.TilePowerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Wol.Translucent" />
+
+        <!-- Hızlı Ayarlar tile'ları (spec 10.8): 3 sabit slot. -->
+        <service
+            android:name=".tile.WolTileService1"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_app"
+            android:label="WoL 1"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".tile.WolTileService2"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_app"
+            android:label="WoL 2"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".tile.WolTileService3"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_app"
+            android:label="WoL 3"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <!-- Zamanlayıcı alarmı (spec 9.4): paketleri hemen gönderir, doğrulamayı VerifyWorker'a bırakır. -->
         <receiver
             android:name=".domain.schedule.ScheduleAlarmReceiver"

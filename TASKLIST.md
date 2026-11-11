@@ -156,10 +156,10 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] **Cihaz testi (Kaan)**
 
 ## S12 — Tile'lar
-- [ ] WolTileService1..3 + TileBinder
-- [ ] Tile metinleri/state eşlemesi, onStartListening turları
-- [ ] Kapalıya dokun → uyandır (kilit ekranında) + VerifyWorker
-- [ ] Mod A TilePowerActivity, Mod B dialog, Mod C çift dokunuş
+- [x] WolTileService1..3 + TileBinder
+- [x] Tile metinleri/state eşlemesi, onStartListening turları
+- [x] Kapalıya dokun → uyandır (kilit ekranında) + VerifyWorker
+- [x] Mod A TilePowerActivity, Mod B dialog, Mod C çift dokunuş
 - [x] Doğrulanacaklar raporu · testler yeşil · commit
 - [ ] **Cihaz testi (Kaan)**
 

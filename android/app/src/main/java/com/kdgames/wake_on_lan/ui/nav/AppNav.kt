@@ -64,6 +64,8 @@ fun AppNav(
     modifier: Modifier = Modifier,
     /** Her artışta Cihazlar sekmesine geçilir ve Ayarlar kapanır (panelden kayıt, spec 10.5). */
     showDevicesRequest: Int = 0,
+    /** Her artışta Ayarlar açılır (boş tile'a dokunma, S12). */
+    openSettingsRequest: Int = 0,
     devices: @Composable (openSettings: () -> Unit) -> Unit = { DevicesPlaceholder() },
     automation: @Composable (openSettings: () -> Unit) -> Unit = { AutomationScreen(onOpenSettings = it) },
     /** Açık başarısız ekranı (spec 10.4; bildirimden ya da karttaki "Detay"dan). null = kapalı. */
@@ -91,6 +93,7 @@ fun AppNav(
     swipe.devicesTint = devicesTint
     val reduceMotion = LocalReduceMotion.current
     val shiftPx = with(LocalDensity.current) { TabShift.roundToPx() }
+    LaunchedEffect(openSettingsRequest) { if (openSettingsRequest > 0) settingsOpen = true }
     LaunchedEffect(showDevicesRequest) {
         if (showDevicesRequest > 0 && tab != MainTab.Devices) {
             tabDirection = -1

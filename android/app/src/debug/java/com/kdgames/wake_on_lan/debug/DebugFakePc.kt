@@ -172,6 +172,8 @@ class DebugFakePc @Inject constructor(
         const val IP = "192.0.2.77"
         const val NAME = "Sahte PC"
         const val AGENT_ID = "fake-agent"
+        /** Gerçek anahtar yok; komutlar sahte PC'ye yönlendiği için kullanılmaz, yalnız "eşli" sayılması için. */
+        const val KEY_ALIAS = "fake-key"
         private const val WAKE_MS = 5_000L
         private const val OFF_MS = 5_000L
         private const val RESTART_MS = 15_000L

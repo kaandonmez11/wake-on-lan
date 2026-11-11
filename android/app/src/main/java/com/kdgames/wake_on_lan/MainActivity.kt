@@ -59,7 +59,11 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         intent.failureRunId()?.let { failureRun.value = it }
+        if (intent.getBooleanExtra(EXTRA_TILE_SETTINGS, false)) tileSettings.intValue++
     }
+
+    /** Boş tile'a dokununca: Ayarlar › Hızlı ayarlar açılır (S12). */
+    private val tileSettings = androidx.compose.runtime.mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge-to-edge: şeffaf sistem çubukları, açık (beyaz) ikonlar (spec 10).
@@ -69,6 +73,7 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) intent?.failureRunId()?.let { failureRun.value = it }
+        if (savedInstanceState == null && intent?.getBooleanExtra(EXTRA_TILE_SETTINGS, false) == true) tileSettings.intValue++
         setContent {
             WolTheme {
                 // Kök yalnız tonu okur; tam durum yalnız Cihazlar içeriğinde okunur (S06 FPS taraması).
@@ -116,6 +121,7 @@ class MainActivity : ComponentActivity() {
                         devicesTint = tint,
                         modifier = Modifier.sheetBackdrop(motion).sheetBackdrop(editorMotion),
                         showDevicesRequest = showDevices,
+                        openSettingsRequest = tileSettings.intValue,
                         devices = { openSettings ->
                             val state by devicesViewModel.state.collectAsStateWithLifecycle()
                             DevicesScreen(
@@ -136,6 +142,7 @@ class MainActivity : ComponentActivity() {
                         settings = { back ->
                             com.kdgames.wake_on_lan.ui.settings.SettingsScreen(
                                 state = settingsState,
+                                focusTiles = tileSettings.intValue,
                                 actions = remember {
                                     com.kdgames.wake_on_lan.ui.settings.SettingsActions(
                                         onBack = back,
@@ -245,6 +252,14 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_FAILURE_RUN = "failureRunId"
+        private const val EXTRA_TILE_SETTINGS = "tileSettings"
+
+        /** Atanmamış tile'a dokununca (spec 10.8). */
+        fun tileSettingsIntent(context: android.content.Context): android.content.Intent =
+            android.content.Intent(context, MainActivity::class.java)
+                .setData(android.net.Uri.parse("wol://settings/tiles"))
+                .putExtra(EXTRA_TILE_SETTINGS, true)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
         /** Başarısız bildirimine dokununca (spec 9.4 → 10.4). */
         fun failureIntent(context: android.content.Context, runId: Long): android.content.Intent =

@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.semantics.heading
@@ -94,7 +95,15 @@ class SettingsActions(
  * (ON_RESUME) izinler yeniden okunur; satırlar animasyonla güncellenir.
  */
 @Composable
-fun SettingsScreen(state: SettingsUi, actions: SettingsActions) {
+fun SettingsScreen(state: SettingsUi, actions: SettingsActions, focusTiles: Int = 0) {
+    // Boş tile'dan gelindiyse "Hızlı ayarlar" bölümüne kaydır (S12).
+    val tilesAnchor = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    androidx.compose.runtime.LaunchedEffect(focusTiles) {
+        if (focusTiles > 0) {
+            kotlinx.coroutines.delay(350)
+            runCatching { tilesAnchor.bringIntoView() }
+        }
+    }
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         actions.onRefreshPermissions()
         onPauseOrDispose { }
@@ -147,7 +156,14 @@ fun SettingsScreen(state: SettingsUi, actions: SettingsActions) {
                 )
             }
 
+            Box(Modifier.bringIntoViewRequester(tilesAnchor)) { Column {
             Section("Hızlı ayarlar") {
+                Text(
+                    "Bildirim panelini aşağı çek › düzenle (kalem) › \"WoL 1–3\" kutucuklarını panele sürükle. Kapalı PC'ye dokununca uyanır, açık PC'de aşağıdaki davranış çalışır.",
+                    style = WolType.BodySmall,
+                    color = WolColors.TextTertiary,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp),
+                )
                 repeat(com.kdgames.wake_on_lan.data.prefs.Settings.TILE_SLOT_COUNT) { slot ->
                     if (slot > 0) Divider()
                     TileSlotRow(slot, state.settings.tileSlots.getOrNull(slot), state.devices) { actions.onTileSlot(slot, it) }
@@ -155,6 +171,7 @@ fun SettingsScreen(state: SettingsUi, actions: SettingsActions) {
                 Divider()
                 TileModeRow(state.settings.tileMode, actions.onTileMode)
             }
+            } }
 
             Section("İpuçları ve uyarılar") {
                 TIPS.forEachIndexed { i, tip ->
