@@ -229,8 +229,11 @@ private fun PulseIcon(symbol: String, accent: Color) {
                 repeat(RING_COUNT) { i ->
                     // Azaltılmış harekette sabit, eş aralıklı soluk halkalar.
                     val t = if (reduceMotion) (i + 1f) / (RING_COUNT + 1) else (loop.value + i.toFloat() / RING_COUNT) % 1f
-                    val scale = 0.6f + 1.0f * t
-                    drawCircle(accent.copy(alpha = 0.5f * (1f - t)), radius = base * scale, style = Stroke(1.5.dp.toPx()))
+                    // Yavaşlayarak büyür (ease-out); doğarken ilk %30'da yumuşakça belirir, sonra solarak kaybolur.
+                    // Halka 0,5 opaklıkla aniden doğunca "sert" görünüyordu (Kaan, S13 sonrası).
+                    val scale = 0.6f + 1.0f * (1f - (1f - t) * (1f - t))
+                    val appear = if (reduceMotion) 1f else (t / 0.3f).coerceIn(0f, 1f).let { it * it * (3f - 2f * it) }
+                    drawCircle(accent.copy(alpha = 0.5f * appear * (1f - t)), radius = base * scale, style = Stroke(1.5.dp.toPx()))
                 }
             },
         )
