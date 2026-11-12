@@ -117,3 +117,27 @@ Yöntem: koddaki tüm `tween`, `snap`, sonsuz döngü ve boyut geçişleri taran
 - **Macrobenchmark ve baseline profile** koşulmadı (telefon açık/kilitsiz olmalı; Kaan "çalıştır" deyince ben koşarım ya da README'deki komutla).
 - **Kontrast:** üçüncül / kırmızımsı metin ve bazı palet uçları en kötü noktada 4,5'in altında; istenirse tonlar bir kademe açılır.
 - AGSL shader süresi ayrıca ölçülmedi (macrobenchmark kare süreleri gösterecek).
+
+### Performans ölçümü ve baseline profile (2026-11-12, Kaan'ın onayıyla telefonda koşuldu)
+Galaxy S24 (SM-S921B), Android 17, `benchmark` türü (release ile aynı), 5'er yineleme. 120 Hz'de kare bütçesi 8,3 ms. Değerler karenin CPU süresi (ms): tipik (P50) / %90 / %99.
+
+| Senaryo | Profilsiz | Baseline profile ile |
+|---|---|---|
+| Kart seçimi (hero morph) | 5,3 / 7,2 / 10,1 | **3,1 / 5,3 / 6,4** |
+| Liste kaydırma | 6,4 / 9,0 / 11,8 | **4,7 / 6,6 / 8,2** |
+| Sekme geçişi | 8,0 / 11,5 / 16,4 | **4,7 / 6,7 / 13,4** |
+| Panel açma | 9,3 / 15,5 / 20,3 | **4,8 / 12,2 / 14,4** |
+| Soğuk açılış | 476 ms | 485 ms (değişmedi) |
+
+- Profil tipik kare süresini %25–50 düşürdü; kart seçimi, kaydırma ve sekme geçişi tipik karede bütçenin içinde.
+- **Panel açma** hâlâ en ağır senaryo: tipik kare bütçede, yavaş kareler (%90) 12 ms. Panel açılırken bulanıklık ve ağ taraması birlikte başlıyor. Kaan'ın cihaz testinde takılma hissedilmedi (#3).
+- Sekme geçişinin en yavaş %1'i 13 ms (geçiş anındaki ilk kareler).
+- Profil üretimi: ilk üretim R8 ad kısaltmasıyla çıktığı için kullanılamadı; `-PprofileGen` (ad kısaltma kapalı) ile yeniden üretildi → `app/src/main/baseline-prof.txt` (8706 satır). Release APK'da `assets/dexopt/baseline.prof` var.
+- Ölçüm notu: ikinci turda sekme geçişi senaryosu daha çok kare üretti (207 → 1903); oranlar karşılaştırılabilir, kare sayıları değil.
+
+### Cihaz testi düzeltmeleri
+**Tur 1 (Kaan, 2026-11-12):** #1, 3–7 geçti; #2 için "çalıştır". İstekler: uygulama adı **WoL**, sürüm **1.0.0** (versionCode 2). Yapıldı; Ayarlar › Hakkında'daki ad da "WoL".
+
+### Cihaz testi
+✅ 2026-11-12, Kaan: #1, 3–7 geçti; #2 (macrobenchmark) Claude tarafından telefonda koşuldu, sonuçlar yukarıda. Telefonda kurulu sürüm: release 1.0.0 (baseline profile'lı).
+

@@ -17,7 +17,7 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 | S10 | 9 | Ayarlar | ✅ |
 | S11 | 10 | Tam ekran kapılar + onboarding | ✅ |
 | S12 | 11 | Hızlı Ayarlar tile'ları | ✅ |
-| S13 | 12 | Cila, performans, erişilebilirlik, uygulama ikonu | ☐ |
+| S13 | 12 | Cila, performans, erişilebilirlik, uygulama ikonu | ✅ |
 
 ---
 
@@ -167,9 +167,9 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 - [x] Uygulama ikonu — S00'da Kaan'ın kaynaklarıyla yapıldı (S13'te yalnız debug ikonu bandı kaldı)
 - [x] Animasyon denetim tablosu (her ekran × durum)
 - [x] Animasyonları kaldır davranışı (tüm ekranlar)
-- [ ] Baseline profile + Macrobenchmark — modül ve komutlar hazır; ölçüm ve profil üretimi cihazda koşulacak
+- [x] Baseline profile + Macrobenchmark — telefonda koşuldu, profil eklendi
 - [x] Erişilebilirlik + kontrast raporu
 - [x] Release build + R8 + imzalama (**Kaan'a sor**)
 - [x] Temizlik, README
 - [x] Testler + lint yeşil · rapor · commit
-- [ ] **Cihaz testi (Kaan)** — spec 16 elle test listesi dahil
+- [x] **Cihaz testi (Kaan)** — spec 16 elle test listesi dahil

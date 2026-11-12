@@ -152,8 +152,8 @@ android {
         applicationId = "com.kdgames.wake_on_lan"
         minSdk = 35
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "1.0.0"
     }
 
     buildTypes {
@@ -172,6 +172,8 @@ android {
         create("benchmark") {
             initWith(getByName("release"))
             matchingFallbacks += "release"
+            // Baseline profile üretimi (-PprofileGen): profil gerçek sınıf adlarıyla çıkmalı, ad kısaltma kapalı.
+            if (providers.gradleProperty("profileGen").isPresent) proguardFiles("proguard-profilegen.pro")
         }
     }
 

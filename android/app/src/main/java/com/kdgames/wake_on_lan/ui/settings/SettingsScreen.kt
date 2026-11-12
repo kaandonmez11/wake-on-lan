@@ -446,7 +446,7 @@ private fun AboutBlock() {
         }.getOrDefault("?")
     }
     val files = remember { runCatching { context.assets.list("licenses")?.sorted().orEmpty() }.getOrDefault(emptyList()) }
-    SettingRow("WoL Denetim Merkezi", "Sürüm $version") {}
+    SettingRow("WoL", "Sürüm $version") {}
     files.forEach { f ->
         Divider()
         LicenseRow(f)

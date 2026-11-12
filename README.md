@@ -41,7 +41,7 @@ cd android
 Android Studio'da **`android/`** klasörünü açın.
 
 Debug build telefona iki ikon kurar:
-- **WoL Denetim Merkezi**: uygulamanın kendisi.
+- **WoL**: uygulamanın kendisi.
 - **WoL Debug**: her sprintin cihazda test araçları (K19). Release build'de bulunmaz.
 
 **Release build:** R8 ve kaynak küçültme açık (`app/proguard-rules.pro`), "WoL Debug" içermez. Bu PC'deki debug anahtarıyla (`~/.android/debug.keystore`) imzalanır (K30): debug ve release aynı kimliği taşır, biri diğerinin üstüne kurulur, veriler ve PC eşleşmesi kalır. Anahtar repoda değildir; kaybolursa yeni sürüm için uygulamayı kaldırıp kurmak ve PC'de `wolagent reset` gerekir, bu yüzden yedeğini alın.
@@ -51,8 +51,8 @@ Debug build telefona iki ikon kurar:
 ```bash
 # Açılış, sekme geçişi, hero morph, panel açma, liste kaydırma
 ./gradlew :macrobenchmark:connectedBenchmarkAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.kdgames.wake_on_lan.macrobenchmark.Benchmarks"
-# Baseline profile üretimi → çıkan *-baseline-prof.txt dosyasını app/src/main/baseline-prof.txt olarak kopyala
-./gradlew :macrobenchmark:connectedBenchmarkAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.kdgames.wake_on_lan.macrobenchmark.BaselineProfileGenerator"
+# Baseline profile üretimi (-PprofileGen: ad kısaltma kapalı) → çıkan *-baseline-prof.txt dosyasını app/src/main/baseline-prof.txt olarak kopyala
+./gradlew -PprofileGen :macrobenchmark:connectedBenchmarkAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.kdgames.wake_on_lan.macrobenchmark.BaselineProfileGenerator"
 # Compose derleyici raporları (kararlılık / atlanabilirlik) → app/build/compose_reports/
 ./gradlew :app:compileReleaseKotlin -PcomposeReports --rerun-tasks
 ```
