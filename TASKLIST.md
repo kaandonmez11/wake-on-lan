@@ -165,11 +165,11 @@ Ayrıntılar `sprints/` altında; kurallar `sprints/README.md`. Claude bir sprin
 
 ## S13 — Cila
 - [x] Uygulama ikonu — S00'da Kaan'ın kaynaklarıyla yapıldı (S13'te yalnız debug ikonu bandı kaldı)
-- [ ] Animasyon denetim tablosu (her ekran × durum)
-- [ ] Animasyonları kaldır davranışı (tüm ekranlar)
-- [ ] Baseline profile + Macrobenchmark
-- [ ] Erişilebilirlik + kontrast raporu
-- [ ] Release build + R8 + imzalama (**Kaan'a sor**)
-- [ ] Temizlik, README
-- [ ] Testler + lint yeşil · rapor · commit
+- [x] Animasyon denetim tablosu (her ekran × durum)
+- [x] Animasyonları kaldır davranışı (tüm ekranlar)
+- [ ] Baseline profile + Macrobenchmark — modül ve komutlar hazır; ölçüm ve profil üretimi cihazda koşulacak
+- [x] Erişilebilirlik + kontrast raporu
+- [x] Release build + R8 + imzalama (**Kaan'a sor**)
+- [x] Temizlik, README
+- [x] Testler + lint yeşil · rapor · commit
 - [ ] **Cihaz testi (Kaan)** — spec 16 elle test listesi dahil

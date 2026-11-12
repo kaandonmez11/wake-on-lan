@@ -14,7 +14,7 @@ Yerel ağdaki Windows bilgisayarları Wake-on-LAN ile uyandıran, yanlarındaki 
 ├─ protocol/
 │  ├─ PROTOCOL.md       agent protokolünün normatif tarifi
 │  └─ vectors.json      Kotlin ve C# testlerinin ortak test vektörleri (üretilir)
-├─ android/             Gradle projesi (tek :app modülü)
+├─ android/             Gradle projesi (:app + :macrobenchmark)
 └─ agent/               .NET 10 çözümü
    ├─ WolAgent/          Worker Service + CLI (tek exe)
    ├─ WolAgent.Tests/    xUnit
@@ -34,6 +34,8 @@ cd android
 ./gradlew :app:testDebugUnitTest      # birim + Robolectric testleri
 ./gradlew :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:installDebug           # bağlı telefona kur (ADB)
+./gradlew :app:lintDebug              # lint (hata olmamalı)
+./gradlew :app:assembleRelease        # app/build/outputs/apk/release/app-release.apk (R8, imzalı)
 ```
 
 Android Studio'da **`android/`** klasörünü açın.
@@ -41,6 +43,21 @@ Android Studio'da **`android/`** klasörünü açın.
 Debug build telefona iki ikon kurar:
 - **WoL Denetim Merkezi**: uygulamanın kendisi.
 - **WoL Debug**: her sprintin cihazda test araçları (K19). Release build'de bulunmaz.
+
+**Release build:** R8 ve kaynak küçültme açık (`app/proguard-rules.pro`), "WoL Debug" içermez. Bu PC'deki debug anahtarıyla (`~/.android/debug.keystore`) imzalanır (K30): debug ve release aynı kimliği taşır, biri diğerinin üstüne kurulur, veriler ve PC eşleşmesi kalır. Anahtar repoda değildir; kaybolursa yeni sürüm için uygulamayı kaldırıp kurmak ve PC'de `wolagent reset` gerekir, bu yüzden yedeğini alın.
+
+**Performans ölçümü** (`:macrobenchmark`, gerçek cihaz; telefon açık ve kilitsiz olmalı):
+
+```bash
+# Açılış, sekme geçişi, hero morph, panel açma, liste kaydırma
+./gradlew :macrobenchmark:connectedBenchmarkAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.kdgames.wake_on_lan.macrobenchmark.Benchmarks"
+# Baseline profile üretimi → çıkan *-baseline-prof.txt dosyasını app/src/main/baseline-prof.txt olarak kopyala
+./gradlew :macrobenchmark:connectedBenchmarkAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.kdgames.wake_on_lan.macrobenchmark.BaselineProfileGenerator"
+# Compose derleyici raporları (kararlılık / atlanabilirlik) → app/build/compose_reports/
+./gradlew :app:compileReleaseKotlin -PcomposeReports --rerun-tasks
+```
+
+Ölçüm, uygulamanın `benchmark` türünü (release ile aynı) telefona kurar ve arayüzü kendisi kullanır. Sonuçlar `macrobenchmark/build/outputs/connected_android_test_additional_output/` altına yazılır.
 
 Material Symbols yalnız kullanılan ikonlara indirgenmiş olarak gömülüdür. Yeni ikon gerekirse:
 

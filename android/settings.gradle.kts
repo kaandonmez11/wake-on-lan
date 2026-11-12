@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "wake-on-lan"
 include(":app")
+include(":macrobenchmark")

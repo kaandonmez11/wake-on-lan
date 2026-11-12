@@ -158,11 +158,20 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // S13: R8 + kaynak küçültme. İmza (Kaan'ın kararı, K30): telefonda kurulu sürümle aynı anahtar
+            // (bu PC'deki debug keystore) → release mevcut uygulamanın üstüne kurulur, veriler ve PC eşleşmesi kalır.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        // S13: macrobenchmark hedefi. Release ile aynı (R8, aynı imza); yalnız ölçüm için ayrı tür.
+        create("benchmark") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
         }
     }
 
@@ -190,6 +199,14 @@ android {
 
 kotlin {
     jvmToolchain(17)
+}
+
+// S13: Compose derleyici raporları (gereksiz recomposition taraması): ./gradlew :app:compileReleaseKotlin -PcomposeReports
+composeCompiler {
+    if (providers.gradleProperty("composeReports").isPresent) {
+        reportsDestination = layout.buildDirectory.dir("compose_reports")
+        metricsDestination = layout.buildDirectory.dir("compose_reports")
+    }
 }
 
 room {
@@ -228,6 +245,8 @@ dependencies {
     ksp(libs.room.compiler)
     implementation(libs.datastore.preferences)
     implementation(libs.work.runtime.ktx)
+    // Baseline profile'ın kurulumda derlenmesi (S13).
+    implementation(libs.androidx.profileinstaller)
 
     implementation(libs.haze)
     implementation(libs.haze.blur)

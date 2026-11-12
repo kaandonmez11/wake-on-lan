@@ -1,21 +1,15 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# WoL Denetim Merkezi — R8 kuralları (S13).
+# Hilt, Room, WorkManager, DataStore ve Compose kendi tüketici kurallarını getirir.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Çökme kayıtları okunabilir kalsın (satır numaraları).
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# WorkManager işçileri ve yayın alıcıları ad ile (manifest / yansıma) yaratılır.
+-keep class * extends androidx.work.ListenableWorker { <init>(android.content.Context, androidx.work.WorkerParameters); }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Room'un şema/enum dönüştürücüleri enum adlarını kullanır (RunResult, PowerAction…): valueOf/values kalsın.
+-keepclassmembers enum com.kdgames.wake_on_lan.** {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
